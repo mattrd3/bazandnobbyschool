@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { onRequest, __test } from "../functions/api/[[path]].js";
 
 class FakeDB {
-  constructor() { this.rows = new Map(); }
+  constructor() { this.rows = new Map(); this.statusRows = new Map(); this.auditRows = []; }
   prepare(sql) { return new FakeStmt(this, sql); }
   async batch(statements) { for (const s of statements) await s.run(); }
 }
@@ -21,6 +21,18 @@ class FakeStmt {
     if (this.sql.includes("SELECT dateKey, data FROM days")) {
       return { results: [...this.db.rows.entries()].sort().map(([dateKey, row]) => ({ dateKey, data: row.data })) };
     }
+    if (this.sql.includes("SELECT name, status FROM player_status WHERE dateKey")) {
+      const dateKey = this.args[0];
+      return { results: [...this.db.statusRows.values()].filter(r => r.dateKey === dateKey).map(r => ({ name: r.name, status: r.status })) };
+    }
+    if (this.sql.includes("SELECT dateKey, name, status FROM player_status")) {
+      return { results: [...this.db.statusRows.values()].map(r => ({ dateKey: r.dateKey, name: r.name, status: r.status })) };
+    }
+    if (this.sql.includes("SELECT ts, action, name, actor, actorType, details FROM audit_events")) {
+      const dateKey = this.args[0];
+      const limit = this.args[1] || 300;
+      return { results: this.db.auditRows.filter(r => r.dateKey === dateKey).sort((a,b)=>b.ts-a.ts).slice(0, limit) };
+    }
     throw new Error("Unsupported all SQL: " + this.sql);
   }
   async run() {
@@ -29,8 +41,31 @@ class FakeStmt {
       this.db.rows.set(dateKey, { data, updatedAt });
       return { success: true };
     }
+    if (this.sql.includes("CREATE TABLE IF NOT EXISTS")) {
+      return { success: true };
+    }
+    if (this.sql.includes("INSERT INTO player_status")) {
+      const [dateKey, name, status, updatedAt, actor, actorType] = this.args;
+      this.db.statusRows.set(`${dateKey}::${name}`, { dateKey, name, status, updatedAt, actor, actorType });
+      return { success: true };
+    }
+    if (this.sql.includes("INSERT INTO audit_events")) {
+      const [id, dateKey, ts, action, name, actor, actorType, details] = this.args;
+      this.db.auditRows.push({ id, dateKey, ts, action, name, actor, actorType, details });
+      return { success: true };
+    }
     if (this.sql.includes("DELETE FROM days WHERE dateKey")) {
       this.db.rows.delete(this.args[0]);
+      return { success: true };
+    }
+    if (this.sql.includes("DELETE FROM player_status WHERE dateKey")) {
+      const key = this.args[0];
+      for (const k of [...this.db.statusRows.keys()]) if (k.startsWith(`${key}::`)) this.db.statusRows.delete(k);
+      return { success: true };
+    }
+    if (this.sql.includes("DELETE FROM audit_events WHERE dateKey")) {
+      const key = this.args[0];
+      this.db.auditRows = this.db.auditRows.filter(r => r.dateKey !== key);
       return { success: true };
     }
     throw new Error("Unsupported run SQL: " + this.sql);
@@ -47,7 +82,7 @@ async function call(db, path, method="GET", body=null) {
   return { status: res.status, json };
 }
 
-const { normaliseDateKey, safeDay, buildGroups, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis } = __test;
+const { normaliseDateKey, safeDay, buildGroups, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, DEFAULT_MEMBERS } = __test;
 
 assert.equal(normaliseDateKey("2026-06-07"), "2026-06-07");
 assert.equal(normaliseDateKey("Sun May 10 2026 00:00:00 GMT+0100 (British Summer Time)"), "2026-05-10");
@@ -64,6 +99,17 @@ let r = await call(db, "/api/schedule");
 assert.equal(r.status, 200);
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.schedule, {});
+assert.ok(r.json.members.includes("Danny"), "Danny should be present in default roster");
+
+
+r = await call(db, "/api/admin/member", "POST", { name:"Zoe", op:"add", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+assert.ok(r.json.members.includes("Zoe"));
+r = await call(db, "/api/schedule");
+assert.ok(r.json.members.includes("Zoe"));
+r = await call(db, "/api/admin/member", "POST", { name:"Zoe", op:"remove", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+assert.equal(r.json.members.includes("Zoe"), false);
 
 r = await call(db, "/api/admin/player-pin", "POST", { name:"Jason", pin:"1111", adminPin:"2727" });
 assert.equal(r.json.ok, true);
@@ -86,6 +132,10 @@ r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"J
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, []);
 assert.equal(r.json.data.audit.at(-1).action, "removed_self");
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
+assert.equal(r.json.ok, true);
+assert.ok(r.json.events.some(e => e.action === "joined"));
+assert.ok(r.json.events.some(e => e.action === "removed_self"));
 
 r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-07", name:"Ethan", adminPin:"2727" });
 assert.equal(r.json.ok, true);
@@ -111,12 +161,12 @@ assert.equal("maybes" in r.json.schedule["2026-06-07"], false);
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 24 API/helper tests passed");
+console.log("PASS: 27 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v15"')) throw new Error("v15 marker missing");
+if (!html.includes('const VERSION = "v19"')) throw new Error("v19 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
-if (!html.includes("upcoming.slice(0,8)")) throw new Error("non-admin 8-week future limit missing");
+if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
 if (!html.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
 if (!html.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
@@ -126,10 +176,13 @@ if (!html.includes("CONFIRMED FOR THIS DATE")) throw new Error("locked-date conf
 if (!html.includes("--page-bg: #e9f0e4")) throw new Error("soft sage page background missing");
 if (!html.includes("YOUR PLAYER LOGIN")) throw new Error("player login box missing");
 if (!html.includes("PLAYER PIN MANAGEMENT")) throw new Error("admin PIN management UI missing");
+if (!html.includes("ROSTER MANAGEMENT")) throw new Error("admin roster management UI missing");
+if (!html.includes("admin/member")) throw new Error("admin member API call missing");
+if (!html.includes("Danny")) throw new Error("Danny missing from default roster");
 if (!html.includes("priorityBtn")) throw new Error("early tee priority UI missing");
 if (!html.includes("Activity log")) throw new Error("admin audit log UI missing");
 for (const forbidden of ["Maybe", "currentMaybes", "confirmMaybe", "chooseMaybe", "maybeBtn", "maybeChip"]) {
   if (html.includes(forbidden)) throw new Error(`Maybe feature should be removed from UI: ${forbidden}`);
 }
 if (html.includes("MAYBE PLAYING") || html.includes("CHOOSE PLAYING OR MAYBE")) throw new Error("Maybe user-facing copy should be removed");
-console.log("PASS: v15 UI regression checks passed");
+console.log("PASS: v18 UI regression checks passed");

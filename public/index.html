@@ -130,9 +130,9 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v17";
+const VERSION = "v19";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
-const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
+const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
     "2026-01-03": "Medal", "2026-01-04": "Winter League", "2026-01-10": "4 Ball", "2026-01-11": "Bogey", "2026-01-17": "Yellow Ball Competition", "2026-01-18": "Winter League", "2026-01-24": "Stableford", "2026-01-25": "4 Ball", "2026-01-31": "Stableford Team Event (4 person waltz)", "2026-02-01": "Winter League", "2026-02-07": "Stableford", "2026-02-08": "Bogey", "2026-02-14": "Medal", "2026-02-15": "Winter League", "2026-02-21": "Mixed Yellow Ball Stableford", "2026-02-22": "4 Ball", "2026-02-28": "Bogey", "2026-03-01": "Stableford", "2026-03-07": "Medal", "2026-03-08": "Texas Scramble", "2026-03-14": "Stableford", "2026-03-15": "4 Ball (Mother's Day)", "2026-03-21": "2-Man Aggregate Stableford", "2026-03-22": "Medal", "2026-03-28": "Stableford", "2026-03-29": "Captains' Drive-Ins & 4BBB", "2026-04-04": "4-Ball Stableford", "2026-04-05": "Medal (Easter Sunday)", "2026-04-11": "Chairman's Trophy (Greensome)", "2026-04-12": "Druids Cup / Medal", "2026-04-18": "Stableford", "2026-04-19": "Champion of Champions Medal", "2026-04-25": "V H Pearce 2-Man Texas Scramble", "2026-04-26": "Dusty Bin Stableford", "2026-05-02": "Stan Creswell Trophy Medal", "2026-05-03": "Foursomes Cup", "2026-05-09": "1st Invitation Day", "2026-05-10": "Over 50's Cup Medal", "2026-05-16": "Mixed 4BBB Stableford", "2026-05-17": "Stableford (4 person team)", "2026-05-23": "Stableford", "2026-05-24": "Boldmere Bowl Medal", "2026-05-30": "4 Ball", "2026-05-31": "Captain's Charity Shield Stableford", "2026-06-06": "Presidents Championship Day Medal", "2026-06-07": "Stableford", "2026-06-13": "4 Ball", "2026-06-14": "Members Memorial Salver Medal", "2026-06-20": "Captain's Open AM AM", "2026-06-21": "Stableford (Father's Day)", "2026-06-27": "Pro's Day Medal", "2026-06-28": "4 Ball", "2026-07-04": "Greensome / Yardley Holland Cup", "2026-07-05": "Secretary's Cup Medal", "2026-07-11": "Club Championship Round 1", "2026-07-12": "Club Championship Round 2", "2026-07-18": "Captain's Weekend Texas Scramble", "2026-07-19": "Captain's Weekend Men's 4 Ball", "2026-07-25": "Scratch Stableford", "2026-07-26": "M & S Pooley Cup 4 Ball", "2026-08-01": "Greensome / Yardley Holland Cup", "2026-08-02": "Twyford Seeds Cup Medal", "2026-08-08": "Stableford Yellow Ball", "2026-08-09": "Bill Mountford Memorial Trophy Stableford", "2026-08-15": "Gents Open", "2026-08-16": "Bogey", "2026-08-22": "Stableford", "2026-08-23": "Ray Garnett Trophy Texas Scramble", "2026-08-29": "President's Day", "2026-08-30": "Golfer Non-Golfer", "2026-09-05": "Batevale Trophy Medal", "2026-09-06": "Stableford", "2026-09-12": "P.G. Whatton Trophy Stableford", "2026-09-13": "2nd Invitation Day", "2026-09-19": "L.E. Swain Trophy Medal", "2026-09-20": "4 Ball", "2026-09-26": "Stableford (Junior Fundraiser)", "2026-09-27": "Paul Canning Trophy Medal", "2026-10-03": "Green's Committee Cup Medal", "2026-10-04": "Stableford", "2026-10-10": "4 Ball", "2026-10-11": "Greenkeeper's Tankard", "2026-10-17": "Bogey", "2026-10-18": "Stableford", "2026-10-24": "Stableford Texas AM-AM", "2026-10-25": "Winter League", "2026-10-31": "Bogey", "2026-11-01": "Winter League", "2026-11-07": "Stableford", "2026-11-08": "4 Ball", "2026-11-14": "Medal", "2026-11-15": "Winter League", "2026-11-21": "Stableford", "2026-11-22": "2 Man Aggregate Stableford", "2026-11-28": "4 Ball", "2026-11-29": "Stableford", "2026-12-06": "Winter League", "2026-12-12": "Texas AM AM", "2026-12-13": "Winter League", "2026-12-19": "Pro's Christmas Jumper", "2026-12-20": "Christmas Stableford"
 };
@@ -232,6 +232,7 @@ async function api(path, payload) {
 }
 function App() {
     const [schedule, setSchedule] = useState(mergeWithBase({}));
+    const [members, setMembers] = useState(INITIAL_MEMBERS);
     const [status, setStatus] = useState("Loading...");
     const [message, setMessage] = useState("");
     const [error, setError] = useState("");
@@ -243,6 +244,7 @@ function App() {
     const [confirmRemove, setConfirmRemove] = useState(null);
     const [confirmAdd, setConfirmAdd] = useState(null);
     const [newName, setNewName] = useState("");
+    const [rosterName, setRosterName] = useState("");
     const [editingComp, setEditingComp] = useState(false);
     const [compInput, setCompInput] = useState("");
     const [copiedReminder, setCopiedReminder] = useState(false);
@@ -254,6 +256,7 @@ function App() {
     const [pinValue, setPinValue] = useState("");
     const [pinConfigured, setPinConfigured] = useState({});
     const [showAudit, setShowAudit] = useState(false);
+    const [auditEvents, setAuditEvents] = useState([]);
     const upcoming = useMemo(() => getUpcomingWeekends(52), []);
     const past = useMemo(() => getPastWeekends(8), []);
     const weekends = adminMode ? [...past, ...upcoming] : upcoming.slice(0, 8);
@@ -273,7 +276,7 @@ function App() {
     const effectiveLocked = current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
     const currentPlayers = Array.isArray(current.players) ? current.players : [];
     const currentPriority = Array.isArray(current.priorityPlayers) ? current.priorityPlayers.filter(name => currentPlayers.includes(name)) : [];
-    const allNames = [...new Set([...INITIAL_MEMBERS, ...currentPlayers])].sort();
+    const allNames = [...new Set([...members, ...currentPlayers])].sort();
     const playerDisplayNames = [
         ...currentPlayers,
         ...allNames.filter(name => !currentPlayers.includes(name))
@@ -286,6 +289,7 @@ function App() {
             setStatus("Syncing...");
             const data = await api("schedule");
             setSchedule(mergeWithBase(data.schedule));
+            if (Array.isArray(data.members) && data.members.length) setMembers(data.members);
             setStatus(`LIVE- ${VERSION}`);
             setError("");
         }
@@ -305,9 +309,18 @@ function App() {
         }
         catch (e) { }
     }
-    useEffect(() => { load(); }, []);
+    async function loadAudit() {
+        if (!adminMode) return;
+        try {
+            const res = await fetch(`/api/admin/audit?adminPin=${ADMIN_PIN}&dateKey=${dateKey}&ts=${Date.now()}`);
+            const data = await res.json();
+            if (data.ok) setAuditEvents(data.events || []);
+        } catch (e) { }
+    }
+    useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
     useEffect(() => { localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
     useEffect(() => { localStorage.setItem("wg_admin", adminMode ? "1" : "0"); loadPinConfig(); }, [adminMode]);
+    useEffect(() => { if (adminMode && showAudit) loadAudit(); }, [adminMode, showAudit, dateKey]);
     useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
     // Prevent a competition edit draft from being carried onto another day/weekend.
     useEffect(() => { setEditingComp(false); setCompInput(""); }, [dateKey]);
@@ -359,6 +372,8 @@ function App() {
             setError("");
             const r = await api("player-status", { dateKey, name, status: playerStatus, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
             optimistic(r.dateKey, r.data);
+            setTimeout(load, 500);
+            if (adminMode && showAudit) setTimeout(loadAudit, 650);
             setMessage(`✅ ${r.message}`);
         }
         catch (e) {
@@ -373,6 +388,8 @@ function App() {
             const r = await api(path, { ...payload, dateKey, adminPin: ADMIN_PIN, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
             if (r.dateKey && r.data)
                 optimistic(r.dateKey, r.data);
+            setTimeout(load, 500);
+            if (adminMode && showAudit) setTimeout(loadAudit, 650);
             setMessage("✅ Saved");
             return r;
         }
@@ -391,6 +408,21 @@ function App() {
             setMessage(`✅ ${pinValue ? "Saved" : "Cleared"} PIN for ${pinPlayer}`);
         }
         catch (e) {
+            setError(e.message);
+            setMessage("");
+        }
+    }
+    async function saveRosterMember(op, name) {
+        try {
+            const clean = String(name || "").trim();
+            if (!clean) return;
+            setMessage(op === "remove" ? `Removing ${clean} from roster...` : `Adding ${clean} to roster...`);
+            setError("");
+            const r = await api("admin/member", { adminPin: ADMIN_PIN, name: clean, op });
+            setMembers(r.members || []);
+            if (op === "add") setRosterName("");
+            setMessage(op === "remove" ? `✅ Removed ${clean} from roster` : `✅ Added ${clean} to roster`);
+        } catch (e) {
             setError(e.message);
             setMessage("");
         }
@@ -487,7 +519,7 @@ Bookings confirmed ✅`;
             React.createElement("div", { className: "identityRow" },
                 React.createElement("select", { className: "select", value: playerName, onChange: e => { setPlayerName(e.target.value); setPinLoggedIn(false); } },
                     React.createElement("option", { value: "" }, "Select your name..."),
-                    INITIAL_MEMBERS.map(n => React.createElement("option", { key: n, value: n }, n))),
+                    members.map(n => React.createElement("option", { key: n, value: n }, n))),
                 React.createElement("input", { className: "input", type: "password", inputMode: "numeric", value: playerPin, onChange: e => { setPlayerPin(e.target.value); setPinLoggedIn(false); }, placeholder: "PIN", style: { maxWidth: 92 } })),
             React.createElement("div", { className: "identityRow" },
                 React.createElement("button", { className: "smallBtn", onClick: loginPlayer }, "Log in"),
@@ -563,11 +595,20 @@ Bookings confirmed ✅`;
         adminMode && React.createElement("div", { className: "adminPanel" },
             React.createElement("div", { className: "adminTitle" }, "ADMIN CONTROLS"),
             React.createElement("div", { style: { padding: "10px", border: "1px solid var(--border)", borderRadius: 9, background: "#fffdf7" } },
+                React.createElement("div", { className: "label" }, "ROSTER MANAGEMENT"),
+                React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginBottom: 8 } }, "Add players here so they appear in login, PIN management and all booking lists."),
+                React.createElement("div", { className: "row" },
+                    React.createElement("input", { className: "input", value: rosterName, onChange: e => setRosterName(e.target.value), placeholder: "New roster player e.g. Danny" }),
+                    React.createElement("button", { className: "smallBtn", onClick: () => saveRosterMember("add", rosterName) }, "Add to roster")),
+                React.createElement("div", { className: "confirmedChips" }, members.map(n => React.createElement("span", { className: "chip", key: n },
+                    n,
+                    React.createElement("button", { onClick: () => saveRosterMember("remove", n), style: { marginLeft: 6, border: 0, background: "transparent", color: "#8a2f2f", cursor: "pointer" }, title: `Remove ${n} from roster` }, "×"))))),
+            React.createElement("div", { style: { padding: "10px", border: "1px solid var(--border)", borderRadius: 9, background: "#fffdf7" } },
                 React.createElement("div", { className: "label" }, "PLAYER PIN MANAGEMENT"),
                 React.createElement("div", { className: "row" },
                     React.createElement("select", { className: "select", value: pinPlayer, onChange: e => setPinPlayer(e.target.value) },
                         React.createElement("option", { value: "" }, "Choose player..."),
-                        INITIAL_MEMBERS.map(n => React.createElement("option", { key: n, value: n },
+                        members.map(n => React.createElement("option", { key: n, value: n },
                             n,
                             pinConfigured[n] ? " ✓" : ""))),
                     React.createElement("input", { className: "input", type: "text", inputMode: "numeric", value: pinValue, onChange: e => setPinValue(e.target.value), placeholder: "New PIN / blank to clear" })),
@@ -586,11 +627,11 @@ Bookings confirmed ✅`;
             React.createElement("button", { className: "btn", onClick: () => copyText(buildReminderText(), setCopiedReminder) }, copiedReminder ? "✓ Copied reminder" : "📣 Copy sign-up reminder for WhatsApp"),
             React.createElement("button", { className: "btn", onClick: () => adminPost("admin/lock", { locked: !current.locked }) }, current.locked ? "🔓 Unlock list" : "🔒 Lock list & generate draw"),
             current.locked && React.createElement("button", { className: "btn", onClick: () => adminPost("admin/redraw", {}) }, "\uD83D\uDD00 Re-draw"),
-            React.createElement("button", { className: "btn", onClick: () => setShowAudit(!showAudit) },
+            React.createElement("button", { className: "btn", onClick: async () => { const next = !showAudit; setShowAudit(next); if (next) await loadAudit(); } },
                 "\uD83D\uDCCB Activity log (",
-                (current.audit || []).length,
+                auditEvents.length || (current.audit || []).length,
                 ")"),
-            showAudit && React.createElement("div", { className: "auditLog" }, (current.audit || []).length ? [...current.audit].reverse().map((e, i) => React.createElement("div", { className: "auditItem", key: i }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
+            showAudit && React.createElement("div", { className: "auditLog" }, (auditEvents.length ? auditEvents : [...(current.audit || [])].reverse()).length ? (auditEvents.length ? auditEvents : [...(current.audit || [])].reverse()).map((e, i) => React.createElement("div", { className: "auditItem", key: i }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
             React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
         showPin && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox" },

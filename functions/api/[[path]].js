@@ -7,6 +7,27 @@ const JSON_HEADERS = {
 
 const ADMIN_PIN = "2727";
 const PIN_CONFIG_KEY = "__config_member_pins__";
+const ROSTER_CONFIG_KEY = "__config_member_roster__";
+const AUDIT_EVENTS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS audit_events (
+  id TEXT PRIMARY KEY,
+  dateKey TEXT NOT NULL,
+  ts INTEGER NOT NULL,
+  action TEXT NOT NULL,
+  name TEXT,
+  actor TEXT,
+  actorType TEXT,
+  details TEXT
+)`;
+const PLAYER_STATUS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS player_status (
+  dateKey TEXT NOT NULL,
+  name TEXT NOT NULL,
+  status TEXT NOT NULL,
+  updatedAt INTEGER NOT NULL,
+  actor TEXT,
+  actorType TEXT,
+  PRIMARY KEY (dateKey, name)
+)`;
+const DEFAULT_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 
 function json(data, status = 200) {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
@@ -63,11 +84,96 @@ function buildGroups(players, priorityPlayers = []) {
 async function getRawRow(db, key) { const row = await db.prepare("SELECT data FROM days WHERE dateKey = ?").bind(key).first(); if (!row) return null; try { return JSON.parse(row.data); } catch { return null; } }
 async function getPinConfig(db) { const raw = await getRawRow(db, PIN_CONFIG_KEY); const pins = raw && typeof raw === "object" && raw.pins && typeof raw.pins === "object" ? raw.pins : {}; const clean={}; for(const [name,pin] of Object.entries(pins)){ const n=String(name||"").trim(), p=String(pin||"").trim(); if(n&&p) clean[n]=p; } return clean; }
 async function savePinConfig(db, pins) { const ts=Date.now(); await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(PIN_CONFIG_KEY, JSON.stringify({ pins, updatedAt:ts }), ts).run(); return pins; }
+async function getRosterConfig(db) {
+  const raw = await getRawRow(db, ROSTER_CONFIG_KEY);
+  const members = raw && Array.isArray(raw.members) ? raw.members : DEFAULT_MEMBERS;
+  return cleanNames([...DEFAULT_MEMBERS, ...members]).sort();
+}
+async function saveRosterConfig(db, members) {
+  const clean = cleanNames(members).sort();
+  const ts = Date.now();
+  await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(ROSTER_CONFIG_KEY, JSON.stringify({ members: clean, updatedAt: ts }), ts).run();
+  return clean;
+}
+
+async function ensureOperationalTables(db) {
+  await db.prepare(AUDIT_EVENTS_TABLE_SQL).run();
+  await db.prepare(PLAYER_STATUS_TABLE_SQL).run();
+}
+async function appendAuditEvent(db, dateKey, entry) {
+  await ensureOperationalTables(db);
+  const key = normaliseDateKey(dateKey);
+  const ts = Number(entry.ts || Date.now());
+  const id = `${key}-${ts}-${Math.random().toString(36).slice(2, 10)}`;
+  const { action = "unknown", name = "", actor = "Unknown", actorType = "unknown", ...details } = entry || {};
+  await db.prepare("INSERT INTO audit_events (id, dateKey, ts, action, name, actor, actorType, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(id, key, ts, String(action), String(name || ""), String(actor || "Unknown"), String(actorType || "unknown"), JSON.stringify(details || {}))
+    .run();
+}
+async function addAuditAndLog(db, dateKey, day, action, name, ts = Date.now(), details = {}) {
+  const next = addAudit(day, action, name, ts, details);
+  const entry = next.audit[next.audit.length - 1];
+  await appendAuditEvent(db, dateKey, entry);
+  return next;
+}
+async function readAuditEvents(db, dateKey, limit = 300) {
+  await ensureOperationalTables(db);
+  const key = normaliseDateKey(dateKey);
+  const rows = await db.prepare("SELECT ts, action, name, actor, actorType, details FROM audit_events WHERE dateKey = ? ORDER BY ts DESC LIMIT ?").bind(key, limit).all();
+  const events = (rows.results || []).map(row => {
+    let details = {};
+    try { details = row.details ? JSON.parse(row.details) : {}; } catch {}
+    return { ts: row.ts, action: row.action, name: row.name, actor: row.actor, actorType: row.actorType, ...details };
+  });
+  if (events.length) return events;
+  const legacy = await getRawRow(db, key);
+  return Array.isArray(legacy?.audit) ? [...legacy.audit].reverse() : [];
+}
+async function writePlayerStatus(db, dateKey, name, status, actor = "Unknown", actorType = "unknown", ts = Date.now()) {
+  await ensureOperationalTables(db);
+  await db.prepare(`INSERT INTO player_status (dateKey, name, status, updatedAt, actor, actorType)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON CONFLICT(dateKey, name) DO UPDATE SET status = excluded.status, updatedAt = excluded.updatedAt, actor = excluded.actor, actorType = excluded.actorType`)
+    .bind(normaliseDateKey(dateKey), String(name || "").trim(), status, ts, actor, actorType)
+    .run();
+}
+async function applyStatusRows(db, dateKey, day) {
+  await ensureOperationalTables(db);
+  const key = normaliseDateKey(dateKey);
+  const rows = await db.prepare("SELECT name, status FROM player_status WHERE dateKey = ?").bind(key).all();
+  const results = rows.results || [];
+  if (!results.length) return safeDay(day);
+  const players = new Set(cleanNames(day.players));
+  for (const row of results) {
+    const name = String(row.name || "").trim();
+    if (!name) continue;
+    if (row.status === "playing") players.add(name);
+    else players.delete(name);
+  }
+  return safeDay({ ...day, players: [...players], priorityPlayers: cleanNames(day.priorityPlayers).filter(n => players.has(n)) });
+}
+async function applyAllStatusRows(db, schedule) {
+  await ensureOperationalTables(db);
+  const rows = await db.prepare("SELECT dateKey, name, status FROM player_status").all();
+  for (const row of rows.results || []) {
+    const key = normaliseDateKey(row.dateKey);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+    const base = schedule[key] || initDay();
+    const players = new Set(cleanNames(base.players));
+    const name = String(row.name || "").trim();
+    if (!name) continue;
+    if (row.status === "playing") players.add(name);
+    else players.delete(name);
+    schedule[key] = safeDay({ ...base, players: [...players], priorityPlayers: cleanNames(base.priorityPlayers).filter(n => players.has(n)) });
+  }
+  return schedule;
+}
+
 function maskedPins(pins) { const configured={}; for(const [name,pin] of Object.entries(pins||{})) configured[name]=Boolean(pin); return configured; }
 async function verifyPlayerIdentity(db, input, targetName) { const actorName=String(input.playerName||input.actor||"").trim(), playerPin=String(input.playerPin||"").trim(), name=String(targetName||"").trim(); if(!actorName||!playerPin) return { ok:false, error:"Select your name and enter your player PIN before changing a booking." }; if(actorName!==name) return { ok:false, error:"You can only change your own booking status." }; const pins=await getPinConfig(db); if(!pins[name]) return { ok:false, error:"No player PIN has been set for you yet. Ask admin to set one." }; if(String(pins[name])!==playerPin) return { ok:false, error:"Incorrect player PIN." }; return { ok:true, actor:name, actorType:"player" }; }
-async function getDay(db, dateKey) { const key=normaliseDateKey(dateKey); const row=await db.prepare("SELECT data FROM days WHERE dateKey = ?").bind(key).first(); if(!row) return initDay(); try { return safeDay(JSON.parse(row.data)); } catch { return initDay(); } }
+async function getDay(db, dateKey) { const key=normaliseDateKey(dateKey); const row=await db.prepare("SELECT data FROM days WHERE dateKey = ?").bind(key).first(); let day=initDay(); if(row){ try { day=safeDay(JSON.parse(row.data)); } catch { day=initDay(); } } return applyStatusRows(db,key,day); }
 async function upsertDay(db, dateKey, day) { const key=normaliseDateKey(dateKey); const ts=Date.now(); const clean=safeDay(day); clean.updatedAt=clean.updatedAt||ts; await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(key, JSON.stringify(clean), clean.updatedAt).run(); return clean; }
-async function readSchedule(db) { const rows=await db.prepare("SELECT dateKey, data FROM days ORDER BY dateKey").all(); const schedule={}; for(const row of rows.results||[]){ const key=normaliseDateKey(row.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue; try { schedule[key]=safeDay(JSON.parse(row.data)); } catch {} } return schedule; }
+async function readSchedule(db) { const rows=await db.prepare("SELECT dateKey, data FROM days ORDER BY dateKey").all(); const schedule={}; for(const row of rows.results||[]){ const key=normaliseDateKey(row.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue; try { schedule[key]=safeDay(JSON.parse(row.data)); } catch {} } return applyAllStatusRows(db, schedule); }
 async function bodyJson(request){ try { return await request.json(); } catch { return {}; } }
 function isAdmin(input){ return String(input.adminPin||"")===ADMIN_PIN; }
 function actorDetails(input, adminOverride, playerAuth=null){ if(adminOverride) return {actor:"Admin", actorType:"admin"}; if(playerAuth?.ok) return {actor:playerAuth.actor, actorType:"player"}; return {actor:"Unknown", actorType:"unknown"}; }
@@ -76,10 +182,13 @@ async function handle(request, env) {
   if (!env.DB) return json({ ok:false, error:"D1 binding DB is missing. Add a D1 binding named DB to this Pages project." }, 500);
   const url = new URL(request.url); const route=url.pathname.replace(/^\/api\/?/, "") || "schedule"; const method=request.method.toUpperCase();
   if (method === "OPTIONS") return new Response(null, { status:204, headers:JSON_HEADERS });
-  if (route === "schedule" && method === "GET") return json({ ok:true, schedule: await readSchedule(env.DB), serverNow: Date.now() });
+  if (route === "schedule" && method === "GET") return json({ ok:true, schedule: await readSchedule(env.DB), members: await getRosterConfig(env.DB), serverNow: Date.now() });
   if (route === "day" && method === "GET") { const dateKey=normaliseDateKey(url.searchParams.get("dateKey")); return json({ ok:true, dateKey, data: await getDay(env.DB, dateKey) }); }
-  if (route === "player-login" && method === "POST") { const input=await bodyJson(request); const name=String(input.name||"").trim(), pin=String(input.pin||"").trim(); const pins=await getPinConfig(env.DB); if(!name||!pin) return json({ok:false,error:"Name and PIN are required"},400); if(!pins[name]) return json({ok:false,error:"No player PIN has been set for this player yet."},403); if(String(pins[name])!==pin) return json({ok:false,error:"Incorrect player PIN"},403); return json({ok:true,name}); }
+  if (route === "player-login" && method === "POST") { const input=await bodyJson(request); const name=String(input.name||"").trim(), pin=String(input.pin||"").trim(); const pins=await getPinConfig(env.DB); const members=await getRosterConfig(env.DB); if(!name||!pin) return json({ok:false,error:"Name and PIN are required"},400); if(!members.includes(name)) return json({ok:false,error:"This player is not on the roster yet. Ask admin to add them."},403); if(!pins[name]) return json({ok:false,error:"No player PIN has been set for this player yet. Ask admin to set one."},403); if(String(pins[name])!==pin) return json({ok:false,error:"Incorrect player PIN"},403); return json({ok:true,name}); }
   if (route === "admin/pins" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, configured: maskedPins(await getPinConfig(env.DB))}); }
+  if (route === "admin/roster" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, members: await getRosterConfig(env.DB)}); }
+  if (route === "admin/audit" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(url.searchParams.get("dateKey")); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); return json({ok:true,dateKey,events:await readAuditEvents(env.DB,dateKey)}); }
+  if (route === "admin/member" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const name=String(input.name||"").trim(); const op=String(input.op||"add"); if(!name) return json({ok:false,error:"Missing player name"},400); let members=await getRosterConfig(env.DB); if(op==="remove"){ members=members.filter(n=>n!==name); } else { members=cleanNames([...members,name]).sort(); } members=await saveRosterConfig(env.DB,members); return json({ok:true,members,name,op}); }
   if (route === "admin/player-pin" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const name=String(input.name||"").trim(), pin=String(input.pin||"").trim(); if(!name) return json({ok:false,error:"Missing player name"},400); const pins=await getPinConfig(env.DB); if(pin) pins[name]=pin; else delete pins[name]; await savePinConfig(env.DB,pins); return json({ok:true, configured:maskedPins(pins), name, hasPin:Boolean(pin)}); }
 
   if (route === "player-status" && method === "POST") {
@@ -90,19 +199,19 @@ async function handle(request, env) {
     if(day.locked&&!adminOverride) return json({ok:false,error:"List is locked"},403); if(isSignupClosedDateKey(dateKey)&&!adminOverride) return json({ok:false,error:"Sign-up is closed for this date. Contact admin to make changes."},403);
     const before=day.players.includes(name)?"playing":"none"; const players=new Set(day.players||[]); let action="removed_self", verb="Removed";
     if(status==="playing"){ players.add(name); action="joined"; verb="Saved"; } else { players.delete(name); action="removed_self"; verb="Removed"; }
-    day={...day, players:[...players], priorityPlayers:(day.priorityPlayers||[]).filter(p=>players.has(p)), draw:null}; day=addAudit(day,action,name,Date.now(),{...actorDetails(input,adminOverride,playerAuth), from:before, to:status}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day,message:`${verb} ${dateKey}: ${name}`});
+    day={...day, players:[...players], priorityPlayers:(day.priorityPlayers||[]).filter(p=>players.has(p)), draw:null}; const ts=Date.now(); const actor=actorDetails(input,adminOverride,playerAuth); await writePlayerStatus(env.DB,dateKey,name,status,actor.actor,actor.actorType,ts); day=await addAuditAndLog(env.DB,dateKey,day,action,name,ts,{...actor, from:before, to:status}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day,message:`${verb} ${dateKey}: ${name}`});
   }
   if (route === "toggle-player" && method === "POST") { const input=await bodyJson(request); const name=String(input.name||"").trim(); const day=await getDay(env.DB,normaliseDateKey(input.dateKey)); return handle(new Request(request.url.replace(/toggle-player$/, "player-status"), {method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({...input,status:day.players.includes(name)?"none":"playing"})}), env); }
-  if (route === "admin/add-player" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey), name=String(input.name||"").trim(); if(!name) return json({ok:false,error:"Missing player name"},400); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const before=day.players.includes(name)?"playing":"none"; if(!day.players.includes(name)) day.players.push(name); day.draw=null; day=addAudit(day,"admin_added",name,Date.now(),{actor:"Admin",actorType:"admin",from:before,to:"playing"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
-  if (route === "admin/remove-player" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey), name=String(input.name||"").trim(); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const before=day.players.includes(name)?"playing":"none"; day.players=day.players.filter(p=>p!==name); day.priorityPlayers=(day.priorityPlayers||[]).filter(p=>p!==name); day.draw=null; day=addAudit(day,"admin_removed",name,Date.now(),{actor:"Admin",actorType:"admin",from:before,to:"none"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
-  if (route === "admin/priority" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey), name=String(input.name||"").trim(); const priority=Boolean(input.priority); let day=await getDay(env.DB,dateKey); if(!day.players.includes(name)) return json({ok:false,error:"Only confirmed players can be prioritised"},400); const set=new Set(day.priorityPlayers||[]); priority?set.add(name):set.delete(name); day.priorityPlayers=[...set].filter(p=>day.players.includes(p)); day.draw=null; day=addAudit(day,priority?"priority_added":"priority_removed",name,Date.now(),{actor:"Admin",actorType:"admin"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
-  if (route === "admin/competition" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); day.competition=String(input.competition||"").trim(); day=addAudit(day,"competition_changed","Competition",Date.now(),{actor:"Admin",actorType:"admin",to:day.competition}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
-  if (route === "admin/lock" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const lock=typeof input.locked==="boolean"?input.locked:!day.locked; day.locked=lock; if(lock&&day.players.length&&!day.draw) day.draw=buildGroups(day.players,day.priorityPlayers); if(!lock) day.draw=null; day=addAudit(day,lock?"admin_locked":"admin_unlocked","Admin",Date.now(),{actor:"Admin",actorType:"admin"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
-  if (route === "admin/redraw" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); day.draw=buildGroups(day.players||[],day.priorityPlayers||[]); day=addAudit(day,"draw_regenerated","Admin",Date.now(),{actor:"Admin",actorType:"admin"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
+  if (route === "admin/add-player" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey), name=String(input.name||"").trim(); if(!name) return json({ok:false,error:"Missing player name"},400); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const before=day.players.includes(name)?"playing":"none"; if(!day.players.includes(name)) day.players.push(name); day.draw=null; const ts=Date.now(); await writePlayerStatus(env.DB,dateKey,name,"playing","Admin","admin",ts); day=await addAuditAndLog(env.DB,dateKey,day,"admin_added",name,ts,{actor:"Admin",actorType:"admin",from:before,to:"playing"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
+  if (route === "admin/remove-player" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey), name=String(input.name||"").trim(); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const before=day.players.includes(name)?"playing":"none"; day.players=day.players.filter(p=>p!==name); day.priorityPlayers=(day.priorityPlayers||[]).filter(p=>p!==name); day.draw=null; const ts=Date.now(); await writePlayerStatus(env.DB,dateKey,name,"none","Admin","admin",ts); day=await addAuditAndLog(env.DB,dateKey,day,"admin_removed",name,ts,{actor:"Admin",actorType:"admin",from:before,to:"none"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
+  if (route === "admin/priority" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey), name=String(input.name||"").trim(); const priority=Boolean(input.priority); let day=await getDay(env.DB,dateKey); if(!day.players.includes(name)) return json({ok:false,error:"Only confirmed players can be prioritised"},400); const set=new Set(day.priorityPlayers||[]); priority?set.add(name):set.delete(name); day.priorityPlayers=[...set].filter(p=>day.players.includes(p)); day.draw=null; day=await addAuditAndLog(env.DB,dateKey,day,priority?"priority_added":"priority_removed",name,Date.now(),{actor:"Admin",actorType:"admin"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
+  if (route === "admin/competition" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); day.competition=String(input.competition||"").trim(); day=await addAuditAndLog(env.DB,dateKey,day,"competition_changed","Competition",Date.now(),{actor:"Admin",actorType:"admin",to:day.competition}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
+  if (route === "admin/lock" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const lock=typeof input.locked==="boolean"?input.locked:!day.locked; day.locked=lock; if(lock&&day.players.length&&!day.draw) day.draw=buildGroups(day.players,day.priorityPlayers); if(!lock) day.draw=null; day=await addAuditAndLog(env.DB,dateKey,day,lock?"admin_locked":"admin_unlocked","Admin",Date.now(),{actor:"Admin",actorType:"admin"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
+  if (route === "admin/redraw" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); day.draw=buildGroups(day.players||[],day.priorityPlayers||[]); day=await addAuditAndLog(env.DB,dateKey,day,"draw_regenerated","Admin",Date.now(),{actor:"Admin",actorType:"admin"}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
   if (route === "admin/import" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const schedule=input.schedule||{}, statements=[]; for(const [key,value] of Object.entries(schedule)){ const dateKey=normaliseDateKey(key), day=safeDay(value), ts=day.updatedAt||Date.now(); statements.push(env.DB.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(dateKey, JSON.stringify(day), ts)); } if(statements.length) await env.DB.batch(statements); return json({ok:true, imported:statements.length}); }
-  if (route === "admin/delete-day" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); await env.DB.prepare("DELETE FROM days WHERE dateKey = ?").bind(dateKey).run(); return json({ok:true,deleted:true,dateKey}); }
+  if (route === "admin/delete-day" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); await env.DB.prepare("DELETE FROM days WHERE dateKey = ?").bind(dateKey).run(); await ensureOperationalTables(env.DB); await env.DB.prepare("DELETE FROM player_status WHERE dateKey = ?").bind(dateKey).run(); await env.DB.prepare("DELETE FROM audit_events WHERE dateKey = ?").bind(dateKey).run(); return json({ok:true,deleted:true,dateKey}); }
   if (route === "admin/export" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, exported:new Date().toISOString(), schedule:await readSchedule(env.DB)}); }
   return json({ ok:false, error:`No route for ${method} /api/${route}` }, 404);
 }
 export async function onRequest(context) { try { return await handle(context.request, context.env); } catch(err) { return json({ ok:false, error:err.message || String(err) }, 500); } }
-export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY };
+export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows };
