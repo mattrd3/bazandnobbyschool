@@ -1,12 +1,14 @@
 {
   "name": "bazandnobbyschool",
-  "version": "1.0.0",
+  "version": "1.0.8",
   "private": true,
   "type": "module",
   "scripts": {
     "test": "node test/run-tests.js",
-    "dev": "wrangler pages dev public --compatibility-date=2026-05-04",
-    "deploy": "wrangler pages deploy public --project-name=bazandnobbyschool"
+    "test:live": "node test/live-api-tests.js",
+    "test:soak": "node test/soak-test.js --minutes=60",
+    "test:soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250",
+    "test:all": "npm run test && npm run test:live"
   },
   "devDependencies": {
     "wrangler": "latest"

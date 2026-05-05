@@ -315,6 +315,16 @@ async function handle(request, env) {
     return json({ ok: true, imported: statements.length });
   }
 
+
+  if (route === "admin/delete-day" && method === "POST") {
+    const input = await bodyJson(request);
+    if (!isAdmin(input)) return json({ ok: false, error: "Admin PIN required" }, 403);
+    const dateKey = normaliseDateKey(input.dateKey);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ ok: false, error: "Invalid dateKey" }, 400);
+    await env.DB.prepare("DELETE FROM days WHERE dateKey = ?").bind(dateKey).run();
+    return json({ ok: true, deleted: true, dateKey });
+  }
+
   if (route === "admin/export" && method === "GET") {
     const pin = url.searchParams.get("adminPin");
     if (pin !== ADMIN_PIN) return json({ ok: false, error: "Admin PIN required" }, 403);
