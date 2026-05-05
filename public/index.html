@@ -58,7 +58,7 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "CLOUDFLARE D1 v4 ADMIN WHATSAPP";
+const VERSION = "v6";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
@@ -91,6 +91,20 @@ function isAutoLocked(date) {
   if(dateDow===6 && dow===3 && mins>=cutoff && daysAway>=2 && daysAway<=4) return true;
   if(dateDow===0 && dow===4 && mins>=cutoff && daysAway>=2 && daysAway<=4) return true;
   return false;
+}
+function getSignupCutoff(date) {
+  // Tee times are booked 10 days before the playing date at 6:50pm UK time.
+  // Saturday therefore closes on the Wednesday 10 days before; Sunday closes on the Thursday 10 days before.
+  const cutoff = new Date(date);
+  cutoff.setDate(cutoff.getDate() - 10);
+  cutoff.setHours(18, 50, 0, 0);
+  return cutoff;
+}
+function isSignupClosed(date) {
+  return Date.now() >= getSignupCutoff(date).getTime();
+}
+function formatCutoff(date) {
+  return getSignupCutoff(date).toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"short" }) + " at 6:50pm";
 }
 function buildBase() { const base={}; Object.entries(FIXTURE_COMPS).forEach(([key, comp]) => base[key]=initDay(comp)); return base; }
 function mergeWithBase(saved) {
@@ -148,12 +162,13 @@ function App(){
   const currentDate=activeDay === "sun" ? chosenW.sun : chosenW.sat;
   const dateKey=toDateKey(currentDate);
   const current=schedule[dateKey] || initDay(FIXTURE_COMPS[dateKey] || "");
-  const effectiveLocked=current.locked || isAutoLocked(currentDate) || (!adminMode && chosenW.tooSoon);
+  const signupClosed = isSignupClosed(currentDate);
+  const effectiveLocked=current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
   const allNames=[...new Set([...INITIAL_MEMBERS, ...current.players])].sort();
 
   async function load(){
-    try { setStatus("Syncing..."); const data=await api("schedule"); setSchedule(mergeWithBase(data.schedule)); setStatus(`Live · ${VERSION}`); setError(""); }
-    catch(e){ setStatus(`Offline · ${VERSION}`); setError(e.message); }
+    try { setStatus("Syncing..."); const data=await api("schedule"); setSchedule(mergeWithBase(data.schedule)); setStatus(`LIVE- ${VERSION}`); setError(""); }
+    catch(e){ setStatus(`OFFLINE- ${VERSION}`); setError(e.message); }
   }
   useEffect(()=>{ load(); }, []);
   useEffect(()=>{ localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
@@ -254,7 +269,7 @@ function App(){
     </div>
 
     <div className="section dateBar">
-      <div><div className="date">{formatDate(currentDate)}</div>{current.competition && <div className="comp">🏆 {current.competition}</div>}<div className="key">Saving date key: {dateKey}</div>{effectiveLocked && <div style={{color:"#e87840",fontSize:11,marginTop:4}}>🔒 List locked / closed</div>}</div>
+      <div><div className="date">{formatDate(currentDate)}</div>{current.competition && <div className="comp">🏆 {current.competition}</div>}<div className="key">Saving date key: {dateKey}</div>{!current.locked && !signupClosed && <div className="key">Sign-up closes {formatCutoff(currentDate)}</div>}{effectiveLocked && <div style={{color:"#e87840",fontSize:11,marginTop:4}}>🔒 {current.locked ? "List locked by admin" : `Sign-up closed ${formatCutoff(currentDate)} — list visible only`}</div>}</div>
       <div className="count">{current.players.length} confirmed<br/><small>{current.players.length?Math.ceil(current.players.length/4):0} tee time{current.players.length>4?"s":""}</small></div>
     </div>
 

@@ -33,6 +33,63 @@ function normaliseDateKey(value) {
   return s;
 }
 
+
+function parseDateKeyParts(dateKey) {
+  const key = normaliseDateKey(dateKey);
+  const m = key.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return null;
+  return { y: Number(m[1]), m: Number(m[2]), d: Number(m[3]) };
+}
+
+function londonOffsetMinutesAtUtc(utcMillis) {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Europe/London",
+    timeZoneName: "shortOffset",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hourCycle: "h23"
+  }).formatToParts(new Date(utcMillis));
+  const name = (parts.find(p => p.type === "timeZoneName") || {}).value || "GMT";
+  const match = name.match(/GMT([+-])(\d{1,2})(?::?(\d{2}))?/);
+  if (!match) return 0;
+  const sign = match[1] === "-" ? -1 : 1;
+  return sign * (Number(match[2]) * 60 + Number(match[3] || 0));
+}
+
+function londonLocalDateTimeToUtcMillis(y, month, day, hour, minute) {
+  // Initial UTC guess, then correct for the Europe/London offset at that instant.
+  let utc = Date.UTC(y, month - 1, day, hour, minute, 0, 0);
+  for (let i = 0; i < 2; i++) {
+    const offset = londonOffsetMinutesAtUtc(utc);
+    utc = Date.UTC(y, month - 1, day, hour, minute, 0, 0) - offset * 60000;
+  }
+  return utc;
+}
+
+function signupCutoffUtcMillis(dateKey) {
+  const parts = parseDateKeyParts(dateKey);
+  if (!parts) return null;
+  // 10 local calendar days before the playing date.
+  const cutoffDate = new Date(Date.UTC(parts.y, parts.m - 1, parts.d));
+  cutoffDate.setUTCDate(cutoffDate.getUTCDate() - 10);
+  return londonLocalDateTimeToUtcMillis(
+    cutoffDate.getUTCFullYear(),
+    cutoffDate.getUTCMonth() + 1,
+    cutoffDate.getUTCDate(),
+    18,
+    50
+  );
+}
+
+function isSignupClosedDateKey(dateKey, nowMs = Date.now()) {
+  const cutoff = signupCutoffUtcMillis(dateKey);
+  return cutoff !== null && nowMs >= cutoff;
+}
+
 function initDay(competition = "") {
   return { players: [], locked: false, competition, audit: [], draw: null };
 }
@@ -157,7 +214,11 @@ async function handle(request, env) {
 
     let day = await getDay(env.DB, dateKey);
     if (!day.competition && input.competition) day.competition = String(input.competition).trim();
-    if (day.locked && !input.adminPin) return json({ ok: false, error: "List is locked" }, 403);
+    const adminOverride = isAdmin(input);
+    if (day.locked && !adminOverride) return json({ ok: false, error: "List is locked" }, 403);
+    if (isSignupClosedDateKey(dateKey) && !adminOverride) {
+      return json({ ok: false, error: "Sign-up is closed for this date. Contact admin to make changes." }, 403);
+    }
 
     const players = new Set(day.players || []);
     const alreadyIn = players.has(name);
@@ -272,4 +333,4 @@ export async function onRequest(context) {
 }
 
 // Export internals for node tests.
-export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel };
+export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis };

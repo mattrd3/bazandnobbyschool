@@ -42,12 +42,16 @@ async function call(db, path, method="GET", body=null) {
   return { status: res.status, json };
 }
 
-const { normaliseDateKey, safeDay, buildGroups } = __test;
+const { normaliseDateKey, safeDay, buildGroups, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis } = __test;
 
 assert.equal(normaliseDateKey("2026-06-07"), "2026-06-07");
 assert.equal(normaliseDateKey("Sun May 10 2026 00:00:00 GMT+0100 (British Summer Time)"), "2026-05-10");
 assert.deepEqual(safeDay({ players:["Bob", "Bob", "", "Colin"], locked: 1 }).players, ["Bob", "Colin"]);
 assert.equal(buildGroups(["A","B","C","D","E"]).flat().length, 5);
+assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(2026,5,6,18,49)), false);
+assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(2026,5,6,18,50)), true);
+assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,49)), false);
+assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,50)), true);
 
 const db = new FakeDB();
 let r = await call(db, "/api/schedule");
@@ -96,22 +100,25 @@ r = await call(db, "/api/admin/export?adminPin=2727");
 assert.equal(r.json.ok, true);
 assert.ok(r.json.schedule["2026-06-07"]);
 
-console.log("PASS: 13 tests passed");
+console.log("PASS: 17 API/helper tests passed");
 
 
 // v2 static checks
 import fs from "fs";
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes("CLOUDFLARE D1 v3 ADMIN WHATSAPP")) throw new Error("v3 marker missing");
+if (!html.includes("v6")) throw new Error("v6 marker missing");
+if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
+if (html.includes('CLOUDFLARE D1 v5 BOOKING WINDOW')) throw new Error('long patch label still present');
+
 if (html.includes('value={`${toDateKey(chosenW.sat)}|${activeDay}`}')) throw new Error("old duplicate Sat/Sun dropdown still present");
 if (!html.includes("<option key={toDateKey(w.sat)} value={toDateKey(w.sat)}>{optionLabel(w,i)}</option>")) throw new Error("single-weekend dropdown option missing");
 if (!html.includes("competition: savedComp || fixtureComp")) throw new Error("fixture competition fallback missing");
 if (html.includes("Sat: ${satComp}") || html.includes("Sun: ${sunComp}")) throw new Error("competition names should not appear in weekend dropdown labels");
-console.log("PASS: v4 static dropdown/fallback checks passed");
+console.log("PASS: v6 static dropdown/fallback checks passed");
 
 // v3 static feature/usability checks
 const htmlV3 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!htmlV3.includes("CLOUDFLARE D1 v3 ADMIN WHATSAPP")) throw new Error("v3 marker missing");
+if (!htmlV3.includes("v6")) throw new Error("v6 marker missing");
 if (!htmlV3.includes("upcoming.slice(0,8)")) throw new Error("non-admin 8-week future limit missing");
 if (!htmlV3.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
 if (!htmlV3.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
@@ -120,4 +127,12 @@ if (!htmlV3.includes("buildReminderText")) throw new Error("reminder text builde
 if (!htmlV3.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
 if (!htmlV3.includes("Competition name for this day only")) throw new Error("competition edit day-specific placeholder missing");
 if (!htmlV3.includes(">Cancel</button>")) throw new Error("competition edit cancel button missing");
-console.log("PASS: v4 admin WhatsApp/competition usability checks passed");
+console.log("PASS: v6 admin WhatsApp/competition usability checks passed");
+
+// v6 booking-window checks
+const htmlV5 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+if (!htmlV5.includes("getSignupCutoff")) throw new Error("client signup cutoff helper missing");
+if (!htmlV5.includes("Sign-up closes")) throw new Error("signup close message missing");
+if (!htmlV5.includes("list visible only")) throw new Error("closed-but-visible list message missing");
+if (!htmlV5.includes("signupClosed = isSignupClosed(currentDate)")) throw new Error("per-day signup closed logic missing");
+console.log("PASS: v6 booking-window UI checks passed");
