@@ -140,7 +140,7 @@ The live and soak tests intentionally use dates in 2099 so they do not appear in
 
 The quick regression suite now fails if the UI no longer prompts before adding a player. The live and soak suites continue to validate the API/data layer repeatedly; the add confirmation itself is a browser/UI guard and is covered by static regression checks.
 
-## v14 additions
+## v15 additions
 
 This release adds player PIN identity, admin-managed PINs, early tee priority and a visible audit log.
 
@@ -160,3 +160,8 @@ npm test
 $env:SITE_URL="https://bazandnobbyschool.pages.dev"; $env:ADMIN_PIN="2727"; npm run test:live
 $env:SITE_URL="https://bazandnobbyschool.pages.dev"; $env:ADMIN_PIN="2727"; npm run test:soak:quick
 ```
+
+
+## v15 removed Maybe status
+
+The Maybe playing feature has been removed. Tests now confirm the UI no longer shows Maybe controls and the API rejects `status: "maybe"` with a 400 response. Existing stored `maybes` values are ignored when schedules are read.

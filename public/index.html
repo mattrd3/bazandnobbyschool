@@ -89,15 +89,11 @@
       box-shadow: 0 3px 12px rgba(46,68,44,.06);
     }
     .player.in { background: linear-gradient(135deg,#dcebd4,#c8dfbd); border-color: var(--green-2); color: var(--green); font-weight:bold; }
-    .player.maybe { background: linear-gradient(135deg,#fff4d8,#f7e6b8); border-color:#d7b35f; color:#7a5a16; font-weight:bold; }
-    .maybeBtn { min-width:82px; padding:14px 10px; border-radius:10px; border:1px solid #d7b35f; background:#fff4d8; color:#7a5a16; cursor:pointer; font-size:13px; box-shadow: 0 3px 12px rgba(46,68,44,.06); }
-    .maybeBtn.active { background:#f1d78a; border-color:#b98f2f; font-weight:bold; }
     .player:disabled { opacity:.58; cursor:not-allowed; }
     .confirmedBox { margin:14px 16px 0; padding:12px 14px; border:1px solid var(--border-strong); background: var(--panel-soft); border-radius:12px; box-shadow: var(--shadow); }
     .confirmedTitle { font-size:12px; color:var(--green); letter-spacing:.08em; margin-bottom:8px; font-weight:bold; }
     .confirmedChips { display:flex; flex-wrap:wrap; gap:7px; }
     .chip { padding:6px 9px; border-radius:999px; background:#ffffff; border:1px solid var(--border-strong); color:var(--green); font-size:13px; }
-    .chip.maybeChip { border-color:#d7b35f; color:#7a5a16; background:#fff4d8; }
     .smallBtn { border-radius:8px; padding:11px 12px; border:1px solid var(--border-strong); background: var(--panel-soft); color: var(--green); cursor:pointer; }
     .danger { border-color:#d19a92; background:var(--danger-soft); color:var(--danger); }
     .adminPanel { margin: 14px 16px 0; padding: 12px; border:1px solid var(--border); background: rgba(255,253,247,.84); border-radius:12px; display:flex; flex-direction:column; gap:10px; box-shadow: var(--shadow); }
@@ -135,7 +131,7 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v14";
+const VERSION = "v15";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
@@ -144,7 +140,7 @@ const FIXTURE_COMPS = {
   "2026-01-03":"Medal","2026-01-04":"Winter League","2026-01-10":"4 Ball","2026-01-11":"Bogey","2026-01-17":"Yellow Ball Competition","2026-01-18":"Winter League","2026-01-24":"Stableford","2026-01-25":"4 Ball","2026-01-31":"Stableford Team Event (4 person waltz)","2026-02-01":"Winter League","2026-02-07":"Stableford","2026-02-08":"Bogey","2026-02-14":"Medal","2026-02-15":"Winter League","2026-02-21":"Mixed Yellow Ball Stableford","2026-02-22":"4 Ball","2026-02-28":"Bogey","2026-03-01":"Stableford","2026-03-07":"Medal","2026-03-08":"Texas Scramble","2026-03-14":"Stableford","2026-03-15":"4 Ball (Mother's Day)","2026-03-21":"2-Man Aggregate Stableford","2026-03-22":"Medal","2026-03-28":"Stableford","2026-03-29":"Captains' Drive-Ins & 4BBB","2026-04-04":"4-Ball Stableford","2026-04-05":"Medal (Easter Sunday)","2026-04-11":"Chairman's Trophy (Greensome)","2026-04-12":"Druids Cup / Medal","2026-04-18":"Stableford","2026-04-19":"Champion of Champions Medal","2026-04-25":"V H Pearce 2-Man Texas Scramble","2026-04-26":"Dusty Bin Stableford","2026-05-02":"Stan Creswell Trophy Medal","2026-05-03":"Foursomes Cup","2026-05-09":"1st Invitation Day","2026-05-10":"Over 50's Cup Medal","2026-05-16":"Mixed 4BBB Stableford","2026-05-17":"Stableford (4 person team)","2026-05-23":"Stableford","2026-05-24":"Boldmere Bowl Medal","2026-05-30":"4 Ball","2026-05-31":"Captain's Charity Shield Stableford","2026-06-06":"Presidents Championship Day Medal","2026-06-07":"Stableford","2026-06-13":"4 Ball","2026-06-14":"Members Memorial Salver Medal","2026-06-20":"Captain's Open AM AM","2026-06-21":"Stableford (Father's Day)","2026-06-27":"Pro's Day Medal","2026-06-28":"4 Ball","2026-07-04":"Greensome / Yardley Holland Cup","2026-07-05":"Secretary's Cup Medal","2026-07-11":"Club Championship Round 1","2026-07-12":"Club Championship Round 2","2026-07-18":"Captain's Weekend Texas Scramble","2026-07-19":"Captain's Weekend Men's 4 Ball","2026-07-25":"Scratch Stableford","2026-07-26":"M & S Pooley Cup 4 Ball","2026-08-01":"Greensome / Yardley Holland Cup","2026-08-02":"Twyford Seeds Cup Medal","2026-08-08":"Stableford Yellow Ball","2026-08-09":"Bill Mountford Memorial Trophy Stableford","2026-08-15":"Gents Open","2026-08-16":"Bogey","2026-08-22":"Stableford","2026-08-23":"Ray Garnett Trophy Texas Scramble","2026-08-29":"President's Day","2026-08-30":"Golfer Non-Golfer","2026-09-05":"Batevale Trophy Medal","2026-09-06":"Stableford","2026-09-12":"P.G. Whatton Trophy Stableford","2026-09-13":"2nd Invitation Day","2026-09-19":"L.E. Swain Trophy Medal","2026-09-20":"4 Ball","2026-09-26":"Stableford (Junior Fundraiser)","2026-09-27":"Paul Canning Trophy Medal","2026-10-03":"Green's Committee Cup Medal","2026-10-04":"Stableford","2026-10-10":"4 Ball","2026-10-11":"Greenkeeper's Tankard","2026-10-17":"Bogey","2026-10-18":"Stableford","2026-10-24":"Stableford Texas AM-AM","2026-10-25":"Winter League","2026-10-31":"Bogey","2026-11-01":"Winter League","2026-11-07":"Stableford","2026-11-08":"4 Ball","2026-11-14":"Medal","2026-11-15":"Winter League","2026-11-21":"Stableford","2026-11-22":"2 Man Aggregate Stableford","2026-11-28":"4 Ball","2026-11-29":"Stableford","2026-12-06":"Winter League","2026-12-12":"Texas AM AM","2026-12-13":"Winter League","2026-12-19":"Pro's Christmas Jumper","2026-12-20":"Christmas Stableford"
 };
 
-const initDay = (comp="") => ({ players: [], maybes: [], priorityPlayers: [], locked: false, competition: comp, audit: [], draw: null });
+const initDay = (comp="") => ({ players: [], priorityPlayers: [], locked: false, competition: comp, audit: [], draw: null });
 const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const fromDateKey = key => { const [y,m,d] = key.split("-").map(Number); return new Date(y, m-1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
@@ -192,10 +188,11 @@ function mergeWithBase(saved) {
     const savedVal = val || {};
     // Important: old/empty saved records must not wipe out fixture names.
     const savedComp = typeof savedVal.competition === "string" ? savedVal.competition.trim() : "";
+    const { maybes, ...cleanSavedVal } = savedVal;
     merged[key] = {
       ...initDay(fixtureComp),
       ...(base[key]||{}),
-      ...savedVal,
+      ...cleanSavedVal,
       competition: savedComp || fixtureComp
     };
   });
@@ -223,7 +220,6 @@ function App(){
   const [activeDay,setActiveDay]=useState(localStorage.getItem("wg_day") || "sat");
   const [confirmRemove,setConfirmRemove]=useState(null);
   const [confirmAdd,setConfirmAdd]=useState(null);
-  const [confirmMaybe,setConfirmMaybe]=useState(null);
   const [newName,setNewName]=useState("");
   const [editingComp,setEditingComp]=useState(false);
   const [compInput,setCompInput]=useState("");
@@ -251,13 +247,11 @@ function App(){
   const signupClosed = isSignupClosed(currentDate);
   const effectiveLocked=current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
   const currentPlayers = Array.isArray(current.players) ? current.players : [];
-  const currentMaybes = Array.isArray(current.maybes) ? current.maybes.filter(name => !currentPlayers.includes(name)) : [];
   const currentPriority = Array.isArray(current.priorityPlayers) ? current.priorityPlayers.filter(name => currentPlayers.includes(name)) : [];
-  const allNames=[...new Set([...INITIAL_MEMBERS, ...currentPlayers, ...currentMaybes])].sort();
+  const allNames=[...new Set([...INITIAL_MEMBERS, ...currentPlayers])].sort();
   const playerDisplayNames = [
     ...currentPlayers,
-    ...currentMaybes.filter(name => !currentPlayers.includes(name)),
-    ...allNames.filter(name => !currentPlayers.includes(name) && !currentMaybes.includes(name))
+    ...allNames.filter(name => !currentPlayers.includes(name))
   ];
   const confirmedSummaryText = currentPlayers.length
     ? `${currentPlayers.length} confirmed: ${currentPlayers.join(", ")}`
@@ -296,17 +290,11 @@ function App(){
     if(effectiveLocked && !adminMode) return;
     if(!requireOwnPlayer(name)) return;
     if(currentPlayers.includes(name)){ setConfirmRemove({ name, from: "playing" }); return; }
-    setConfirmAdd({ name, mode: currentMaybes.includes(name) ? "maybeToPlaying" : "toggle" });
-  }
-  async function chooseMaybe(name){
-    if(effectiveLocked && !adminMode) return;
-    if(!requireOwnPlayer(name)) return;
-    if(currentMaybes.includes(name)){ setConfirmRemove({ name, from: "maybe" }); return; }
-    setConfirmMaybe({ name, mode: currentPlayers.includes(name) ? "playingToMaybe" : "maybe" });
+    setConfirmAdd({ name, mode: "toggle" });
   }
   async function setPlayerStatus(name, playerStatus){
     try {
-      const label = playerStatus === "playing" ? "playing" : playerStatus === "maybe" ? "maybe" : "not playing";
+      const label = playerStatus === "playing" ? "playing" : "not playing";
       setMessage(`Saving ${dateKey}: ${name} as ${label}...`); setError("");
       const r=await api("player-status", {dateKey, name, status: playerStatus, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin, competition: current.competition || FIXTURE_COMPS[dateKey] || ""});
       optimistic(r.dateKey, r.data); setMessage(`✅ ${r.message}`);
@@ -368,18 +356,15 @@ function App(){
   const buildConfirmedListText = () => {
     const comp = current.competition ? `
 🏆 ${current.competition}` : "";
-    const maybeLine = currentMaybes.length ? `
-
-${currentMaybes.length} maybe playing:
-${currentMaybes.map((p,i)=>`${i+1}. ${p}`).join("\n")}` : "";
-    if (!currentPlayers.length && !currentMaybes.length) return `${formatDate(currentDate)}${comp}
+    if (!currentPlayers.length) return `${formatDate(currentDate)}${comp}
 
 No players confirmed yet.`;
-    const confirmedLine = currentPlayers.length ? `${currentPlayers.length} playing:
-${currentPlayers.map((p,i)=>`${i+1}. ${p}`).join("\n")}` : "No confirmed players yet.";
+    const confirmedLine = `${currentPlayers.length} playing:
+${currentPlayers.map((p,i)=>`${i+1}. ${p}`).join("
+")}`;
     return `⛳ Golf – ${formatDate(currentDate)}${comp}
 
-${confirmedLine}${maybeLine}
+${confirmedLine}
 
 Bookings confirmed ✅`;
   };
@@ -389,7 +374,7 @@ Bookings confirmed ✅`;
     const time = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", {hour:"2-digit", minute:"2-digit"}) : "";
     const actor = entry.actor ? `${entry.actor} ` : "";
     const fromTo = entry.from || entry.to ? ` (${entry.from || "?"} → ${entry.to || "?"})` : "";
-    const label = { joined:"set playing", maybe:"set maybe", removed_self:"removed", admin_added:"admin added", admin_removed:"admin removed", admin_locked:"locked list", admin_unlocked:"unlocked list", draw_regenerated:"redrew draw", priority_added:"marked early tee", priority_removed:"removed early tee", competition_changed:"changed competition" }[entry.action] || entry.action;
+    const label = { joined:"set playing", removed_self:"removed", admin_added:"admin added", admin_removed:"admin removed", admin_locked:"locked list", admin_unlocked:"unlocked list", draw_regenerated:"redrew draw", priority_added:"marked early tee", priority_removed:"removed early tee", competition_changed:"changed competition" }[entry.action] || entry.action;
     return `${time} — ${actor}${label} ${entry.name || ""}${fromTo}`;
   };
 
@@ -430,22 +415,20 @@ Bookings confirmed ✅`;
 
     <div className="section dateBar">
       <div><div className="date">{formatDate(currentDate)}</div>{current.competition && <div className="comp">🏆 {current.competition}</div>}<div className="key">Saving date key: {dateKey}</div>{!current.locked && !signupClosed && <div className="key">Sign-up closes {formatCutoff(currentDate)}</div>}{effectiveLocked && <div style={{color:"#e87840",fontSize:11,marginTop:4}}>🔒 {current.locked ? "List locked by admin" : `Sign-up closed ${formatCutoff(currentDate)} — list visible only`}</div>}</div>
-      <div className="count">{currentPlayers.length} confirmed<br/><small>{currentMaybes.length} maybe</small><br/><small>{currentPlayers.length?Math.ceil(currentPlayers.length/4):0} tee time{currentPlayers.length>4?"s":""}</small></div>
+      <div className="count">{currentPlayers.length} confirmed<br/><small>{currentPlayers.length?Math.ceil(currentPlayers.length/4):0} tee time{currentPlayers.length>4?"s":""}</small></div>
     </div>
 
     {current.locked && current.draw && <div className="draw"><div className="drawHead">🎲 TEE TIME DRAW</div>{current.draw.map((g,i)=><div className="group" key={i}><div className="groupH"><span>TEE {i+1}</span><span>{groupLabel(g.length)}</span></div>{g.map((p,j)=><div className="groupP" key={p}>{j+1}. {currentPriority.includes(p)?"⭐ ":""}{p}</div>)}</div>)}</div>}
 
-    {effectiveLocked && <div className="confirmedBox"><div className="confirmedTitle">CONFIRMED FOR THIS DATE</div><div className="confirmedChips">{currentPlayers.length ? currentPlayers.map((p,i)=><span className="chip" key={p}>{i+1}. {currentPriority.includes(p)?"⭐ ":""}{p}</span>) : <span style={{color:"#4a6a4a",fontSize:13}}>No players confirmed yet.</span>}</div>{currentMaybes.length > 0 && <><div className="confirmedTitle" style={{marginTop:12}}>MAYBE PLAYING</div><div className="confirmedChips">{currentMaybes.map((p,i)=><span className="chip maybeChip" key={p}>{i+1}. {p}</span>)}</div></>}</div>}
+    {effectiveLocked && <div className="confirmedBox"><div className="confirmedTitle">CONFIRMED FOR THIS DATE</div><div className="confirmedChips">{currentPlayers.length ? currentPlayers.map((p,i)=><span className="chip" key={p}>{i+1}. {currentPriority.includes(p)?"⭐ ":""}{p}</span>) : <span style={{color:"#4a6a4a",fontSize:13}}>No players confirmed yet.</span>}</div></div>}
 
-    <div className="players"><div className="label">{effectiveLocked?"CONFIRMED PLAYERS, MAYBES, THEN OTHERS":"CHOOSE PLAYING OR MAYBE"}</div>{playerDisplayNames.map(name=>{
+    <div className="players"><div className="label">{effectiveLocked?"CONFIRMED PLAYERS, THEN OTHERS":"CHOOSE PLAYING"}</div>{playerDisplayNames.map(name=>{
       const isIn=currentPlayers.includes(name);
-      const isMaybe=currentMaybes.includes(name);
       const disabledForUser = (effectiveLocked && !adminMode) || (!adminMode && !canEditPlayer(name));
       return <div className={`row ${disabledForUser?"lockedOther":""}`} key={name}>
-        <button className={`player ${isIn?"in":isMaybe?"maybe":""}`} disabled={disabledForUser} onClick={()=>choosePlaying(name)}><span>{name}</span><span>{isIn?"✓":isMaybe?"Maybe":""}</span></button>
-        <button className={`maybeBtn ${isMaybe?"active":""}`} disabled={disabledForUser} onClick={()=>chooseMaybe(name)}>{isMaybe?"Maybe ✓":"Maybe"}</button>
+        <button className={`player ${isIn?"in":""}`} disabled={disabledForUser} onClick={()=>choosePlaying(name)}><span>{name}</span><span>{isIn?"✓":""}</span></button>
         {adminMode && isIn && <button className={`priorityBtn ${currentPriority.includes(name)?"active":""}`} onClick={()=>togglePriority(name)}>{currentPriority.includes(name)?"⭐ Early":"☆ Early"}</button>}
-        {adminMode && (isIn || isMaybe) && <button className="smallBtn danger" onClick={()=>setConfirmRemove({ name, from: isIn ? "playing" : "maybe" })}>✕</button>}
+        {adminMode && isIn && <button className="smallBtn danger" onClick={()=>setConfirmRemove({ name, from: "playing" })}>✕</button>}
       </div>
     })}</div>
 
@@ -474,8 +457,7 @@ Bookings confirmed ✅`;
     </div>}
 
     {showPin && <div className="modal"><div className="modalBox"><div style={{fontSize:28}}>🔐</div><h3 style={{color:"#2f5d35",fontWeight:"normal"}}>Admin PIN</h3><input className="input" type="password" inputMode="numeric" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attemptAdmin()} placeholder="Enter PIN"/><div className="modalActions"><button className="ghost" onClick={()=>setShowPin(false)}>Cancel</button><button className="green" onClick={attemptAdmin}>Enter</button></div></div></div>}
-    {confirmAdd && <div className="modal"><div className="modalBox"><h3 style={{color:"#223322",fontWeight:"normal"}}>{confirmAdd.mode==="maybeToPlaying"?"Confirm as playing?":"Add to booking?"}</h3><p>Add <strong style={{color:"#2f5d35"}}>{confirmAdd.name}</strong> as <strong>playing</strong> on {formatDate(currentDate)}?</p><p style={{fontSize:12,color:"#60715d",lineHeight:1.4}}>Please confirm this is the correct player, date and status before saving.</p><div className="modalActions"><button className="ghost" onClick={()=>setConfirmAdd(null)}>Cancel</button><button className="green" onClick={async()=>{const item=confirmAdd; setConfirmAdd(null); if(item.mode==="adminManual"){ await adminPost("admin/add-player", {name:item.name}); setNewName(""); } else { await setPlayerStatus(item.name, "playing"); }}}>Yes, add</button></div></div></div>}
-    {confirmMaybe && <div className="modal"><div className="modalBox"><h3 style={{color:"#223322",fontWeight:"normal"}}>{confirmMaybe.mode==="playingToMaybe"?"Move to maybe?":"Mark as maybe?"}</h3><p>Mark <strong style={{color:"#7a5a16"}}>{confirmMaybe.name}</strong> as <strong>maybe playing</strong> on {formatDate(currentDate)}?</p><p style={{fontSize:12,color:"#60715d",lineHeight:1.4}}>Please confirm this is the correct player, date and status before saving.</p><div className="modalActions"><button className="ghost" onClick={()=>setConfirmMaybe(null)}>Cancel</button><button className="green" onClick={async()=>{const item=confirmMaybe; setConfirmMaybe(null); await setPlayerStatus(item.name, "maybe");}}>Yes, maybe</button></div></div></div>}
+    {confirmAdd && <div className="modal"><div className="modalBox"><h3 style={{color:"#223322",fontWeight:"normal"}}>"Add to booking?"</h3><p>Add <strong style={{color:"#2f5d35"}}>{confirmAdd.name}</strong> as <strong>playing</strong> on {formatDate(currentDate)}?</p><p style={{fontSize:12,color:"#60715d",lineHeight:1.4}}>Please confirm this is the correct player, date and status before saving.</p><div className="modalActions"><button className="ghost" onClick={()=>setConfirmAdd(null)}>Cancel</button><button className="green" onClick={async()=>{const item=confirmAdd; setConfirmAdd(null); if(item.mode==="adminManual"){ await adminPost("admin/add-player", {name:item.name}); setNewName(""); } else { await setPlayerStatus(item.name, "playing"); }}}>Yes, add</button></div></div></div>}
     {confirmRemove && <div className="modal"><div className="modalBox"><h3 style={{color:"#223322",fontWeight:"normal"}}>Remove from list?</h3><p>Remove <strong style={{color:"#2f5d35"}}>{confirmRemove.name}</strong> from {formatDate(currentDate)}?</p><div className="modalActions"><button className="ghost" onClick={()=>setConfirmRemove(null)}>Cancel</button><button className="ghost danger" onClick={async()=>{const item=confirmRemove; setConfirmRemove(null); adminMode ? await adminPost("admin/remove-player", {name:item.name}) : await setPlayerStatus(item.name, "none");}}>Yes, remove</button></div></div></div>}
   </div>
 }
