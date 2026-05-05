@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 const SITE_URL = (process.env.SITE_URL || process.argv.find(a => a.startsWith("--url="))?.slice(6) || "https://bazandnobbyschool.pages.dev").replace(/\/$/, "");
 const ADMIN_PIN = process.env.ADMIN_PIN || process.argv.find(a => a.startsWith("--adminPin="))?.slice(11) || "2727";
 const RUN_ID = `LIVE${Date.now()}`;
+const PIN = "1111";
 const TEST_DATES = ["2099-01-02", "2099-01-03", "2099-01-04"];
 
 const report = { siteUrl: SITE_URL, runId: RUN_ID, startedAt: new Date().toISOString(), tests: [], failures: [] };
@@ -56,8 +57,25 @@ try {
     assert.ok(Number.isFinite(r.body.serverNow));
   });
 
+  await check("admin can set a player PIN", async () => {
+    const r = await post("/api/admin/player-pin", { adminPin: ADMIN_PIN, name: `${RUN_ID}-Bob`, pin: PIN });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.ok, true);
+  });
+
+  await check("player PIN login works", async () => {
+    const r = await post("/api/player-login", { name: `${RUN_ID}-Bob`, pin: PIN });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.ok, true);
+  });
+
+  await check("player cannot add another player", async () => {
+    const r = await post("/api/player-status", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Other`, status: "playing", playerName: `${RUN_ID}-Bob`, playerPin: PIN });
+    assert.equal(r.status, 403);
+  });
+
   await check("public player add saves to exact date", async () => {
-    const r = await post("/api/toggle-player", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Bob`, competition: "Live Test" });
+    const r = await post("/api/player-status", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Bob`, status: "playing", playerName: `${RUN_ID}-Bob`, playerPin: PIN, competition: "Live Test" });
     assert.equal(r.status, 200);
     assert.equal(r.body.ok, true);
     assert.equal(r.body.dateKey, TEST_DATES[0]);
@@ -71,11 +89,33 @@ try {
   });
 
   await check("public player remove toggles and audits", async () => {
-    const r = await post("/api/toggle-player", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Bob` });
+    const r = await post("/api/player-status", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Bob`, status: "none", playerName: `${RUN_ID}-Bob`, playerPin: PIN });
     assert.equal(r.status, 200);
     assert.equal(r.body.ok, true);
     assert.deepEqual(r.body.data.players, []);
     assert.equal(r.body.data.audit.at(-1).action, "removed_self");
+  });
+
+
+  await check("public maybe status saves and survives reload", async () => {
+    const maybeName = `${RUN_ID}-Maybe`;
+    await post("/api/admin/player-pin", { adminPin: ADMIN_PIN, name: maybeName, pin: PIN });
+    let r = await post("/api/player-status", { dateKey: TEST_DATES[2], name: maybeName, status: "maybe", playerName: maybeName, playerPin: PIN, competition: "Live Maybe Test" });
+    assert.equal(r.status, 200);
+    assert.equal(r.body.ok, true);
+    assert.deepEqual(r.body.data.players, []);
+    assert.deepEqual(r.body.data.maybes, [maybeName]);
+    assert.equal(r.body.data.audit.at(-1).action, "maybe");
+    r = await api("/api/schedule");
+    assert.deepEqual(r.body.schedule[TEST_DATES[2]].maybes, [maybeName]);
+  });
+
+  await check("maybe can be promoted to playing", async () => {
+    const maybeName = `${RUN_ID}-Maybe`;
+    const r = await post("/api/player-status", { dateKey: TEST_DATES[2], name: maybeName, status: "playing", playerName: maybeName, playerPin: PIN });
+    assert.equal(r.status, 200);
+    assert.deepEqual(r.body.data.players, [maybeName]);
+    assert.deepEqual(r.body.data.maybes, []);
   });
 
   await check("admin PIN required", async () => {
@@ -104,7 +144,7 @@ try {
     assert.equal(r.status, 200);
     assert.equal(r.body.data.locked, true);
     assert.ok(Array.isArray(r.body.data.draw));
-    r = await post("/api/toggle-player", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Jason` });
+    r = await post("/api/player-status", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Jason`, status:"playing", playerName:`${RUN_ID}-Jason`, playerPin:PIN });
     assert.equal(r.status, 403);
   });
 
@@ -112,13 +152,15 @@ try {
     let r = await post("/api/admin/lock", { dateKey: TEST_DATES[0], locked: false, adminPin: ADMIN_PIN });
     assert.equal(r.status, 200);
     assert.equal(r.body.data.locked, false);
-    r = await post("/api/toggle-player", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Jason` });
+    await post("/api/admin/player-pin", { adminPin: ADMIN_PIN, name: `${RUN_ID}-Jason`, pin: PIN });
+    r = await post("/api/player-status", { dateKey: TEST_DATES[0], name: `${RUN_ID}-Jason`, status:"playing", playerName:`${RUN_ID}-Jason`, playerPin:PIN });
     assert.equal(r.status, 200);
     assert.ok(r.body.data.players.includes(`${RUN_ID}-Jason`));
   });
 
   await check("cutoff blocks old-date public add", async () => {
-    const r = await post("/api/toggle-player", { dateKey: "2000-01-01", name: `${RUN_ID}-Blocked` });
+    await post("/api/admin/player-pin", { adminPin: ADMIN_PIN, name: `${RUN_ID}-Blocked`, pin: PIN });
+    const r = await post("/api/player-status", { dateKey: "2000-01-01", name: `${RUN_ID}-Blocked`, status:"playing", playerName:`${RUN_ID}-Blocked`, playerPin:PIN });
     assert.equal(r.status, 403);
     assert.match(r.body.error, /closed/i);
   });

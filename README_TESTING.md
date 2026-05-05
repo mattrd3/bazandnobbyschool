@@ -140,7 +140,23 @@ The live and soak tests intentionally use dates in 2099 so they do not appear in
 
 The quick regression suite now fails if the UI no longer prompts before adding a player. The live and soak suites continue to validate the API/data layer repeatedly; the add confirmation itself is a browser/UI guard and is covered by static regression checks.
 
+## v13 additions
 
-## v11 soak report path fix
+This release adds player PIN identity, admin-managed PINs, early tee priority and a visible audit log.
 
-The soak test now uses `fileURLToPath(import.meta.url)` before building report paths. This fixes Windows paths such as `C:\C:\...` when writing `test/reports/soak-*.json`.
+New quick checks:
+
+- public users must log in with their own player PIN before changing status;
+- a logged-in player cannot change someone else's booking;
+- admin can create/clear player PINs in-app;
+- admin can mark confirmed players as early tee priority;
+- generated draws place priority players into the earliest groups;
+- admin activity log records actor, action and before/after state.
+
+Run:
+
+```powershell
+npm test
+$env:SITE_URL="https://bazandnobbyschool.pages.dev"; $env:ADMIN_PIN="2727"; npm run test:live
+$env:SITE_URL="https://bazandnobbyschool.pages.dev"; $env:ADMIN_PIN="2727"; npm run test:soak:quick
+```

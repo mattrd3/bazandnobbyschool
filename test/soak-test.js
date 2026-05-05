@@ -12,6 +12,7 @@ const ADMIN_PIN = process.env.ADMIN_PIN || args.adminPin || "2727";
 const MINUTES = Number(process.env.SOAK_MINUTES || args.minutes || 60);
 const INTERVAL_MS = Number(process.env.SOAK_INTERVAL_MS || args.intervalMs || 500);
 const RUN_ID = `SOAK${Date.now()}`;
+const PIN = "1111";
 
 const TEST_DATES = [
   "2099-02-01", "2099-02-02", "2099-02-03", "2099-02-04", "2099-02-05", "2099-02-06", "2099-02-07",
@@ -20,7 +21,7 @@ const TEST_DATES = [
 const PLAYERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam"]
   .map(n => `${RUN_ID}-${n}`);
 
-const expected = new Map(TEST_DATES.map(d => [d, { players: new Set(), locked: false, competition: "", removed: false }]));
+const expected = new Map(TEST_DATES.map(d => [d, { players: new Set(), maybes: new Set(), locked: false, competition: "", removed: false }]));
 const stats = {
   siteUrl: SITE_URL,
   runId: RUN_ID,
@@ -67,8 +68,12 @@ function assertExpectedDay(dateKey, day) {
   const e = expected.get(dateKey);
   assert.ok(day, `missing date ${dateKey}`);
   assertNoDuplicates(day.players || []);
+  assertNoDuplicates(day.maybes || []);
   const got = new Set((day.players || []).filter(p => p.startsWith(RUN_ID)));
+  const gotMaybes = new Set((day.maybes || []).filter(p => p.startsWith(RUN_ID)));
   assert.deepEqual([...got].sort(), [...e.players].sort(), `players mismatch for ${dateKey}`);
+  assert.deepEqual([...gotMaybes].sort(), [...e.maybes].sort(), `maybes mismatch for ${dateKey}`);
+  for (const p of got) assert.equal(gotMaybes.has(p), false, `player cannot be both playing and maybe: ${p}`);
   if (e.competition) assert.equal(day.competition, e.competition, `competition mismatch for ${dateKey}`);
 }
 
@@ -76,7 +81,7 @@ async function verifyRandomDate(dateKey) {
   const r = await api("/api/schedule");
   assert.equal(r.status, 200);
   assert.equal(r.body.ok, true);
-  const day = r.body.schedule[dateKey] || { players: [], competition: "" };
+  const day = r.body.schedule[dateKey] || { players: [], maybes: [], competition: "" };
   assertExpectedDay(dateKey, day);
 }
 
@@ -86,10 +91,10 @@ async function opTogglePublic() {
   const e = expected.get(dateKey);
   if (e.locked) return opAdminUnlock(dateKey);
   const beforeHad = e.players.has(player);
-  const r = await post("/api/toggle-player", { dateKey, name: player, competition: e.competition || "Soak Test" });
+  const r = await post("/api/player-status", { dateKey, name: player, status: beforeHad ? "none" : "playing", playerName: player, playerPin: PIN, competition: e.competition || "Soak Test" });
   assert.equal(r.status, 200);
   assert.equal(r.body.ok, true);
-  if (beforeHad) e.players.delete(player); else e.players.add(player);
+  if (beforeHad) e.players.delete(player); else { e.players.add(player); e.maybes.delete(player); }
   assertExpectedDay(dateKey, r.body.data);
   inc("public toggle");
   await verifyRandomDate(dateKey);
@@ -103,6 +108,7 @@ async function opAdminAdd() {
   assert.equal(r.status, 200);
   assert.equal(r.body.ok, true);
   e.players.add(player);
+  e.maybes.delete(player);
   assertExpectedDay(dateKey, r.body.data);
   inc("admin add");
 }
@@ -115,8 +121,38 @@ async function opAdminRemove() {
   assert.equal(r.status, 200);
   assert.equal(r.body.ok, true);
   e.players.delete(player);
+  e.maybes.delete(player);
   assertExpectedDay(dateKey, r.body.data);
   inc("admin remove");
+}
+
+async function opMaybePublic() {
+  const dateKey = pick(TEST_DATES);
+  const player = pick(PLAYERS);
+  const e = expected.get(dateKey);
+  if (e.locked) return opAdminUnlock(dateKey);
+  const r = await post("/api/player-status", { dateKey, name: player, status: "maybe", playerName: player, playerPin: PIN, competition: e.competition || "Soak Test" });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ok, true);
+  e.players.delete(player);
+  e.maybes.add(player);
+  assertExpectedDay(dateKey, r.body.data);
+  inc("public maybe");
+  await verifyRandomDate(dateKey);
+}
+
+async function opPromoteMaybe() {
+  const dateKey = pick(TEST_DATES);
+  const e = expected.get(dateKey);
+  if (e.locked) return opAdminUnlock(dateKey);
+  const player = e.maybes.size ? pick([...e.maybes]) : pick(PLAYERS);
+  const r = await post("/api/player-status", { dateKey, name: player, status: "playing", playerName: player, playerPin: PIN, competition: e.competition || "Soak Test" });
+  assert.equal(r.status, 200);
+  assert.equal(r.body.ok, true);
+  e.players.add(player);
+  e.maybes.delete(player);
+  assertExpectedDay(dateKey, r.body.data);
+  inc("promote maybe");
 }
 
 async function opCompetition() {
@@ -140,7 +176,8 @@ async function opAdminLock(dateKey = pick(TEST_DATES)) {
   assert.equal(r.body.data.locked, true);
   inc("admin lock");
   // Public write should now be blocked.
-  const blocked = await post("/api/toggle-player", { dateKey, name: pick(PLAYERS) });
+  const blockedPlayer = pick(PLAYERS);
+  const blocked = await post("/api/player-status", { dateKey, name: blockedPlayer, status:"playing", playerName: blockedPlayer, playerPin: PIN });
   assert.equal(blocked.status, 403);
   inc("locked public block check");
 }
@@ -156,16 +193,19 @@ async function opAdminUnlock(dateKey = pick(TEST_DATES)) {
 }
 
 async function opCutoffCheck() {
-  const r = await post("/api/toggle-player", { dateKey: "2000-01-01", name: `${RUN_ID}-Closed` });
+  const closedName = `${RUN_ID}-Closed`;
+  await post("/api/admin/player-pin", { adminPin: ADMIN_PIN, name: closedName, pin: PIN });
+  const r = await post("/api/player-status", { dateKey: "2000-01-01", name: closedName, status:"playing", playerName: closedName, playerPin: PIN });
   assert.equal(r.status, 403);
   inc("cutoff public block check");
 }
 
-const ops = [opTogglePublic, opTogglePublic, opTogglePublic, opAdminAdd, opAdminRemove, opCompetition, opAdminLock, opAdminUnlock, opCutoffCheck];
+const ops = [opTogglePublic, opTogglePublic, opMaybePublic, opPromoteMaybe, opAdminAdd, opAdminRemove, opCompetition, opAdminLock, opAdminUnlock, opCutoffCheck];
 
 try {
   console.log(`Starting soak test against ${SITE_URL} for ${MINUTES} minute(s). Run id: ${RUN_ID}`);
   await cleanup();
+  for (const player of PLAYERS) await post("/api/admin/player-pin", { adminPin: ADMIN_PIN, name: player, pin: PIN });
   const end = Date.now() + MINUTES * 60 * 1000;
   while (Date.now() < end) {
     stats.iterations++;
@@ -184,7 +224,7 @@ try {
   // Full final verification of every test date.
   const schedule = (await api("/api/schedule")).body.schedule;
   for (const dateKey of TEST_DATES) {
-    assertExpectedDay(dateKey, schedule[dateKey] || { players: [], competition: "" });
+    assertExpectedDay(dateKey, schedule[dateKey] || { players: [], maybes: [], competition: "" });
   }
 } finally {
   await cleanup();
