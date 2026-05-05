@@ -176,3 +176,40 @@ This release adds a weekend-navigation UI fix:
 - the visible app version marker is now `LIVE- v20`.
 
 The quick regression suite now checks that weekend changes explicitly call `setActiveDay("sat")`.
+
+
+## v21 additions
+
+This release adds a logged-in-player ordering improvement:
+
+- when a player is logged in, their own row is pinned to the top of each open booking list;
+- if the date is locked/closed and that logged-in player is confirmed, their row remains at the top;
+- if the date is locked/closed and that logged-in player is not playing, the normal confirmed-players-first order is preserved;
+- the visible app version marker is now `LIVE- v21`.
+
+The quick regression suite now checks the pinning helper and the locked/not-playing exception.
+
+
+## v22 additions
+
+This release adds a logged-in player UI cleanup:
+
+- once a player successfully logs in, the large player login box is hidden;
+- a compact `LOG OFF <name>` button appears in the top-right header below the admin button;
+- selecting log off clears the saved player PIN/session flag and brings the login box back;
+- the visible app version marker is now `LIVE- v22`.
+
+The quick regression suite now checks that the logged-in logout button exists and that the login panel is only rendered when no player is logged in.
+
+
+## v23 additions
+
+This release makes the admin activity log DB-first and live-refreshing:
+
+- new activity events are written to the dedicated D1 `audit_events` table instead of being appended into each day JSON blob;
+- legacy `day.audit` entries are migrated into `audit_events` the first time that day's log is opened;
+- the admin activity panel now reads directly from `/api/admin/audit` and refreshes every 5 seconds while open;
+- after admin/player changes, the open activity log is refreshed from D1 immediately;
+- the visible app version marker is now `LIVE- v23`.
+
+The quick regression suite now checks DB-backed audit reads, legacy audit migration, and the live DB activity-log UI.

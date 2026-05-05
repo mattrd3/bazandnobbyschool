@@ -18,6 +18,7 @@ const AUDIT_EVENTS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS audit_events (
   actorType TEXT,
   details TEXT
 )`;
+const AUDIT_EVENTS_INDEX_SQL = `CREATE INDEX IF NOT EXISTS idx_audit_events_date_ts ON audit_events (dateKey, ts DESC)`;
 const PLAYER_STATUS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS player_status (
   dateKey TEXT NOT NULL,
   name TEXT NOT NULL,
@@ -98,6 +99,7 @@ async function saveRosterConfig(db, members) {
 
 async function ensureOperationalTables(db) {
   await db.prepare(AUDIT_EVENTS_TABLE_SQL).run();
+  await db.prepare(AUDIT_EVENTS_INDEX_SQL).run();
   await db.prepare(PLAYER_STATUS_TABLE_SQL).run();
 }
 async function appendAuditEvent(db, dateKey, entry) {
@@ -111,23 +113,42 @@ async function appendAuditEvent(db, dateKey, entry) {
     .run();
 }
 async function addAuditAndLog(db, dateKey, day, action, name, ts = Date.now(), details = {}) {
-  const next = addAudit(day, action, name, ts, details);
-  const entry = next.audit[next.audit.length - 1];
-  await appendAuditEvent(db, dateKey, entry);
-  return next;
+  // v23: activity log is DB-first. Keep any legacy day.audit array for old exported data,
+  // but do not append new events into the JSON day blob because that was prone to lost updates.
+  await appendAuditEvent(db, dateKey, { action, name, ts, ...details });
+  return { ...day, updatedAt: ts };
 }
-async function readAuditEvents(db, dateKey, limit = 300) {
+async function migrateLegacyAuditEvents(db, dateKey) {
   await ensureOperationalTables(db);
   const key = normaliseDateKey(dateKey);
+  const legacy = await getRawRow(db, key);
+  if (!Array.isArray(legacy?.audit) || !legacy.audit.length) return 0;
+  let migrated = 0;
+  for (let i = 0; i < legacy.audit.length; i++) {
+    const entry = legacy.audit[i] || {};
+    const ts = Number(entry.ts || 0) || Date.now();
+    const action = String(entry.action || "unknown");
+    const name = String(entry.name || "");
+    const actor = String(entry.actor || "Unknown");
+    const actorType = String(entry.actorType || "unknown");
+    const { action: _a, name: _n, actor: _actor, actorType: _actorType, ts: _ts, ...details } = entry;
+    const id = `${key}-legacy-${ts}-${i}-${action}-${name}`.replace(/[^a-zA-Z0-9:_-]/g, "_");
+    await db.prepare("INSERT OR IGNORE INTO audit_events (id, dateKey, ts, action, name, actor, actorType, details) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+      .bind(id, key, ts, action, name, actor, actorType, JSON.stringify(details || {}))
+      .run();
+    migrated++;
+  }
+  return migrated;
+}
+async function readAuditEvents(db, dateKey, limit = 300) {
+  await migrateLegacyAuditEvents(db, dateKey);
+  const key = normaliseDateKey(dateKey);
   const rows = await db.prepare("SELECT ts, action, name, actor, actorType, details FROM audit_events WHERE dateKey = ? ORDER BY ts DESC LIMIT ?").bind(key, limit).all();
-  const events = (rows.results || []).map(row => {
+  return (rows.results || []).map(row => {
     let details = {};
     try { details = row.details ? JSON.parse(row.details) : {}; } catch {}
     return { ts: row.ts, action: row.action, name: row.name, actor: row.actor, actorType: row.actorType, ...details };
   });
-  if (events.length) return events;
-  const legacy = await getRawRow(db, key);
-  return Array.isArray(legacy?.audit) ? [...legacy.audit].reverse() : [];
 }
 async function writePlayerStatus(db, dateKey, name, status, actor = "Unknown", actorType = "unknown", ts = Date.now()) {
   await ensureOperationalTables(db);
@@ -214,4 +235,4 @@ async function handle(request, env) {
   return json({ ok:false, error:`No route for ${method} /api/${route}` }, 404);
 }
 export async function onRequest(context) { try { return await handle(context.request, context.env); } catch(err) { return json({ ok:false, error:err.message || String(err) }, 500); } }
-export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows };
+export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows, migrateLegacyAuditEvents, readAuditEvents };

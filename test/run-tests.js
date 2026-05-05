@@ -41,7 +41,7 @@ class FakeStmt {
       this.db.rows.set(dateKey, { data, updatedAt });
       return { success: true };
     }
-    if (this.sql.includes("CREATE TABLE IF NOT EXISTS")) {
+    if (this.sql.includes("CREATE TABLE IF NOT EXISTS") || this.sql.includes("CREATE INDEX IF NOT EXISTS")) {
       return { success: true };
     }
     if (this.sql.includes("INSERT INTO player_status")) {
@@ -49,7 +49,7 @@ class FakeStmt {
       this.db.statusRows.set(`${dateKey}::${name}`, { dateKey, name, status, updatedAt, actor, actorType });
       return { success: true };
     }
-    if (this.sql.includes("INSERT INTO audit_events")) {
+    if (this.sql.includes("INSERT INTO audit_events") || this.sql.includes("INSERT OR IGNORE INTO audit_events")) {
       const [id, dateKey, ts, action, name, actor, actorType, details] = this.args;
       this.db.auditRows.push({ id, dateKey, ts, action, name, actor, actorType, details });
       return { success: true };
@@ -126,16 +126,22 @@ r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"J
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, ["Jason"]);
 assert.equal("maybes" in r.json.data, false);
-assert.equal(r.json.data.audit.at(-1).action, "joined");
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
+assert.equal(r.json.ok, true);
+assert.equal(r.json.events[0].action, "joined", "v23 should read joined events from audit_events table");
 
 r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"none", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, []);
-assert.equal(r.json.data.audit.at(-1).action, "removed_self");
 r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
 assert.equal(r.json.ok, true);
 assert.ok(r.json.events.some(e => e.action === "joined"));
 assert.ok(r.json.events.some(e => e.action === "removed_self"));
+
+await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind("2026-06-08", JSON.stringify({ players: [], audit: [{ ts: 123, action: "legacy_event", name: "Legacy", actor: "Admin", actorType: "admin" }] }), 123).run();
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-08");
+assert.equal(r.json.ok, true);
+assert.ok(r.json.events.some(e => e.action === "legacy_event"), "v23 should migrate legacy day.audit into audit_events on lookup");
 
 r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-07", name:"Ethan", adminPin:"2727" });
 assert.equal(r.json.ok, true);
@@ -161,10 +167,10 @@ assert.equal("maybes" in r.json.schedule["2026-06-07"], false);
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 27 API/helper tests passed");
+console.log("PASS: 29 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v20"')) throw new Error("v20 marker missing");
+if (!html.includes('const VERSION = "v23"')) throw new Error("v23 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('setActiveDay("sat");') || !html.includes('const saturdayKey = e.target.value;')) throw new Error("v20 weekend change must default selected day to Saturday");
 if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
@@ -186,4 +192,16 @@ for (const forbidden of ["Maybe", "currentMaybes", "confirmMaybe", "chooseMaybe"
   if (html.includes(forbidden)) throw new Error(`Maybe feature should be removed from UI: ${forbidden}`);
 }
 if (html.includes("MAYBE PLAYING") || html.includes("CHOOSE PLAYING OR MAYBE")) throw new Error("Maybe user-facing copy should be removed");
-console.log("PASS: v20 UI regression checks passed");
+if (!html.includes("shouldPinLoggedInPlayer")) throw new Error("v21 logged-in player pinning helper missing");
+if (!html.includes("(!effectiveLocked || currentPlayers.includes(playerName))")) throw new Error("v21 locked/not-playing exception missing");
+if (!html.includes("[playerName, ...basePlayerDisplayNames.filter(name => name !== playerName)]")) throw new Error("v21 logged-in player should be placed first when pinned");
+if (!html.includes("playerLogoutBtn")) throw new Error("v22 player logout button style missing");
+if (!html.includes("!adminMode && !pinLoggedIn && React.createElement")) throw new Error("v22 login box should hide once player is logged in");
+if (!html.includes("!adminMode && pinLoggedIn && React.createElement(\"button\", { className: \"playerLogoutBtn\"")) throw new Error("v22 logged-in player logout button missing");
+if (!html.includes("LOG OFF ${playerName}")) throw new Error("v22 logout button should show logged-in player name");
+if (!html.includes("Activity log, live DB")) throw new Error("v23 audit log should be labelled as live DB-backed");
+if (!html.includes("setInterval(loadAudit, 5000)")) throw new Error("v23 audit log should live-poll the D1 lookup while open");
+if (!html.includes("Reading latest activity directly from D1")) throw new Error("v23 audit status copy missing");
+if (html.includes("auditEvents.length || (current.audit || []).length")) throw new Error("v23 UI should not fall back to local day.audit counts");
+console.log("PASS: v23 UI regression checks passed");
+

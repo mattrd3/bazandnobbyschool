@@ -51,6 +51,7 @@
     .sub { margin: 4px 0 0; font-size: 12px; color: var(--muted); letter-spacing: .08em; }
     .status { margin-top: 7px; font-size: 11px; color: var(--green-2); font-weight: bold; }
     .adminBtn { position:absolute; top:18px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; }
+    .playerLogoutBtn { position:absolute; top:47px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); max-width:132px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .section { padding: 12px 16px; border-bottom: 1px solid var(--border); background: rgba(255,253,247,.58); }
     .label { font-size: 11px; color: var(--muted); letter-spacing:.1em; margin-bottom:8px; }
     .select, .input {
@@ -130,7 +131,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v20";
+const VERSION = "v23";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -257,6 +258,7 @@ function App() {
     const [pinConfigured, setPinConfigured] = useState({});
     const [showAudit, setShowAudit] = useState(false);
     const [auditEvents, setAuditEvents] = useState([]);
+    const [auditStatus, setAuditStatus] = useState("");
     const upcoming = useMemo(() => getUpcomingWeekends(52), []);
     const past = useMemo(() => getPastWeekends(8), []);
     const weekends = adminMode ? [...past, ...upcoming] : upcoming.slice(0, 8);
@@ -276,11 +278,18 @@ function App() {
     const effectiveLocked = current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
     const currentPlayers = Array.isArray(current.players) ? current.players : [];
     const currentPriority = Array.isArray(current.priorityPlayers) ? current.priorityPlayers.filter(name => currentPlayers.includes(name)) : [];
-    const allNames = [...new Set([...members, ...currentPlayers])].sort();
-    const playerDisplayNames = [
+    const allNames = [...new Set([...members, ...currentPlayers, playerName].filter(Boolean))].sort();
+    const basePlayerDisplayNames = [
         ...currentPlayers,
         ...allNames.filter(name => !currentPlayers.includes(name))
     ];
+    // v21: keep the logged-in player's own row at the top while bookings are actionable,
+    // or when they are already confirmed on a locked/closed date. If a date is closed and
+    // they are not playing, leave confirmed players first.
+    const shouldPinLoggedInPlayer = pinLoggedIn && playerName && (!effectiveLocked || currentPlayers.includes(playerName));
+    const playerDisplayNames = shouldPinLoggedInPlayer
+        ? [playerName, ...basePlayerDisplayNames.filter(name => name !== playerName)]
+        : basePlayerDisplayNames;
     const confirmedSummaryText = currentPlayers.length
         ? `${currentPlayers.length} confirmed: ${currentPlayers.join(", ")}`
         : "No players confirmed yet.";
@@ -312,15 +321,31 @@ function App() {
     async function loadAudit() {
         if (!adminMode) return;
         try {
+            setAuditStatus("Refreshing activity log...");
             const res = await fetch(`/api/admin/audit?adminPin=${ADMIN_PIN}&dateKey=${dateKey}&ts=${Date.now()}`);
             const data = await res.json();
-            if (data.ok) setAuditEvents(data.events || []);
-        } catch (e) { }
+            if (data.ok) {
+                setAuditEvents(data.events || []);
+                setAuditStatus(`Live DB log updated ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
+            }
+            else {
+                setAuditStatus(data.error || "Activity log refresh failed");
+            }
+        } catch (e) {
+            setAuditStatus("Activity log refresh failed");
+        }
     }
     useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
     useEffect(() => { localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
     useEffect(() => { localStorage.setItem("wg_admin", adminMode ? "1" : "0"); loadPinConfig(); }, [adminMode]);
-    useEffect(() => { if (adminMode && showAudit) loadAudit(); }, [adminMode, showAudit, dateKey]);
+    useEffect(() => {
+        setAuditEvents([]);
+        setAuditStatus("");
+        if (!(adminMode && showAudit)) return;
+        loadAudit();
+        const t = setInterval(loadAudit, 5000);
+        return () => clearInterval(t);
+    }, [adminMode, showAudit, dateKey]);
     useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
     // Prevent a competition edit draft from being carried onto another day/weekend.
     useEffect(() => { setEditingComp(false); setCompInput(""); }, [dateKey]);
@@ -373,7 +398,7 @@ function App() {
             const r = await api("player-status", { dateKey, name, status: playerStatus, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
             optimistic(r.dateKey, r.data);
             setTimeout(load, 500);
-            if (adminMode && showAudit) setTimeout(loadAudit, 650);
+            if (adminMode && showAudit) await loadAudit();
             setMessage(`✅ ${r.message}`);
         }
         catch (e) {
@@ -389,7 +414,7 @@ function App() {
             if (r.dateKey && r.data)
                 optimistic(r.dateKey, r.data);
             setTimeout(load, 500);
-            if (adminMode && showAudit) setTimeout(loadAudit, 650);
+            if (adminMode && showAudit) await loadAudit();
             setMessage("✅ Saved");
             return r;
         }
@@ -513,12 +538,13 @@ Bookings confirmed ✅`;
             React.createElement("div", { className: "status" },
                 "\uD83D\uDFE2 ",
                 status),
-            React.createElement("button", { className: "adminBtn", onClick: () => adminMode ? logoutAdmin() : setShowPin(true), style: { background: adminMode ? "#2f5d35" : "#fffdf7", color: adminMode ? "#ffffff" : "#2f5d35", border: `1px solid ${adminMode ? "#2f5d35" : "#a9bea1"}` } }, adminMode ? "ADMIN ✓" : "ADMIN")),
+            React.createElement("button", { className: "adminBtn", onClick: () => adminMode ? logoutAdmin() : setShowPin(true), style: { background: adminMode ? "#2f5d35" : "#fffdf7", color: adminMode ? "#ffffff" : "#2f5d35", border: `1px solid ${adminMode ? "#2f5d35" : "#a9bea1"}` } }, adminMode ? "ADMIN ✓" : "ADMIN"),
+            !adminMode && pinLoggedIn && React.createElement("button", { className: "playerLogoutBtn", onClick: logoutPlayer, title: `Logged in as ${playerName}` }, `LOG OFF ${playerName}`)),
         message && React.createElement("div", { className: "msg" }, message),
         error && React.createElement("div", { className: "msg err" },
             "\u26A0\uFE0F ",
             error),
-        !adminMode && React.createElement("div", { className: "identityBox" },
+        !adminMode && !pinLoggedIn && React.createElement("div", { className: "identityBox" },
             React.createElement("div", { className: "label" }, "YOUR PLAYER LOGIN"),
             React.createElement("div", { style: { fontSize: 12, color: "#60715d" } }, "Choose your name and enter your PIN. You can only change your own booking."),
             React.createElement("div", { className: "identityRow" },
@@ -633,10 +659,11 @@ Bookings confirmed ✅`;
             React.createElement("button", { className: "btn", onClick: () => adminPost("admin/lock", { locked: !current.locked }) }, current.locked ? "🔓 Unlock list" : "🔒 Lock list & generate draw"),
             current.locked && React.createElement("button", { className: "btn", onClick: () => adminPost("admin/redraw", {}) }, "\uD83D\uDD00 Re-draw"),
             React.createElement("button", { className: "btn", onClick: async () => { const next = !showAudit; setShowAudit(next); if (next) await loadAudit(); } },
-                "\uD83D\uDCCB Activity log (",
-                auditEvents.length || (current.audit || []).length,
+                "\uD83D\uDCCB Activity log, live DB (",
+                auditEvents.length,
                 ")"),
-            showAudit && React.createElement("div", { className: "auditLog" }, (auditEvents.length ? auditEvents : [...(current.audit || [])].reverse()).length ? (auditEvents.length ? auditEvents : [...(current.audit || [])].reverse()).map((e, i) => React.createElement("div", { className: "auditItem", key: i }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
+            showAudit && React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginTop: -4 } }, auditStatus || "Reading latest activity directly from D1..."),
+            showAudit && React.createElement("div", { className: "auditLog" }, auditEvents.length ? auditEvents.map((e, i) => React.createElement("div", { className: "auditItem", key: `${e.ts || "no-ts"}-${e.action || "event"}-${i}` }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
             React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
         showPin && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox" },
