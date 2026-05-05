@@ -58,7 +58,8 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "CLOUDFLARE D1 v2 WEEKEND PICKER";
+const VERSION = "CLOUDFLARE D1 v3 ADMIN WHATSAPP";
+const APP_URL = "https://bazandnobbyschool.pages.dev";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 
@@ -133,6 +134,8 @@ function App(){
   const [newName,setNewName]=useState("");
   const [editingComp,setEditingComp]=useState(false);
   const [compInput,setCompInput]=useState("");
+  const [copiedReminder,setCopiedReminder]=useState(false);
+  const [copiedSummary,setCopiedSummary]=useState(false);
 
   const upcoming=useMemo(()=>getUpcomingWeekends(52),[]);
   const past=useMemo(()=>getPastWeekends(8),[]);
@@ -155,6 +158,8 @@ function App(){
   useEffect(()=>{ load(); }, []);
   useEffect(()=>{ localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
   useEffect(()=>{ localStorage.setItem("wg_admin", adminMode ? "1" : "0"); }, [adminMode]);
+  // Prevent a competition edit draft from being carried onto another day/weekend.
+  useEffect(()=>{ setEditingComp(false); setCompInput(""); }, [dateKey]);
 
   function optimistic(dateKey, day){ setSchedule(prev=>mergeWithBase({...prev, [dateKey]:day})); }
   async function saveToggle(name){
@@ -197,6 +202,39 @@ function App(){
     return `${weekendIndexLabel(w,i)} — ${weekendShort(w)}${comps ? ` · ${comps}` : ""}`;
   };
 
+
+  const copyText = async (text, setter) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const el = document.createElement("textarea");
+        el.value = text;
+        el.style.cssText = "position:fixed;left:-9999px;top:-9999px";
+        document.body.appendChild(el);
+        el.focus();
+        el.select();
+        document.execCommand("copy");
+        document.body.removeChild(el);
+      }
+      setter(true);
+      setTimeout(() => setter(false), 1800);
+      setMessage("✅ Copied to clipboard");
+    } catch (e) {
+      setError("Copy failed. Select and copy manually if your browser blocks clipboard access.");
+    }
+  };
+
+  const buildConfirmedListText = () => {
+    const comp = current.competition ? `\n🏆 ${current.competition}` : "";
+    if (!current.players.length) return `${formatDate(currentDate)}${comp}\n\nNo players confirmed yet.`;
+    return `⛳ Golf – ${formatDate(currentDate)}${comp}\n\n${current.players.length} playing:\n${current.players.map((p,i)=>`${i+1}. ${p}`).join("\n")}\n\nBookings confirmed ✅`;
+  };
+
+  const buildReminderText = () => {
+    return `⛳ Weekend Golf Sign-Up is open!\n\nPlease confirm if you're playing:\n📅 ${formatDate(chosenW.sat)}\n📅 ${formatDate(chosenW.sun)}\n\nSign-up closes at 6:50pm on Wednesday (Saturday) and Thursday (Sunday).\n\nTap the link to add your name 👇\n${APP_URL}`;
+  };
+
   return <div className="wrap">
     <div className="header">
       <div style={{fontSize:28}}>⛳</div><h1 className="title">Weekend Golf</h1><p className="sub">WHO'S PLAYING?</p>
@@ -236,7 +274,15 @@ function App(){
     {adminMode && <div className="adminPanel">
       <div className="adminTitle">ADMIN CONTROLS</div>
       <div className="row"><input className="input" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Add player name..."/><button className="smallBtn" onClick={async()=>{ if(newName.trim()){ await adminPost("admin/add-player", {name:newName.trim()}); setNewName(""); }}}>Add</button></div>
-      {editingComp ? <div className="row"><input className="input" value={compInput} onChange={e=>setCompInput(e.target.value)} autoFocus/><button className="smallBtn" onClick={async()=>{await adminPost("admin/competition", {competition:compInput}); setEditingComp(false);}}>Save</button></div> : <button className="btn" onClick={()=>{setCompInput(current.competition||"");setEditingComp(true);}}>🏆 Edit competition name</button>}
+      {editingComp ? (
+        <div className="row">
+          <input className="input" value={compInput} onChange={e=>setCompInput(e.target.value)} autoFocus placeholder="Competition name for this day only"/>
+          <button className="smallBtn" onClick={async()=>{await adminPost("admin/competition", {competition:compInput}); setEditingComp(false); setCompInput("");}}>Save</button>
+          <button className="smallBtn danger" onClick={()=>{setEditingComp(false); setCompInput("");}}>Cancel</button>
+        </div>
+      ) : <button className="btn" onClick={()=>{setCompInput(current.competition||"");setEditingComp(true);}}>🏆 Edit competition name for {formatDate(currentDate)}</button>}
+      <button className="btn" onClick={()=>copyText(buildConfirmedListText(), setCopiedSummary)}>{copiedSummary ? "✓ Copied confirmed list" : "📋 Copy confirmed attendee list for WhatsApp"}</button>
+      <button className="btn" onClick={()=>copyText(buildReminderText(), setCopiedReminder)}>{copiedReminder ? "✓ Copied reminder" : "📣 Copy sign-up reminder for WhatsApp"}</button>
       <button className="btn" onClick={()=>adminPost("admin/lock", {locked:!current.locked})}>{current.locked?"🔓 Unlock list":"🔒 Lock list & generate draw"}</button>
       {current.locked && <button className="btn" onClick={()=>adminPost("admin/redraw", {})}>🔀 Re-draw</button>}
       <button className="btn" onClick={load}>🔄 Refresh data</button>

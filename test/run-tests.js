@@ -97,3 +97,26 @@ assert.equal(r.json.ok, true);
 assert.ok(r.json.schedule["2026-06-07"]);
 
 console.log("PASS: 13 tests passed");
+
+
+// v2 static checks
+import fs from "fs";
+const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+if (!html.includes("CLOUDFLARE D1 v3 ADMIN WHATSAPP")) throw new Error("v3 marker missing");
+if (html.includes('value={`${toDateKey(chosenW.sat)}|${activeDay}`}')) throw new Error("old duplicate Sat/Sun dropdown still present");
+if (!html.includes("<option key={toDateKey(w.sat)} value={toDateKey(w.sat)}>{optionLabel(w,i)}</option>")) throw new Error("single-weekend dropdown option missing");
+if (!html.includes("competition: savedComp || fixtureComp")) throw new Error("fixture competition fallback missing");
+console.log("PASS: v2/v3 static dropdown/fallback checks passed");
+
+// v3 static feature/usability checks
+const htmlV3 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+if (!htmlV3.includes("CLOUDFLARE D1 v3 ADMIN WHATSAPP")) throw new Error("v3 marker missing");
+if (!htmlV3.includes("upcoming.slice(0,8)")) throw new Error("non-admin 8-week future limit missing");
+if (!htmlV3.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
+if (!htmlV3.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
+if (!htmlV3.includes("buildConfirmedListText")) throw new Error("confirmed attendee list builder missing");
+if (!htmlV3.includes("buildReminderText")) throw new Error("reminder text builder missing");
+if (!htmlV3.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
+if (!htmlV3.includes("Competition name for this day only")) throw new Error("competition edit day-specific placeholder missing");
+if (!htmlV3.includes(">Cancel</button>")) throw new Error("competition edit cancel button missing");
+console.log("PASS: v3 admin WhatsApp/competition usability checks passed");
