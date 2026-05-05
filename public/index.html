@@ -135,7 +135,7 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v13";
+const VERSION = "v14";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
@@ -371,14 +371,12 @@ function App(){
     const maybeLine = currentMaybes.length ? `
 
 ${currentMaybes.length} maybe playing:
-${currentMaybes.map((p,i)=>`${i+1}. ${p}`).join("
-")}` : "";
+${currentMaybes.map((p,i)=>`${i+1}. ${p}`).join("\n")}` : "";
     if (!currentPlayers.length && !currentMaybes.length) return `${formatDate(currentDate)}${comp}
 
 No players confirmed yet.`;
     const confirmedLine = currentPlayers.length ? `${currentPlayers.length} playing:
-${currentPlayers.map((p,i)=>`${i+1}. ${p}`).join("
-")}` : "No confirmed players yet.";
+${currentPlayers.map((p,i)=>`${i+1}. ${p}`).join("\n")}` : "No confirmed players yet.";
     return `⛳ Golf – ${formatDate(currentDate)}${comp}
 
 ${confirmedLine}${maybeLine}

@@ -140,7 +140,7 @@ The live and soak tests intentionally use dates in 2099 so they do not appear in
 
 The quick regression suite now fails if the UI no longer prompts before adding a player. The live and soak suites continue to validate the API/data layer repeatedly; the add confirmation itself is a browser/UI guard and is covered by static regression checks.
 
-## v13 additions
+## v14 additions
 
 This release adds player PIN identity, admin-managed PINs, early tee priority and a visible audit log.
 
