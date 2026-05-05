@@ -1,42 +1,104 @@
-# Weekend Golf — Cloudflare Pages + D1
+# bazandnobbyschool — Cloudflare Pages + D1
 
-This is a Cloudflare-hosted replacement for the Google Sheets / Apps Script version.
+This is the Cloudflare-hosted replacement for the Google Sheets / Apps Script version.
+
+The project, repository, Pages project, and D1 database are all intended to use the same clean name:
+
+```text
+bazandnobbyschool
+```
+
+The visible app title still says **Weekend Golf**, because that is what users see in the app.
 
 ## What is included
 
 - `public/index.html` — the web app UI.
 - `functions/api/[[path]].js` — Cloudflare Pages Functions API.
 - `migrations/0001_init.sql` — D1 database schema.
-- `wrangler.toml` — Cloudflare config. Paste your D1 `database_id` before CLI deploy.
-- `test/run-tests.js` — automated tests for date keys, player saves, admin flows, locking, export.
+- `wrangler.toml` — Cloudflare config using project/database name `bazandnobbyschool`.
+- `test/run-tests.js` — automated tests for date keys, player saves, admin flows, locking, and export.
 
-## Dashboard setup, no command line
+## Cloudflare setup
 
-1. Create a Cloudflare account.
-2. Go to **Workers & Pages**.
-3. Create a **D1 database** called `weekend-golf-db`.
-4. Open the D1 database console and run the SQL from `migrations/0001_init.sql`.
-5. Go to **Workers & Pages → Pages → Create application → Upload assets**.
-6. Upload this project folder/ZIP.
-7. After the Pages project exists, go to **Settings → Bindings → Add → D1 database bindings**.
-8. Set variable name exactly: `DB`.
-9. Select the `weekend-golf-db` database.
-10. Redeploy the Pages project.
-11. Open the `*.pages.dev` URL.
+### 1. D1 database
 
-## CLI setup
+Create a D1 database called:
+
+```text
+bazandnobbyschool
+```
+
+Open the D1 SQL console and run the SQL from:
+
+```text
+migrations/0001_init.sql
+```
+
+### 2. GitHub repository
+
+Create or use a repository called:
+
+```text
+bazandnobbyschool
+```
+
+Upload these files/folders to the repository root:
+
+```text
+public/index.html
+functions/api/[[path]].js
+migrations/0001_init.sql
+wrangler.toml
+package.json
+README.md
+test/run-tests.js
+```
+
+### 3. Cloudflare Pages project
+
+Create a Pages project called:
+
+```text
+bazandnobbyschool
+```
+
+Use these build settings:
+
+```text
+Framework preset: None
+Build command: leave blank
+Build output directory: public
+Root directory: /
+```
+
+Do not use `npx wrangler deploy` as the build command.
+
+### 4. D1 binding
+
+In the Pages project settings, add a D1 database binding:
+
+```text
+Variable name: DB
+Database: bazandnobbyschool
+```
+
+The binding variable must be exactly `DB`, because the API code uses `context.env.DB`.
+
+After adding the binding, redeploy the Pages project.
+
+## CLI setup, optional
 
 ```bash
 npm install
 npx wrangler login
-npx wrangler d1 create weekend-golf-db
+npx wrangler d1 create bazandnobbyschool
 ```
 
 Paste the returned database UUID into `wrangler.toml` under `database_id`, then run:
 
 ```bash
-npx wrangler d1 execute weekend-golf-db --file=migrations/0001_init.sql
-npx wrangler pages deploy public --project-name=weekend-golf
+npx wrangler d1 execute bazandnobbyschool --file=migrations/0001_init.sql
+npx wrangler pages deploy public --project-name=bazandnobbyschool
 ```
 
 Then bind the D1 database named `DB` to the Pages project in the Cloudflare dashboard and redeploy.
