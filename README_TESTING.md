@@ -238,3 +238,9 @@ Expected behaviour:
 - the marker appears at the top-left of the header rather than underneath the main title/subtitle;
 - the admin button and player log-off button remain on the top-right;
 - no database or SQL changes are required.
+
+
+## v26 compact header/banner
+- Top header/banner is slimmer to save vertical UI space.
+- Golf icon and `WHO'S PLAYING?` message are retained.
+- `LIVE- v26` remains in the top-left and admin/logoff controls remain top-right.

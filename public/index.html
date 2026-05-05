@@ -40,18 +40,18 @@
     .header {
       background: linear-gradient(135deg,#f8faf3,#e2ecd9);
       border-bottom: 1px solid var(--border);
-      padding: 24px 18px 18px;
+      padding: 12px 18px 10px;
       text-align: center;
       position: sticky;
       top: 0;
       z-index: 5;
       box-shadow: 0 2px 16px rgba(47,93,53,.08);
     }
-    .title { margin: 0; font-size: 22px; font-weight: normal; letter-spacing: .05em; color: var(--green); }
-    .sub { margin: 4px 0 0; font-size: 12px; color: var(--muted); letter-spacing: .08em; }
-    .status { position:absolute; top:18px; left:14px; margin:0; font-size:11px; color:var(--green-2); font-weight:bold; text-align:left; }
-    .adminBtn { position:absolute; top:18px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; }
-    .playerLogoutBtn { position:absolute; top:47px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); max-width:132px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .title { margin: 0; font-size: 20px; font-weight: normal; letter-spacing: .05em; color: var(--green); }
+    .sub { margin: 2px 0 0; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+    .status { position:absolute; top:10px; left:14px; margin:0; font-size:11px; color:var(--green-2); font-weight:bold; text-align:left; }
+    .adminBtn { position:absolute; top:10px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; }
+    .playerLogoutBtn { position:absolute; top:39px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); max-width:132px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
     .section { padding: 12px 16px; border-bottom: 1px solid var(--border); background: rgba(255,253,247,.58); }
     .label { font-size: 11px; color: var(--muted); letter-spacing:.1em; margin-bottom:8px; }
     .select, .input {
@@ -131,7 +131,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v25";
+const VERSION = "v26";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -552,7 +552,7 @@ Bookings confirmed ✅`;
     };
     return React.createElement("div", { className: "wrap" },
         React.createElement("div", { className: "header" },
-            React.createElement("div", { style: { fontSize: 28 } }, "\u26F3"),
+            React.createElement("div", { style: { fontSize: 22, lineHeight: 1 } }, "\u26F3"),
             React.createElement("h1", { className: "title" }, "Weekend Golf"),
             React.createElement("p", { className: "sub" }, "WHO'S PLAYING?"),
             React.createElement("div", { className: "status" },
