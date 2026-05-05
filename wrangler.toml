@@ -1,0 +1,9 @@
+name = "weekend-golf"
+compatibility_date = "2026-05-04"
+pages_build_output_dir = "public"
+
+# After creating your D1 database, paste the database_id Cloudflare gives you here.
+[[d1_databases]]
+binding = "DB"
+database_name = "weekend-golf-db"
+database_id = "PASTE_YOUR_D1_DATABASE_ID_HERE"

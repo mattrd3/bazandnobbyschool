@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0f1f0f" />
+  <title>Weekend Golf</title>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; background: #0f1f0f; color: #e8f0e8; font-family: Georgia, serif; }
+    button, input, select, textarea { font-family: Georgia, serif; }
+    .wrap { min-height: 100vh; padding-bottom: 80px; }
+    .header { background: linear-gradient(135deg,#1a3a1a,#0f1f0f); border-bottom: 1px solid #2a4a2a; padding: 24px 18px 18px; text-align: center; position: sticky; top: 0; z-index: 5; }
+    .title { margin: 0; font-size: 22px; font-weight: normal; letter-spacing: .05em; color: #a8d878; }
+    .sub { margin: 4px 0 0; font-size: 12px; color: #6a8a6a; letter-spacing: .08em; }
+    .status { margin-top: 7px; font-size: 11px; color: #4a8a4a; }
+    .adminBtn { position:absolute; top:18px; right:14px; border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; }
+    .section { padding: 12px 16px; border-bottom: 1px solid #1f3f1f; }
+    .label { font-size: 11px; color:#4a6a4a; letter-spacing:.1em; margin-bottom:8px; }
+    .select, .input { width: 100%; background:#141f14; color:#a8d878; border:1px solid #3a5a3a; border-radius:8px; padding:11px 12px; font-size:14px; }
+    .tabs { display:flex; border-bottom:1px solid #2a4a2a; }
+    .tab { flex:1; padding:14px 8px; background:transparent; border:0; color:#5a7a5a; cursor:pointer; }
+    .tab.active { background:#1a3a1a; color:#a8d878; border-bottom:2px solid #a8d878; }
+    .dateBar { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .date { color:#a8d878; font-size:14px; }
+    .comp { color:#d4a843; font-size:12px; margin-top:3px; }
+    .key { color:#3f6f3f; font-size:11px; margin-top:3px; }
+    .count { color:#6a8a6a; font-size:13px; text-align:right; }
+    .players { padding: 16px; display:flex; flex-direction:column; gap:8px; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .player { flex:1; padding:14px 16px; border-radius:10px; border:1px solid #1e2e1e; background:#141f14; color:#5a7a5a; font-size:15px; text-align:left; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
+    .player.in { background:linear-gradient(135deg,#1e4a1e,#2a5a2a); border-color:#4a8a4a; color:#a8d878; }
+    .player:disabled { opacity:.55; cursor:not-allowed; }
+    .smallBtn { border-radius:8px; padding:11px 12px; border:1px solid #3a6a3a; background:#102510; color:#a8d878; cursor:pointer; }
+    .danger { border-color:#6a3a3a; background:#2a1a1a; color:#e87878; }
+    .adminPanel { margin: 14px 16px 0; padding: 12px; border:1px solid #2a4a2a; background:#0a150a; border-radius:12px; display:flex; flex-direction:column; gap:10px; }
+    .adminTitle { font-size:12px; color:#4a6a4a; letter-spacing:.08em; }
+    .btn { width:100%; padding:12px 13px; border-radius:9px; border:1px solid #3a6a3a; background:#0f1f0f; color:#7db87d; text-align:left; cursor:pointer; }
+    .msg { margin: 12px 16px 0; padding: 10px 12px; border-radius:9px; font-size:13px; border:1px solid #2a4a2a; background:#0a150a; color:#a8d878; }
+    .msg.err { border-color:#6a3a3a; color:#e87878; background:#1a0d0d; }
+    .draw { margin: 14px 16px 0; border:1px solid #2a5a2a; background:#0d1f0d; border-radius:12px; overflow:hidden; }
+    .drawHead { padding:12px 14px; color:#a8d878; border-bottom:1px solid #1a3a1a; font-weight:bold; font-size:13px; }
+    .group { margin:10px 12px; border:1px solid #1e3a1e; border-radius:9px; overflow:hidden; background:#0a180a; }
+    .groupH { padding:8px 12px; background:#112011; color:#6a9a6a; font-size:12px; display:flex; justify-content:space-between; }
+    .groupP { padding:9px 12px; border-top:1px solid #0f1f0f; color:#c8e8a8; }
+    .modal { position:fixed; inset:0; z-index:20; background:rgba(0,0,0,.86); display:flex; align-items:center; justify-content:center; padding:20px; }
+    .modalBox { width:100%; max-width:330px; background:#141f14; border:1px solid #2a4a2a; border-radius:16px; padding:24px; text-align:center; }
+    .modalActions { display:flex; gap:10px; margin-top:16px; }
+    .ghost { flex:1; padding:12px; background:transparent; border:1px solid #2a4a2a; border-radius:8px; color:#5a7a5a; cursor:pointer; }
+    .green { flex:1; padding:12px; background:#a8d878; border:0; border-radius:8px; color:#0f1f0f; font-weight:bold; cursor:pointer; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script type="text/babel">
+const { useEffect, useMemo, useState } = React;
+const ADMIN_PIN = "2727";
+const VERSION = "CLOUDFLARE D1 v1";
+
+const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
+
+const FIXTURE_COMPS = {
+  "2026-01-03":"Medal","2026-01-04":"Winter League","2026-01-10":"4 Ball","2026-01-11":"Bogey","2026-01-17":"Yellow Ball Competition","2026-01-18":"Winter League","2026-01-24":"Stableford","2026-01-25":"4 Ball","2026-01-31":"Stableford Team Event (4 person waltz)","2026-02-01":"Winter League","2026-02-07":"Stableford","2026-02-08":"Bogey","2026-02-14":"Medal","2026-02-15":"Winter League","2026-02-21":"Mixed Yellow Ball Stableford","2026-02-22":"4 Ball","2026-02-28":"Bogey","2026-03-01":"Stableford","2026-03-07":"Medal","2026-03-08":"Texas Scramble","2026-03-14":"Stableford","2026-03-15":"4 Ball (Mother's Day)","2026-03-21":"2-Man Aggregate Stableford","2026-03-22":"Medal","2026-03-28":"Stableford","2026-03-29":"Captains' Drive-Ins & 4BBB","2026-04-04":"4-Ball Stableford","2026-04-05":"Medal (Easter Sunday)","2026-04-11":"Chairman's Trophy (Greensome)","2026-04-12":"Druids Cup / Medal","2026-04-18":"Stableford","2026-04-19":"Champion of Champions Medal","2026-04-25":"V H Pearce 2-Man Texas Scramble","2026-04-26":"Dusty Bin Stableford","2026-05-02":"Stan Creswell Trophy Medal","2026-05-03":"Foursomes Cup","2026-05-09":"1st Invitation Day","2026-05-10":"Over 50's Cup Medal","2026-05-16":"Mixed 4BBB Stableford","2026-05-17":"Stableford (4 person team)","2026-05-23":"Stableford","2026-05-24":"Boldmere Bowl Medal","2026-05-30":"4 Ball","2026-05-31":"Captain's Charity Shield Stableford","2026-06-06":"Presidents Championship Day Medal","2026-06-07":"Stableford","2026-06-13":"4 Ball","2026-06-14":"Members Memorial Salver Medal","2026-06-20":"Captain's Open AM AM","2026-06-21":"Stableford (Father's Day)","2026-06-27":"Pro's Day Medal","2026-06-28":"4 Ball","2026-07-04":"Greensome / Yardley Holland Cup","2026-07-05":"Secretary's Cup Medal","2026-07-11":"Club Championship Round 1","2026-07-12":"Club Championship Round 2","2026-07-18":"Captain's Weekend Texas Scramble","2026-07-19":"Captain's Weekend Men's 4 Ball","2026-07-25":"Scratch Stableford","2026-07-26":"M & S Pooley Cup 4 Ball","2026-08-01":"Greensome / Yardley Holland Cup","2026-08-02":"Twyford Seeds Cup Medal","2026-08-08":"Stableford Yellow Ball","2026-08-09":"Bill Mountford Memorial Trophy Stableford","2026-08-15":"Gents Open","2026-08-16":"Bogey","2026-08-22":"Stableford","2026-08-23":"Ray Garnett Trophy Texas Scramble","2026-08-29":"President's Day","2026-08-30":"Golfer Non-Golfer","2026-09-05":"Batevale Trophy Medal","2026-09-06":"Stableford","2026-09-12":"P.G. Whatton Trophy Stableford","2026-09-13":"2nd Invitation Day","2026-09-19":"L.E. Swain Trophy Medal","2026-09-20":"4 Ball","2026-09-26":"Stableford (Junior Fundraiser)","2026-09-27":"Paul Canning Trophy Medal","2026-10-03":"Green's Committee Cup Medal","2026-10-04":"Stableford","2026-10-10":"4 Ball","2026-10-11":"Greenkeeper's Tankard","2026-10-17":"Bogey","2026-10-18":"Stableford","2026-10-24":"Stableford Texas AM-AM","2026-10-25":"Winter League","2026-10-31":"Bogey","2026-11-01":"Winter League","2026-11-07":"Stableford","2026-11-08":"4 Ball","2026-11-14":"Medal","2026-11-15":"Winter League","2026-11-21":"Stableford","2026-11-22":"2 Man Aggregate Stableford","2026-11-28":"4 Ball","2026-11-29":"Stableford","2026-12-06":"Winter League","2026-12-12":"Texas AM AM","2026-12-13":"Winter League","2026-12-19":"Pro's Christmas Jumper","2026-12-20":"Christmas Stableford"
+};
+
+const initDay = (comp="") => ({ players: [], locked: false, competition: comp, audit: [], draw: null });
+const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const fromDateKey = key => { const [y,m,d] = key.split("-").map(Number); return new Date(y, m-1, d); };
+const formatDate = d => d.toLocaleDateString("en-GB", { weekday:"long", day:"numeric", month:"long" });
+const groupLabel = n => n === 4 ? "4-ball" : n === 3 ? "3-ball" : n === 2 ? "2-ball" : `${n}-ball`;
+
+function getUpcomingWeekends(count=52) {
+  const out=[]; const today=new Date(); today.setHours(0,0,0,0);
+  const daysUntilSat=(6-today.getDay()+7)%7 || 7;
+  const firstSat=new Date(today); firstSat.setDate(today.getDate()+daysUntilSat);
+  for(let i=0;i<count;i++){ const sat=new Date(firstSat); sat.setDate(firstSat.getDate()+i*7); const sun=new Date(sat); sun.setDate(sat.getDate()+1); const daysUntil=Math.round((sat-today)/86400000); out.push({ sat, sun, past:false, tooSoon:daysUntil<10 }); }
+  return out;
+}
+function getPastWeekends(count=8) {
+  const out=[]; const today=new Date(); today.setHours(0,0,0,0);
+  const daysUntilSat=(6-today.getDay()+7)%7 || 7; const firstSat=new Date(today); firstSat.setDate(today.getDate()+daysUntilSat);
+  for(let i=1;i<=count;i++){ const sat=new Date(firstSat); sat.setDate(firstSat.getDate()-i*7); const sun=new Date(sat); sun.setDate(sat.getDate()+1); out.unshift({sat,sun,past:true}); }
+  return out;
+}
+function isAutoLocked(date) {
+  const now=new Date(); const dow=now.getDay(); const mins=now.getHours()*60+now.getMinutes(); const cutoff=18*60+50; const dateDow=date.getDay(); const daysAway=Math.round((date-now)/86400000);
+  if(dateDow===6 && dow===3 && mins>=cutoff && daysAway>=2 && daysAway<=4) return true;
+  if(dateDow===0 && dow===4 && mins>=cutoff && daysAway>=2 && daysAway<=4) return true;
+  return false;
+}
+function buildBase() { const base={}; Object.entries(FIXTURE_COMPS).forEach(([key, comp]) => base[key]=initDay(comp)); return base; }
+function mergeWithBase(saved) { const base=buildBase(); const merged={...base}; Object.entries(saved||{}).forEach(([key,val])=>{ merged[key] = {...initDay(base[key]?.competition || ""), ...(base[key]||{}), ...val}; }); return merged; }
+function weekendShort(w) { return `${w.sat.getDate()} – ${w.sun.getDate()} ${w.sun.toLocaleDateString("en-GB",{month:"short"})}`; }
+
+async function api(path, payload) {
+  const options = payload === undefined ? {} : { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) };
+  const res = await fetch(`/api/${path}`, options);
+  const data = await res.json().catch(()=>({ok:false,error:"Bad JSON response"}));
+  if (!data.ok) throw new Error(data.error || "Request failed");
+  return data;
+}
+
+function App(){
+  const [schedule,setSchedule]=useState(mergeWithBase({}));
+  const [status,setStatus]=useState("Loading...");
+  const [message,setMessage]=useState("");
+  const [error,setError]=useState("");
+  const [adminMode,setAdminMode]=useState(localStorage.getItem("wg_admin") === "1");
+  const [pin,setPin]=useState("");
+  const [showPin,setShowPin]=useState(false);
+  const [selectedKey,setSelectedKey]=useState(localStorage.getItem("wg_date") || "");
+  const [activeDay,setActiveDay]=useState(localStorage.getItem("wg_day") || "sat");
+  const [confirmRemove,setConfirmRemove]=useState(null);
+  const [newName,setNewName]=useState("");
+  const [editingComp,setEditingComp]=useState(false);
+  const [compInput,setCompInput]=useState("");
+
+  const upcoming=useMemo(()=>getUpcomingWeekends(52),[]);
+  const past=useMemo(()=>getPastWeekends(8),[]);
+  const weekends=adminMode ? [...past,...upcoming] : upcoming.slice(0,8);
+  const defaultW=weekends[0];
+  const chosenW=useMemo(()=>{
+    if(selectedKey){ const found=weekends.find(w=>toDateKey(w.sat)===selectedKey || toDateKey(w.sun)===selectedKey); if(found) return found; }
+    return defaultW;
+  },[selectedKey, weekends]);
+  const currentDate=activeDay === "sun" ? chosenW.sun : chosenW.sat;
+  const dateKey=toDateKey(currentDate);
+  const current=schedule[dateKey] || initDay(FIXTURE_COMPS[dateKey] || "");
+  const effectiveLocked=current.locked || isAutoLocked(currentDate) || (!adminMode && chosenW.tooSoon);
+  const allNames=[...new Set([...INITIAL_MEMBERS, ...current.players])].sort();
+
+  async function load(){
+    try { setStatus("Syncing..."); const data=await api("schedule"); setSchedule(mergeWithBase(data.schedule)); setStatus(`Live · ${VERSION}`); setError(""); }
+    catch(e){ setStatus(`Offline · ${VERSION}`); setError(e.message); }
+  }
+  useEffect(()=>{ load(); }, []);
+  useEffect(()=>{ localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
+  useEffect(()=>{ localStorage.setItem("wg_admin", adminMode ? "1" : "0"); }, [adminMode]);
+
+  function optimistic(dateKey, day){ setSchedule(prev=>mergeWithBase({...prev, [dateKey]:day})); }
+  async function saveToggle(name){
+    if(effectiveLocked) return;
+    if(current.players.includes(name)){ setConfirmRemove(name); return; }
+    await doToggle(name);
+  }
+  async function doToggle(name){
+    try { setMessage(`Saving ${dateKey}: ${name}...`); setError(""); const r=await api("toggle-player", {dateKey, name, adminPin: adminMode ? ADMIN_PIN : ""}); optimistic(r.dateKey, r.data); setMessage(`✅ ${r.message}`); }
+    catch(e){ setError(e.message); setMessage(""); }
+  }
+  async function adminPost(path, payload){
+    try { setMessage("Saving..."); setError(""); const r=await api(path, {...payload, dateKey, adminPin: ADMIN_PIN}); optimistic(r.dateKey, r.data); setMessage("✅ Saved"); return r; }
+    catch(e){ setError(e.message); setMessage(""); }
+  }
+
+  const attemptAdmin=()=>{ if(pin===ADMIN_PIN){setAdminMode(true);setShowPin(false);setPin("");} else setError("Incorrect PIN"); };
+  const logoutAdmin=()=>setAdminMode(false);
+  const changeWeekend=e=>{ const [satKey, day] = e.target.value.split("|"); setSelectedKey(day === "sun" ? toDateKey(weekends.find(w=>toDateKey(w.sat)===satKey).sun) : satKey); setActiveDay(day); };
+
+  return <div className="wrap">
+    <div className="header">
+      <div style={{fontSize:28}}>⛳</div><h1 className="title">Weekend Golf</h1><p className="sub">WHO'S PLAYING?</p>
+      <div className="status">🟢 {status}</div>
+      <button className="adminBtn" onClick={()=>adminMode?logoutAdmin():setShowPin(true)} style={{background:adminMode?"#a8d878":"transparent",color:adminMode?"#0f1f0f":"#6a8a6a",border:`1px solid ${adminMode?"#a8d878":"#3a5a3a"}`}}>{adminMode?"ADMIN ✓":"ADMIN"}</button>
+    </div>
+
+    {message && <div className="msg">{message}</div>}
+    {error && <div className="msg err">⚠️ {error}</div>}
+
+    <div className="section">
+      <div className="label">SELECT WEEKEND</div>
+      <select className="select" value={`${toDateKey(chosenW.sat)}|${activeDay}`} onChange={changeWeekend}>
+        {weekends.map((w,i)=><React.Fragment key={toDateKey(w.sat)}>
+          <option value={`${toDateKey(w.sat)}|sat`}>{w.past?"History — ":i===0?"This weekend — ":i===1?"Next weekend — ":`In ${i} weekends — `}{weekendShort(w)} · Saturday</option>
+          <option value={`${toDateKey(w.sat)}|sun`}>{w.past?"History — ":i===0?"This weekend — ":i===1?"Next weekend — ":`In ${i} weekends — `}{weekendShort(w)} · Sunday</option>
+        </React.Fragment>)}
+      </select>
+    </div>
+
+    <div className="tabs">
+      <button className={`tab ${activeDay==="sat"?"active":""}`} onClick={()=>{setActiveDay("sat");setSelectedKey(toDateKey(chosenW.sat));}}>SATURDAY<br/><small>{chosenW.sat.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</small></button>
+      <button className={`tab ${activeDay==="sun"?"active":""}`} onClick={()=>{setActiveDay("sun");setSelectedKey(toDateKey(chosenW.sun));}}>SUNDAY<br/><small>{chosenW.sun.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</small></button>
+    </div>
+
+    <div className="section dateBar">
+      <div><div className="date">{formatDate(currentDate)}</div>{current.competition && <div className="comp">🏆 {current.competition}</div>}<div className="key">Saving date key: {dateKey}</div>{effectiveLocked && <div style={{color:"#e87840",fontSize:11,marginTop:4}}>🔒 List locked / closed</div>}</div>
+      <div className="count">{current.players.length} confirmed<br/><small>{current.players.length?Math.ceil(current.players.length/4):0} tee time{current.players.length>4?"s":""}</small></div>
+    </div>
+
+    {current.locked && current.draw && <div className="draw"><div className="drawHead">🎲 TEE TIME DRAW</div>{current.draw.map((g,i)=><div className="group" key={i}><div className="groupH"><span>TEE {i+1}</span><span>{groupLabel(g.length)}</span></div>{g.map((p,j)=><div className="groupP" key={p}>{j+1}. {p}</div>)}</div>)}</div>}
+
+    <div className="players"><div className="label">{effectiveLocked?"CONFIRMED PLAYERS":"TAP YOUR NAME TO CONFIRM"}</div>{allNames.map(name=>{
+      const isIn=current.players.includes(name);
+      return <div className="row" key={name}><button className={`player ${isIn?"in":""}`} disabled={effectiveLocked && !adminMode} onClick={()=>saveToggle(name)}><span>{name}</span><span>{isIn?"✓":""}</span></button>{adminMode && isIn && <button className="smallBtn danger" onClick={()=>setConfirmRemove(name)}>✕</button>}</div>
+    })}</div>
+
+    {adminMode && <div className="adminPanel">
+      <div className="adminTitle">ADMIN CONTROLS</div>
+      <div className="row"><input className="input" value={newName} onChange={e=>setNewName(e.target.value)} placeholder="Add player name..."/><button className="smallBtn" onClick={async()=>{ if(newName.trim()){ await adminPost("admin/add-player", {name:newName.trim()}); setNewName(""); }}}>Add</button></div>
+      {editingComp ? <div className="row"><input className="input" value={compInput} onChange={e=>setCompInput(e.target.value)} autoFocus/><button className="smallBtn" onClick={async()=>{await adminPost("admin/competition", {competition:compInput}); setEditingComp(false);}}>Save</button></div> : <button className="btn" onClick={()=>{setCompInput(current.competition||"");setEditingComp(true);}}>🏆 Edit competition name</button>}
+      <button className="btn" onClick={()=>adminPost("admin/lock", {locked:!current.locked})}>{current.locked?"🔓 Unlock list":"🔒 Lock list & generate draw"}</button>
+      {current.locked && <button className="btn" onClick={()=>adminPost("admin/redraw", {})}>🔀 Re-draw</button>}
+      <button className="btn" onClick={load}>🔄 Refresh data</button>
+    </div>}
+
+    {showPin && <div className="modal"><div className="modalBox"><div style={{fontSize:28}}>🔐</div><h3 style={{color:"#a8d878",fontWeight:"normal"}}>Admin PIN</h3><input className="input" type="password" inputMode="numeric" value={pin} onChange={e=>setPin(e.target.value)} onKeyDown={e=>e.key==="Enter"&&attemptAdmin()} placeholder="Enter PIN"/><div className="modalActions"><button className="ghost" onClick={()=>setShowPin(false)}>Cancel</button><button className="green" onClick={attemptAdmin}>Enter</button></div></div></div>}
+    {confirmRemove && <div className="modal"><div className="modalBox"><h3 style={{color:"#e8f0e8",fontWeight:"normal"}}>Remove from list?</h3><p>Remove <strong style={{color:"#a8d878"}}>{confirmRemove}</strong> from {formatDate(currentDate)}?</p><div className="modalActions"><button className="ghost" onClick={()=>setConfirmRemove(null)}>Cancel</button><button className="ghost danger" onClick={async()=>{const n=confirmRemove; setConfirmRemove(null); adminMode ? await adminPost("admin/remove-player", {name:n}) : await doToggle(n);}}>Yes, remove</button></div></div></div>}
+  </div>
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>

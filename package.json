@@ -1,0 +1,14 @@
+{
+  "name": "weekend-golf-cloudflare",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/run-tests.js",
+    "dev": "wrangler pages dev public --compatibility-date=2026-05-04",
+    "deploy": "wrangler pages deploy public --project-name=weekend-golf"
+  },
+  "devDependencies": {
+    "wrangler": "latest"
+  }
+}
