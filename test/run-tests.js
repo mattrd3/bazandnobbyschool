@@ -164,8 +164,9 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 27 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v19"')) throw new Error("v19 marker missing");
+if (!html.includes('const VERSION = "v20"')) throw new Error("v20 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
+if (!html.includes('setActiveDay("sat");') || !html.includes('const saturdayKey = e.target.value;')) throw new Error("v20 weekend change must default selected day to Saturday");
 if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
 if (!html.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
@@ -185,4 +186,4 @@ for (const forbidden of ["Maybe", "currentMaybes", "confirmMaybe", "chooseMaybe"
   if (html.includes(forbidden)) throw new Error(`Maybe feature should be removed from UI: ${forbidden}`);
 }
 if (html.includes("MAYBE PLAYING") || html.includes("CHOOSE PLAYING OR MAYBE")) throw new Error("Maybe user-facing copy should be removed");
-console.log("PASS: v18 UI regression checks passed");
+console.log("PASS: v20 UI regression checks passed");

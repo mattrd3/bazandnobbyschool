@@ -165,3 +165,14 @@ $env:SITE_URL="https://bazandnobbyschool.pages.dev"; $env:ADMIN_PIN="2727"; npm 
 ## v15 removed Maybe status
 
 The Maybe playing feature has been removed. Tests now confirm the UI no longer shows Maybe controls and the API rejects `status: "maybe"` with a 400 response. Existing stored `maybes` values are ignored when schedules are read.
+
+
+## v20 additions
+
+This release adds a weekend-navigation UI fix:
+
+- when the user changes weekend from the dropdown, the selected day now resets to Saturday for the newly selected weekend;
+- moving from a Sunday view to another weekend no longer carries Sunday across;
+- the visible app version marker is now `LIVE- v20`.
+
+The quick regression suite now checks that weekend changes explicitly call `setActiveDay("sat")`.

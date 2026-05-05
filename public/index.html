@@ -130,7 +130,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v19";
+const VERSION = "v20";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -440,7 +440,12 @@ function App() {
     else
         setError("Incorrect PIN"); };
     const logoutAdmin = () => setAdminMode(false);
-    const changeWeekend = e => { setSelectedKey(e.target.value); };
+    const changeWeekend = e => {
+        // v20: whenever the weekend changes, default the selected day to Saturday.
+        const saturdayKey = e.target.value;
+        setActiveDay("sat");
+        setSelectedKey(saturdayKey);
+    };
     const weekendIndexLabel = (w, i) => {
         if (w.past)
             return "History";
