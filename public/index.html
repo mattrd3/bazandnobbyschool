@@ -131,7 +131,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v23";
+const VERSION = "v24";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -520,12 +520,32 @@ ${confirmedLine}
 
 Bookings confirmed ✅`;
     };
+    const auditStatusLabel = (status) => ({ playing: "Confirmed", none: "Not playing", "early tee": "Early tee", standard: "Standard" }[status] || status || "?");
     const auditText = (entry) => {
         const time = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
-        const actor = entry.actor ? `${entry.actor} ` : "";
-        const fromTo = entry.from || entry.to ? ` (${entry.from || "?"} → ${entry.to || "?"})` : "";
-        const label = { joined: "set playing", removed_self: "removed", admin_added: "admin added", admin_removed: "admin removed", admin_locked: "locked list", admin_unlocked: "unlocked list", draw_regenerated: "redrew draw", priority_added: "marked early tee", priority_removed: "removed early tee", competition_changed: "changed competition" }[entry.action] || entry.action;
-        return `${time} — ${actor}${label} ${entry.name || ""}${fromTo}`;
+        const actor = entry.actor || "Unknown";
+        const day = entry.dateLabel || (entry.dateKey ? formatDate(new Date(`${entry.dateKey}T12:00:00`)) : formatDate(currentDate));
+        const name = entry.name || "";
+        const fromTo = entry.from || entry.to ? `${auditStatusLabel(entry.from)} → ${auditStatusLabel(entry.to)}` : "";
+        if (["joined", "removed_self", "admin_added", "admin_removed"].includes(entry.action)) {
+            return `${time} — ${actor} changed ${name} for ${day}: ${fromTo}`;
+        }
+        if (["priority_added", "priority_removed"].includes(entry.action)) {
+            return `${time} — ${actor} changed early tee priority for ${name} on ${day}: ${fromTo}`;
+        }
+        if (entry.action === "competition_changed") {
+            return `${time} — ${actor} changed competition for ${day}: ${entry.from || "None"} → ${entry.to || "None"}`;
+        }
+        if (entry.action === "admin_locked" || entry.action === "admin_unlocked") {
+            const extra = entry.playerCount !== undefined ? ` (${entry.playerCount} players${entry.groupCount ? `, ${entry.groupCount} groups` : ""})` : "";
+            return `${time} — ${actor} changed booking status for ${day}: ${auditStatusLabel(entry.from)} → ${auditStatusLabel(entry.to)}${extra}`;
+        }
+        if (entry.action === "draw_regenerated") {
+            const extra = entry.playerCount !== undefined ? ` (${entry.playerCount} players${entry.groupCount ? `, ${entry.groupCount} groups` : ""})` : "";
+            return `${time} — ${actor} regenerated draw for ${day}${extra}`;
+        }
+        const label = { legacy_event: "legacy activity" }[entry.action] || entry.action || "activity";
+        return `${time} — ${actor} ${label} ${name} for ${day}${fromTo ? `: ${fromTo}` : ""}`;
     };
     const buildReminderText = () => {
         return `⛳ Weekend Golf Sign-Up is open!\n\nPlease confirm if you're playing:\n📅 ${formatDate(chosenW.sat)}\n📅 ${formatDate(chosenW.sun)}\n\nSign-up closes at 6:50pm on Wednesday (Saturday) and Thursday (Sunday).\n\nTap the link to add your name 👇\n${APP_URL}`;

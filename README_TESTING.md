@@ -213,3 +213,16 @@ This release makes the admin activity log DB-first and live-refreshing:
 - the visible app version marker is now `LIVE- v23`.
 
 The quick regression suite now checks DB-backed audit reads, legacy audit migration, and the live DB activity-log UI.
+
+
+## v24 additions
+
+This release makes the DB-backed activity log more descriptive:
+
+- each new audit event includes the amended booking `dateKey` and a readable day/date label, for example `Sunday 7 June`;
+- player booking changes show the affected player, date and previous/new status;
+- admin lock/unlock, draw, priority and competition changes include the affected booking date and useful context;
+- no new D1 table or SQL migration is required because the extra context is stored in the existing `details` field;
+- the visible app version marker is now `LIVE- v24`.
+
+The quick regression suite now checks descriptive date/context fields in DB audit events and the activity-log display copy.
