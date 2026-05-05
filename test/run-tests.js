@@ -115,7 +115,7 @@ console.log("PASS: 18 API/helper tests passed");
 // v2 static checks
 import fs from "fs";
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes("v8")) throw new Error("v8 marker missing");
+if (!html.includes("v9")) throw new Error("v9 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (html.includes('CLOUDFLARE D1 v5 BOOKING WINDOW')) throw new Error('long patch label still present');
 
@@ -123,11 +123,11 @@ if (html.includes('value={`${toDateKey(chosenW.sat)}|${activeDay}`}')) throw new
 if (!html.includes("<option key={toDateKey(w.sat)} value={toDateKey(w.sat)}>{optionLabel(w,i)}</option>")) throw new Error("single-weekend dropdown option missing");
 if (!html.includes("competition: savedComp || fixtureComp")) throw new Error("fixture competition fallback missing");
 if (html.includes("Sat: ${satComp}") || html.includes("Sun: ${sunComp}")) throw new Error("competition names should not appear in weekend dropdown labels");
-console.log("PASS: v8 static dropdown/fallback checks passed");
+console.log("PASS: v9 static dropdown/fallback checks passed");
 
 // v3 static feature/usability checks
 const htmlV3 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!htmlV3.includes("v8")) throw new Error("v8 marker missing");
+if (!htmlV3.includes("v9")) throw new Error("v9 marker missing");
 if (!htmlV3.includes("upcoming.slice(0,8)")) throw new Error("non-admin 8-week future limit missing");
 if (!htmlV3.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
 if (!htmlV3.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
@@ -136,7 +136,7 @@ if (!htmlV3.includes("buildReminderText")) throw new Error("reminder text builde
 if (!htmlV3.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
 if (!htmlV3.includes("Competition name for this day only")) throw new Error("competition edit day-specific placeholder missing");
 if (!htmlV3.includes(">Cancel</button>")) throw new Error("competition edit cancel button missing");
-console.log("PASS: v8 admin WhatsApp/competition usability checks passed");
+console.log("PASS: v9 admin WhatsApp/competition usability checks passed");
 
 // v8 booking-window checks
 const htmlV5 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
@@ -144,7 +144,7 @@ if (!htmlV5.includes("getSignupCutoff")) throw new Error("client signup cutoff h
 if (!htmlV5.includes("Sign-up closes")) throw new Error("signup close message missing");
 if (!htmlV5.includes("list visible only")) throw new Error("closed-but-visible list message missing");
 if (!htmlV5.includes("signupClosed = isSignupClosed(currentDate)")) throw new Error("per-day signup closed logic missing");
-console.log("PASS: v8 booking-window UI checks passed");
+console.log("PASS: v9 booking-window UI checks passed");
 
 // v8 add-confirmation checks
 const htmlV8 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
@@ -153,4 +153,14 @@ if (!htmlV8.includes("Add to booking?")) throw new Error("add confirmation modal
 if (!htmlV8.includes("Please confirm this is the correct player and date before saving.")) throw new Error("clear add confirmation message missing");
 if (!htmlV8.includes("setConfirmAdd({ name, mode: \"toggle\" })")) throw new Error("player tap should open add confirmation instead of saving immediately");
 if (!htmlV8.includes("mode:\"adminManual\"")) throw new Error("admin manual add confirmation missing");
-console.log("PASS: v8 add confirmation UI checks passed");
+console.log("PASS: v9 add confirmation UI checks passed");
+
+
+// v9 locked-date confirmed-player visibility checks
+const htmlV9 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+if (!htmlV9.includes("confirmedBox")) throw new Error("locked-date confirmed summary box missing");
+if (!htmlV9.includes("CONFIRMED FOR THIS DATE")) throw new Error("locked-date confirmed heading missing");
+if (!htmlV9.includes("playerDisplayNames = effectiveLocked")) throw new Error("confirmed players should be sorted to top when locked/closed");
+if (!htmlV9.includes("CONFIRMED PLAYERS SHOWN FIRST")) throw new Error("locked list label should explain confirmed players are shown first");
+if (!htmlV9.includes('current.players.map((p,i)=><span className="chip"')) throw new Error('confirmed chips should render from current.players');
+console.log("PASS: v9 locked-date confirmed-player UI checks passed");

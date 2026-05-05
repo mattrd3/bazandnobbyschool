@@ -31,6 +31,10 @@
     .player { flex:1; padding:14px 16px; border-radius:10px; border:1px solid #1e2e1e; background:#141f14; color:#5a7a5a; font-size:15px; text-align:left; cursor:pointer; display:flex; justify-content:space-between; align-items:center; }
     .player.in { background:linear-gradient(135deg,#1e4a1e,#2a5a2a); border-color:#4a8a4a; color:#a8d878; }
     .player:disabled { opacity:.55; cursor:not-allowed; }
+    .confirmedBox { margin:14px 16px 0; padding:12px 14px; border:1px solid #2a5a2a; background:#0d1f0d; border-radius:12px; }
+    .confirmedTitle { font-size:12px; color:#a8d878; letter-spacing:.08em; margin-bottom:8px; }
+    .confirmedChips { display:flex; flex-wrap:wrap; gap:7px; }
+    .chip { padding:6px 9px; border-radius:999px; background:#163416; border:1px solid #3a6a3a; color:#c8e8a8; font-size:13px; }
     .smallBtn { border-radius:8px; padding:11px 12px; border:1px solid #3a6a3a; background:#102510; color:#a8d878; cursor:pointer; }
     .danger { border-color:#6a3a3a; background:#2a1a1a; color:#e87878; }
     .adminPanel { margin: 14px 16px 0; padding: 12px; border:1px solid #2a4a2a; background:#0a150a; border-radius:12px; display:flex; flex-direction:column; gap:10px; }
@@ -58,7 +62,7 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v8";
+const VERSION = "v9";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
@@ -166,6 +170,12 @@ function App(){
   const signupClosed = isSignupClosed(currentDate);
   const effectiveLocked=current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
   const allNames=[...new Set([...INITIAL_MEMBERS, ...current.players])].sort();
+  const playerDisplayNames = effectiveLocked
+    ? [...current.players, ...allNames.filter(name => !current.players.includes(name))]
+    : allNames;
+  const confirmedSummaryText = current.players.length
+    ? `${current.players.length} confirmed: ${current.players.join(", ")}`
+    : "No players confirmed yet.";
 
   async function load(){
     try { setStatus("Syncing..."); const data=await api("schedule"); setSchedule(mergeWithBase(data.schedule)); setStatus(`LIVE- ${VERSION}`); setError(""); }
@@ -276,7 +286,9 @@ function App(){
 
     {current.locked && current.draw && <div className="draw"><div className="drawHead">🎲 TEE TIME DRAW</div>{current.draw.map((g,i)=><div className="group" key={i}><div className="groupH"><span>TEE {i+1}</span><span>{groupLabel(g.length)}</span></div>{g.map((p,j)=><div className="groupP" key={p}>{j+1}. {p}</div>)}</div>)}</div>}
 
-    <div className="players"><div className="label">{effectiveLocked?"CONFIRMED PLAYERS":"TAP YOUR NAME TO CONFIRM"}</div>{allNames.map(name=>{
+    {effectiveLocked && <div className="confirmedBox"><div className="confirmedTitle">CONFIRMED FOR THIS DATE</div><div className="confirmedChips">{current.players.length ? current.players.map((p,i)=><span className="chip" key={p}>{i+1}. {p}</span>) : <span style={{color:"#4a6a4a",fontSize:13}}>No players confirmed yet.</span>}</div></div>}
+
+    <div className="players"><div className="label">{effectiveLocked?"CONFIRMED PLAYERS SHOWN FIRST":"TAP YOUR NAME TO CONFIRM"}</div>{playerDisplayNames.map(name=>{
       const isIn=current.players.includes(name);
       return <div className="row" key={name}><button className={`player ${isIn?"in":""}`} disabled={effectiveLocked && !adminMode} onClick={()=>saveToggle(name)}><span>{name}</span><span>{isIn?"✓":""}</span></button>{adminMode && isIn && <button className="smallBtn danger" onClick={()=>setConfirmRemove(name)}>✕</button>}</div>
     })}</div>
