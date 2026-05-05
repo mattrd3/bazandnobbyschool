@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import assert from "node:assert/strict";
 
 const args = Object.fromEntries(process.argv.slice(2).map(a => {
@@ -192,10 +193,11 @@ try {
   stats.slowestMs = stats.timings.length ? Math.max(...stats.timings) : null;
   stats.passed = stats.failures.length === 0;
 
-  const reportDir = new URL("./reports/", import.meta.url);
+  const testDir = path.dirname(fileURLToPath(import.meta.url));
+  const reportDir = path.join(testDir, "reports");
   fs.mkdirSync(reportDir, { recursive: true });
-  const jsonPath = path.join(reportDir.pathname, `soak-${RUN_ID}.json`);
-  const mdPath = path.join(reportDir.pathname, `soak-${RUN_ID}.md`);
+  const jsonPath = path.join(reportDir, `soak-${RUN_ID}.json`);
+  const mdPath = path.join(reportDir, `soak-${RUN_ID}.md`);
   fs.writeFileSync(jsonPath, JSON.stringify(stats, null, 2));
   fs.writeFileSync(mdPath, `# Soak test report\n\n` +
     `Site: ${stats.siteUrl}\n\nRun ID: ${stats.runId}\n\nDuration requested: ${stats.minutes} minute(s)\n\n` +
