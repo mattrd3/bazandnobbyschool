@@ -139,3 +139,8 @@ The live and soak tests intentionally use dates in 2099 so they do not appear in
 ## v8 add confirmation coverage
 
 The quick regression suite now fails if the UI no longer prompts before adding a player. The live and soak suites continue to validate the API/data layer repeatedly; the add confirmation itself is a browser/UI guard and is covered by static regression checks.
+
+
+## v11 soak report path fix
+
+The soak test now uses `fileURLToPath(import.meta.url)` before building report paths. This fixes Windows paths such as `C:\C:\...` when writing `test/reports/soak-*.json`.
