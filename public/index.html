@@ -58,7 +58,7 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "CLOUDFLARE D1 v1";
+const VERSION = "CLOUDFLARE D1 v2 WEEKEND PICKER";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 
@@ -92,7 +92,23 @@ function isAutoLocked(date) {
   return false;
 }
 function buildBase() { const base={}; Object.entries(FIXTURE_COMPS).forEach(([key, comp]) => base[key]=initDay(comp)); return base; }
-function mergeWithBase(saved) { const base=buildBase(); const merged={...base}; Object.entries(saved||{}).forEach(([key,val])=>{ merged[key] = {...initDay(base[key]?.competition || ""), ...(base[key]||{}), ...val}; }); return merged; }
+function mergeWithBase(saved) {
+  const base=buildBase();
+  const merged={...base};
+  Object.entries(saved||{}).forEach(([key,val])=>{
+    const fixtureComp = base[key]?.competition || "";
+    const savedVal = val || {};
+    // Important: old/empty saved records must not wipe out fixture names.
+    const savedComp = typeof savedVal.competition === "string" ? savedVal.competition.trim() : "";
+    merged[key] = {
+      ...initDay(fixtureComp),
+      ...(base[key]||{}),
+      ...savedVal,
+      competition: savedComp || fixtureComp
+    };
+  });
+  return merged;
+}
 function weekendShort(w) { return `${w.sat.getDate()} – ${w.sun.getDate()} ${w.sun.toLocaleDateString("en-GB",{month:"short"})}`; }
 
 async function api(path, payload) {
@@ -147,17 +163,39 @@ function App(){
     await doToggle(name);
   }
   async function doToggle(name){
-    try { setMessage(`Saving ${dateKey}: ${name}...`); setError(""); const r=await api("toggle-player", {dateKey, name, adminPin: adminMode ? ADMIN_PIN : ""}); optimistic(r.dateKey, r.data); setMessage(`✅ ${r.message}`); }
+    try {
+      setMessage(`Saving ${dateKey}: ${name}...`); setError("");
+      const r=await api("toggle-player", {dateKey, name, adminPin: adminMode ? ADMIN_PIN : "", competition: current.competition || FIXTURE_COMPS[dateKey] || ""});
+      optimistic(r.dateKey, r.data); setMessage(`✅ ${r.message}`);
+    }
     catch(e){ setError(e.message); setMessage(""); }
   }
   async function adminPost(path, payload){
-    try { setMessage("Saving..."); setError(""); const r=await api(path, {...payload, dateKey, adminPin: ADMIN_PIN}); optimistic(r.dateKey, r.data); setMessage("✅ Saved"); return r; }
+    try {
+      setMessage("Saving..."); setError("");
+      const r=await api(path, {...payload, dateKey, adminPin: ADMIN_PIN, competition: current.competition || FIXTURE_COMPS[dateKey] || ""});
+      optimistic(r.dateKey, r.data); setMessage("✅ Saved"); return r;
+    }
     catch(e){ setError(e.message); setMessage(""); }
   }
 
   const attemptAdmin=()=>{ if(pin===ADMIN_PIN){setAdminMode(true);setShowPin(false);setPin("");} else setError("Incorrect PIN"); };
   const logoutAdmin=()=>setAdminMode(false);
-  const changeWeekend=e=>{ const [satKey, day] = e.target.value.split("|"); setSelectedKey(day === "sun" ? toDateKey(weekends.find(w=>toDateKey(w.sat)===satKey).sun) : satKey); setActiveDay(day); };
+  const changeWeekend=e=>{ setSelectedKey(e.target.value); };
+  const weekendIndexLabel=(w,i)=>{
+    if(w.past) return "History";
+    const futureIndex = upcoming.findIndex(u => toDateKey(u.sat) === toDateKey(w.sat));
+    if(futureIndex === 0) return "This weekend";
+    if(futureIndex === 1) return "Next weekend";
+    return `In ${futureIndex} weekends`;
+  };
+  const optionLabel=(w,i)=>{
+    const satKey=toDateKey(w.sat), sunKey=toDateKey(w.sun);
+    const satComp=(schedule[satKey]?.competition || FIXTURE_COMPS[satKey] || "").trim();
+    const sunComp=(schedule[sunKey]?.competition || FIXTURE_COMPS[sunKey] || "").trim();
+    const comps=[satComp && `Sat: ${satComp}`, sunComp && `Sun: ${sunComp}`].filter(Boolean).join(" / ");
+    return `${weekendIndexLabel(w,i)} — ${weekendShort(w)}${comps ? ` · ${comps}` : ""}`;
+  };
 
   return <div className="wrap">
     <div className="header">
@@ -171,11 +209,10 @@ function App(){
 
     <div className="section">
       <div className="label">SELECT WEEKEND</div>
-      <select className="select" value={`${toDateKey(chosenW.sat)}|${activeDay}`} onChange={changeWeekend}>
-        {weekends.map((w,i)=><React.Fragment key={toDateKey(w.sat)}>
-          <option value={`${toDateKey(w.sat)}|sat`}>{w.past?"History — ":i===0?"This weekend — ":i===1?"Next weekend — ":`In ${i} weekends — `}{weekendShort(w)} · Saturday</option>
-          <option value={`${toDateKey(w.sat)}|sun`}>{w.past?"History — ":i===0?"This weekend — ":i===1?"Next weekend — ":`In ${i} weekends — `}{weekendShort(w)} · Sunday</option>
-        </React.Fragment>)}
+      <select className="select" value={toDateKey(chosenW.sat)} onChange={changeWeekend}>
+        {weekends.map((w,i)=>(
+          <option key={toDateKey(w.sat)} value={toDateKey(w.sat)}>{optionLabel(w,i)}</option>
+        ))}
       </select>
     </div>
 

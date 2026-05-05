@@ -45,7 +45,7 @@ function safeDay(raw, competition = "") {
     ...raw,
     players: Array.isArray(raw.players) ? [...new Set(raw.players.map(String).map(s => s.trim()).filter(Boolean))] : [],
     locked: Boolean(raw.locked),
-    competition: typeof raw.competition === "string" ? raw.competition : competition,
+    competition: (typeof raw.competition === "string" && raw.competition.trim()) ? raw.competition.trim() : competition,
     audit: Array.isArray(raw.audit) ? raw.audit : [],
     draw: raw.draw || null
   };
@@ -156,6 +156,7 @@ async function handle(request, env) {
     if (!name) return json({ ok: false, error: "Missing player name" }, 400);
 
     let day = await getDay(env.DB, dateKey);
+    if (!day.competition && input.competition) day.competition = String(input.competition).trim();
     if (day.locked && !input.adminPin) return json({ ok: false, error: "List is locked" }, 403);
 
     const players = new Set(day.players || []);
@@ -174,6 +175,7 @@ async function handle(request, env) {
     const name = String(input.name || "").trim();
     if (!name) return json({ ok: false, error: "Missing player name" }, 400);
     let day = await getDay(env.DB, dateKey);
+    if (!day.competition && input.competition) day.competition = String(input.competition).trim();
     if (!day.players.includes(name)) day.players.push(name);
     day.draw = null;
     day = addAudit(day, "admin_added", name);
@@ -187,6 +189,7 @@ async function handle(request, env) {
     const dateKey = normaliseDateKey(input.dateKey);
     const name = String(input.name || "").trim();
     let day = await getDay(env.DB, dateKey);
+    if (!day.competition && input.competition) day.competition = String(input.competition).trim();
     day.players = day.players.filter(p => p !== name);
     day.draw = null;
     day = addAudit(day, "admin_removed", name);
@@ -210,6 +213,7 @@ async function handle(request, env) {
     if (!isAdmin(input)) return json({ ok: false, error: "Admin PIN required" }, 403);
     const dateKey = normaliseDateKey(input.dateKey);
     let day = await getDay(env.DB, dateKey);
+    if (!day.competition && input.competition) day.competition = String(input.competition).trim();
     const lock = typeof input.locked === "boolean" ? input.locked : !day.locked;
     day.locked = lock;
     if (lock && day.players.length && !day.draw) day.draw = buildGroups(day.players);
@@ -224,6 +228,7 @@ async function handle(request, env) {
     if (!isAdmin(input)) return json({ ok: false, error: "Admin PIN required" }, 403);
     const dateKey = normaliseDateKey(input.dateKey);
     let day = await getDay(env.DB, dateKey);
+    if (!day.competition && input.competition) day.competition = String(input.competition).trim();
     day.draw = buildGroups(day.players || []);
     day = addAudit(day, "draw_regenerated", "Admin");
     day = await upsertDay(env.DB, dateKey, day);
