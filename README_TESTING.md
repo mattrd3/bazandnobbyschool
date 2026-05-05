@@ -226,3 +226,15 @@ This release makes the DB-backed activity log more descriptive:
 - the visible app version marker is now `LIVE- v24`.
 
 The quick regression suite now checks descriptive date/context fields in DB audit events and the activity-log display copy.
+
+
+## v25 additions
+
+This patch saves header UI space by moving the visible live/version status into the top-left of the sticky header.
+
+Expected behaviour:
+
+- the app still shows the visible marker `LIVE- v25`;
+- the marker appears at the top-left of the header rather than underneath the main title/subtitle;
+- the admin button and player log-off button remain on the top-right;
+- no database or SQL changes are required.

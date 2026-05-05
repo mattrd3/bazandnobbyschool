@@ -93,7 +93,7 @@ assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(
 assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(2026,5,6,18,50)), true);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,49)), false);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,50)), true);
-assert.equal(auditDateLabel("2026-06-07"), "Sunday 7 June", "v24 audit date label should include amended booking day/date");
+assert.equal(auditDateLabel("2026-06-07"), "Sunday 7 June", "v25 keeps v24 audit date label with amended booking day/date");
 
 const db = new FakeDB();
 let r = await call(db, "/api/schedule");
@@ -130,9 +130,9 @@ assert.equal("maybes" in r.json.data, false);
 r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
 assert.equal(r.json.ok, true);
 assert.equal(r.json.events[0].action, "joined", "v23 should read joined events from audit_events table");
-assert.equal(r.json.events[0].dateLabel, "Sunday 7 June", "v24 audit event should include the amended booking day/date");
-assert.equal(r.json.events[0].from, "none", "v24 audit event should include previous booking status");
-assert.equal(r.json.events[0].to, "playing", "v24 audit event should include new booking status");
+assert.equal(r.json.events[0].dateLabel, "Sunday 7 June", "v25 keeps v24 audit event amended booking day/date");
+assert.equal(r.json.events[0].from, "none", "v25 keeps v24 audit event previous booking status");
+assert.equal(r.json.events[0].to, "playing", "v25 keeps v24 audit event new booking status");
 
 r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"none", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
@@ -164,7 +164,7 @@ r = await call(db, "/api/admin/competition", "POST", { dateKey:"2026-06-07", com
 assert.equal(r.json.ok, true);
 assert.equal(r.json.data.competition, "Stableford");
 r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
-assert.ok(r.json.events.some(e => e.action === "competition_changed" && e.dateLabel === "Sunday 7 June" && e.to === "Stableford"), "v24 competition audit should include date and new value");
+assert.ok(r.json.events.some(e => e.action === "competition_changed" && e.dateLabel === "Sunday 7 June" && e.to === "Stableford"), "v25 keeps v24 competition audit date and new value");
 
 r = await call(db, "/api/schedule");
 assert.equal(r.json.schedule["2026-06-07"].players[0], "Ethan");
@@ -176,8 +176,9 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 30 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v24"')) throw new Error("v24 marker missing");
+if (!html.includes('const VERSION = "v25"')) throw new Error("v25 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
+if (!html.includes('.status { position:absolute; top:18px; left:14px;')) throw new Error('v25 live version status should be positioned top-left');
 if (!html.includes('setActiveDay("sat");') || !html.includes('const saturdayKey = e.target.value;')) throw new Error("v20 weekend change must default selected day to Saturday");
 if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
@@ -212,5 +213,5 @@ if (!html.includes("changed booking status for ${day}")) throw new Error("v24 au
 if (!html.includes("changed ${name} for ${day}")) throw new Error("v24 audit log should describe player booking changes by day/date");
 if (!html.includes("changed competition for ${day}")) throw new Error("v24 audit log should describe competition changes by day/date");
 if (html.includes("auditEvents.length || (current.audit || []).length")) throw new Error("v23 UI should not fall back to local day.audit counts");
-console.log("PASS: v24 UI regression checks passed");
+console.log("PASS: v25 UI regression checks passed");
 
