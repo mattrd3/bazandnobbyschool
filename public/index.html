@@ -58,7 +58,7 @@
 <script type="text/babel">
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "CLOUDFLARE D1 v3 ADMIN WHATSAPP";
+const VERSION = "CLOUDFLARE D1 v4 ADMIN WHATSAPP";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
@@ -194,13 +194,7 @@ function App(){
     if(futureIndex === 1) return "Next weekend";
     return `In ${futureIndex} weekends`;
   };
-  const optionLabel=(w,i)=>{
-    const satKey=toDateKey(w.sat), sunKey=toDateKey(w.sun);
-    const satComp=(schedule[satKey]?.competition || FIXTURE_COMPS[satKey] || "").trim();
-    const sunComp=(schedule[sunKey]?.competition || FIXTURE_COMPS[sunKey] || "").trim();
-    const comps=[satComp && `Sat: ${satComp}`, sunComp && `Sun: ${sunComp}`].filter(Boolean).join(" / ");
-    return `${weekendIndexLabel(w,i)} — ${weekendShort(w)}${comps ? ` · ${comps}` : ""}`;
-  };
+  const optionLabel=(w,i)=> `${weekendIndexLabel(w,i)} — ${weekendShort(w)}`;
 
 
   const copyText = async (text, setter) => {

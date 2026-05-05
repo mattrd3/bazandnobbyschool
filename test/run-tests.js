@@ -106,7 +106,8 @@ if (!html.includes("CLOUDFLARE D1 v3 ADMIN WHATSAPP")) throw new Error("v3 marke
 if (html.includes('value={`${toDateKey(chosenW.sat)}|${activeDay}`}')) throw new Error("old duplicate Sat/Sun dropdown still present");
 if (!html.includes("<option key={toDateKey(w.sat)} value={toDateKey(w.sat)}>{optionLabel(w,i)}</option>")) throw new Error("single-weekend dropdown option missing");
 if (!html.includes("competition: savedComp || fixtureComp")) throw new Error("fixture competition fallback missing");
-console.log("PASS: v2/v3 static dropdown/fallback checks passed");
+if (html.includes("Sat: ${satComp}") || html.includes("Sun: ${sunComp}")) throw new Error("competition names should not appear in weekend dropdown labels");
+console.log("PASS: v4 static dropdown/fallback checks passed");
 
 // v3 static feature/usability checks
 const htmlV3 = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
@@ -119,4 +120,4 @@ if (!htmlV3.includes("buildReminderText")) throw new Error("reminder text builde
 if (!htmlV3.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
 if (!htmlV3.includes("Competition name for this day only")) throw new Error("competition edit day-specific placeholder missing");
 if (!htmlV3.includes(">Cancel</button>")) throw new Error("competition edit cancel button missing");
-console.log("PASS: v3 admin WhatsApp/competition usability checks passed");
+console.log("PASS: v4 admin WhatsApp/competition usability checks passed");
