@@ -286,3 +286,13 @@ The quick regression suite now checks the icon-only weekend status helper and co
 - Existing WhatsApp copy options for sign-up reminder and confirmed attendee list remain unchanged.
 - No database or SQL changes are required.
 - The visible app version marker is now `LIVE- v30`.
+
+
+## v31 shorter weekend dropdown wording
+
+- Future weekend dropdown labels now use shorter week-based wording.
+- `Next weekend` is replaced by `In 1 week`.
+- `In N weekends` is replaced by `In N weeks`.
+- Personal booking icons from v29 and WhatsApp copy features from v30 remain unchanged.
+- No database or SQL changes are required.
+- The visible app version marker is now `LIVE- v31`.

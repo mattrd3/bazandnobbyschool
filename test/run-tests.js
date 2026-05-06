@@ -183,7 +183,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 31 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v30"')) throw new Error("v30 marker missing");
+if (!html.includes('const VERSION = "v31"')) throw new Error("v31 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -240,5 +240,7 @@ if (!html.includes('bookedCount >= 2') || !html.includes('return "🟢🟢"') ||
 if (html.includes('weekendStatusIcon') || html.includes('isClosedForWeekendPicker') || html.includes('return "🟠"')) throw new Error('v29 should remove v28 open/closed amber weekend status icons');
 if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v29 should not add weekend dropdown text-colour classes');
 if (!html.includes('Kevin Request clarification: replaced the v28 open/closed weekend icons')) throw new Error('v29 release notes should flag the Kevin Request clarification');
-console.log("PASS: v30 UI regression checks passed");
+if (!html.includes("return \"In 1 week\";") || !html.includes("return `In ${futureIndex} weeks`;")) throw new Error("v31 weekend dropdown should use shorter week-based labels");
+if (html.includes("Next weekend") || html.includes("In ${futureIndex} weekends")) throw new Error("v31 should remove longer weekend-based future labels");
+console.log("PASS: v31 UI regression checks passed");
 
