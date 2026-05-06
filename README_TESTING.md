@@ -244,3 +244,15 @@ Expected behaviour:
 - Top header/banner is slimmer to save vertical UI space.
 - Golf icon and `WHO'S PLAYING?` message are retained.
 - `LIVE- v26` remains in the top-left and admin/logoff controls remain top-right.
+
+## v27 mobile-safe header controls and clickable release notes
+
+This patch reorganises the sticky header to avoid long logged-in player names overlapping the app logo/title on mobile.
+
+- the player logoff control moves to the top-left;
+- the logoff control is now a compact two-row button with `LOG OFF` above the logged-in player name;
+- the logged-in player name is displayed in capitals for consistency with the other header buttons;
+- long player names are safely truncated instead of overwriting the logo/title;
+- the Admin button remains top-right;
+- `LIVE- v27` moves under the Admin button and is clickable;
+- clicking the version label opens an in-app release notes modal covering recent changes.
