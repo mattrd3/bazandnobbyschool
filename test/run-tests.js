@@ -121,7 +121,7 @@ assert.equal(r.json.ok, true);
 
 r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
 assert.equal(r.json.ok, true, "v29 player weekend summary should authenticate and return personal booking indicators");
-assert.deepEqual(r.json.summary["2026-06-06"], { sat:false, sun:false }, "v29 initially shows no personal bookings for that weekend");
+assert.deepEqual(r.json.summary["2026-06-06"], { sat:"none", sun:"none" }, "v32 initially shows no personal response for that weekend");
 
 r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"maybe", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.status, 400, "maybe status should be rejected in v15");
@@ -133,7 +133,13 @@ assert.deepEqual(r.json.data.players, ["Jason"]);
 assert.equal("maybes" in r.json.data, false);
 
 r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
-assert.deepEqual(r.json.summary["2026-06-06"], { sat:false, sun:true }, "v29 should show one booked day for Jason's weekend");
+assert.deepEqual(r.json.summary["2026-06-06"], { sat:"none", sun:"playing" }, "v32 should show Jason playing on Sunday only");
+r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-06", name:"Jason", status:"unavailable", playerName:"Jason", playerPin:"1111" });
+assert.equal(r.json.ok, true, "v32 should allow players to mark themselves unavailable");
+assert.deepEqual(r.json.data.unavailablePlayers, ["Jason"]);
+r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
+assert.deepEqual(r.json.summary["2026-06-06"], { sat:"unavailable", sun:"playing" }, "v32 weekend summary should distinguish unavailable and playing days");
+
 r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
 assert.equal(r.json.ok, true);
 assert.equal(r.json.events[0].action, "joined", "v23 should read joined events from audit_events table");
@@ -180,10 +186,10 @@ assert.equal("maybes" in r.json.schedule["2026-06-07"], false);
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 31 API/helper tests passed");
+console.log("PASS: 32 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v31"')) throw new Error("v31 marker missing");
+if (!html.includes('const VERSION = "v34"')) throw new Error("v34 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -194,7 +200,7 @@ if (!html.includes("Copy sign-up reminder for WhatsApp")) throw new Error("Whats
 if (!html.includes("Copy not-booked weekend list for WhatsApp")) throw new Error("v30 WhatsApp not-booked weekend list button missing");
 if (!html.includes("buildNotBookedWeekendText")) throw new Error("v30 not-booked weekend WhatsApp message builder missing");
 if (!html.includes("notBookedForWeekend")) throw new Error("v30 not-booked weekend roster helper missing");
-if (!html.includes("Players not booked for Saturday or Sunday")) throw new Error("v30 not-booked WhatsApp copy should describe players not booked either day");
+if (!html.includes("Players not booked and not marked unavailable for Saturday or Sunday")) throw new Error("v32 not-booked WhatsApp copy should exclude unavailable players");
 if (!html.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
 if (!html.includes("getSignupCutoff")) throw new Error("client signup cutoff helper missing");
 if (!html.includes("Add to booking?")) throw new Error("add confirmation modal missing");
@@ -212,7 +218,7 @@ for (const forbidden of ["Maybe", "currentMaybes", "confirmMaybe", "chooseMaybe"
 }
 if (html.includes("MAYBE PLAYING") || html.includes("CHOOSE PLAYING OR MAYBE")) throw new Error("Maybe user-facing copy should be removed");
 if (!html.includes("shouldPinLoggedInPlayer")) throw new Error("v21 logged-in player pinning helper missing");
-if (!html.includes("(!effectiveLocked || currentPlayers.includes(playerName))")) throw new Error("v21 locked/not-playing exception missing");
+if (!html.includes("(!effectiveLocked || currentPlayers.includes(playerName) || currentUnavailable.includes(playerName))")) throw new Error("v32 locked/not-playing/unavailable pinning exception missing");
 if (!html.includes("[playerName, ...basePlayerDisplayNames.filter(name => name !== playerName)]")) throw new Error("v21 logged-in player should be placed first when pinned");
 if (!html.includes("playerLogoutBtn")) throw new Error("v22 player logout button style missing");
 if (!html.includes("!adminMode && !pinLoggedIn && React.createElement")) throw new Error("v22 login box should hide once player is logged in");
@@ -233,14 +239,28 @@ if (!html.includes('className: "logoutName"')) throw new Error('v29 logoff playe
 if (!html.includes('RELEASE_NOTES')) throw new Error('v28 release notes data missing');
 if (!html.includes('setShowReleaseNotes(true)')) throw new Error('v27 version button should open release notes');
 
-if (!html.includes('personalWeekendBookingIcon')) throw new Error('v29 personal weekend booking icon helper missing');
-if (!html.includes('player/weekend-summary')) throw new Error('v29 should use a D1-backed player weekend summary lookup');
-if (!html.includes('playerWeekendSummary')) throw new Error('v29 player weekend summary state missing');
-if (!html.includes('bookedCount >= 2') || !html.includes('return "🟢🟢"') || !html.includes('bookedCount === 1') || !html.includes('return "🟢"') || !html.includes('return "🔴"')) throw new Error('v29 weekend dropdown must show two green, one green, or one red circular booking icons');
-if (html.includes('weekendStatusIcon') || html.includes('isClosedForWeekendPicker') || html.includes('return "🟠"')) throw new Error('v29 should remove v28 open/closed amber weekend status icons');
-if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v29 should not add weekend dropdown text-colour classes');
-if (!html.includes('Kevin Request clarification: replaced the v28 open/closed weekend icons')) throw new Error('v29 release notes should flag the Kevin Request clarification');
-if (!html.includes("return \"In 1 week\";") || !html.includes("return `In ${futureIndex} weeks`;")) throw new Error("v31 weekend dropdown should use shorter week-based labels");
+if (!html.includes('personalWeekendBookingIcon')) throw new Error('v32 personal weekend booking icon helper missing');
+if (!html.includes('player/weekend-summary')) throw new Error('v32 should use a D1-backed player weekend summary lookup');
+if (!html.includes('playerWeekendSummary')) throw new Error('v32 player weekend summary state missing');
+if (!html.includes('statusIcon') || !html.includes('status === "playing" ? "🟢"') || !html.includes('status === "unavailable" ? "⚪"') || !html.includes(': "🔴"')) throw new Error('v32 weekend dropdown must distinguish booked, unavailable and no response with circular icons');
+if (!html.includes('unavailablePlayers')) throw new Error('v32 unavailable player storage/display missing');
+if (!html.includes('CHOOSE PLAYING OR UNAVAILABLE')) throw new Error('v32 unavailable UI label missing');
+if (!html.includes('unavailableBtn')) throw new Error('v32 unavailable button missing');
+if (!html.includes('MY BOOKINGS') || !html.includes('showMyBookings') || !html.includes('myBookingRows')) throw new Error('v32 My Bookings modal/button missing');
+if (!html.includes('Players not booked and not marked unavailable for Saturday or Sunday')) throw new Error('v32 not-booked WhatsApp copy should exclude unavailable players');
+if (html.includes('weekendStatusIcon') || html.includes('isClosedForWeekendPicker') || html.includes('return "🟠"')) throw new Error('v32 should not restore v28 open/closed amber weekend status icons');
+if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v32 should not add weekend dropdown text-colour classes');
+if (!html.includes('Kevin Request clarification: replaced the v28 open/closed weekend icons')) throw new Error('v29 release notes should retain the Kevin Request clarification');
+if (!html.includes('return "In 1 week";') || !html.includes('return `In ${futureIndex} weeks`;')) throw new Error("v31 weekend dropdown should use shorter week-based labels");
 if (html.includes("Next weekend") || html.includes("In ${futureIndex} weekends")) throw new Error("v31 should remove longer weekend-based future labels");
-console.log("PASS: v31 UI regression checks passed");
-
+if (!html.includes('helpBtn')) throw new Error('v33 compact Help button missing');
+if (!html.includes('showHelp')) throw new Error('v33 Help modal state missing');
+if (!html.includes('Icons and personal weekend status')) throw new Error('v33 Help panel should explain personalised weekend icons');
+if (!html.includes('Saturday booking closes at 6:50pm on Wednesday')) throw new Error('v33 Help panel should explain cutoff rules');
+if (!html.includes('Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list')) throw new Error('v33 Help panel should explain WhatsApp tools');
+if (!html.includes('setShowReleaseNotes(true)')) throw new Error('v33 Help panel should link to release notes');
+if (!html.includes('{ version: "v33", title: "Compact help panel"')) throw new Error('v33 release notes entry missing');
+if (!html.includes('One page to see all your bookings so you can see all the days on which you will play terrible golf!')) throw new Error('v34 My Bookings wording missing');
+if (!html.includes('{ version: "v34", title: "My Bookings wording"')) throw new Error('v34 release notes entry missing');
+if (html.includes('Your upcoming weekend status. This does not take up space on the main booking page.')) throw new Error('v34 should remove old My Bookings wording');
+console.log("PASS: v34 UI regression checks passed");

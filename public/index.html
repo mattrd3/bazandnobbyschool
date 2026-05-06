@@ -57,6 +57,12 @@
     .title { margin: 0; font-size: 20px; font-weight: normal; letter-spacing: .05em; color: var(--green); }
     .sub { margin: 2px 0 0; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
     .versionBtn { border:0; background:transparent; padding:0; margin:0; font-size:10px; color:var(--green-2); font-weight:bold; text-align:right; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+    .helpBtn { border-radius:6px; padding:4px 8px; font-size:10px; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); letter-spacing:.06em; }
+    .helpSection { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); }
+    .helpSection:last-child { border-bottom:0; }
+    .helpTitle { color:var(--green); font-weight:bold; font-size:13px; margin-bottom:5px; }
+    .helpText { margin:0; color:var(--muted); font-size:12px; line-height:1.45; }
+    .helpList { margin:5px 0 0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.45; }
     .adminBtn { border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; }
     .playerLogoutBtn { border-radius:6px; padding:4px 7px; font-size:10px; line-height:1.05; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); max-width:30vw; min-width:58px; display:flex; flex-direction:column; gap:2px; align-items:center; text-transform:uppercase; }
     .logoutName { display:block; max-width:26vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; color:var(--green); }
@@ -151,7 +157,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v32";
+const VERSION = "v34";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -162,6 +168,8 @@ const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const RELEASE_NOTES = [
+    { version: "v34", title: "My Bookings wording", changes: ["Updated the My Bookings panel wording to better explain it as one page to see all your upcoming bookings.", "No booking, login, API, or database behaviour changed." ] },
+    { version: "v33", title: "Compact help panel", changes: ["Added a small Help button so guidance is available without taking up permanent booking-page space.", "Help explains the personal dropdown icons, booking statuses, cutoff rules and WhatsApp copy tools.", "The Help panel links through to release notes for users who want to see recent changes." ] },
     { version: "v32", title: "Unavailable status and My Bookings", changes: ["Added an Unavailable option for each player/day so players can confirm they cannot play without being chased as not booked.", "Updated the personal weekend dropdown icons: green means booked, white means unavailable, and red means no response for each day.", "Added a compact My Bookings button for logged-in players, opening a modal summary without taking up booking-page space.", "Updated the not-booked WhatsApp copy so it lists only players who have neither booked nor marked themselves unavailable." ] },
     { version: "v31", title: "Shorter weekend dropdown wording", changes: ["Changed future weekend dropdown wording from weekend-based labels to week-based labels to save horizontal UI space.", "Future options now show labels such as In 1 week and In 2 weeks rather than longer weekend wording.", "No booking, login, or database behaviour changed." ] },
     { version: "v30", title: "Not-booked WhatsApp copy message", changes: ["Added a third admin WhatsApp copy option for the selected weekend.", "Admins can now copy a message listing roster players who are not booked for either Saturday or Sunday that weekend.", "This sits alongside the existing sign-up reminder and confirmed-player WhatsApp copy tools." ] },
@@ -296,6 +304,7 @@ function App() {
     const [auditStatus, setAuditStatus] = useState("");
     const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [showMyBookings, setShowMyBookings] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
     const [playerWeekendSummary, setPlayerWeekendSummary] = useState({});
     const upcoming = useMemo(() => getUpcomingWeekends(52), []);
     const past = useMemo(() => getPastWeekends(8), []);
@@ -657,7 +666,8 @@ Bookings confirmed ✅`;
                 React.createElement("button", { className: "adminBtn", onClick: () => adminMode ? logoutAdmin() : setShowPin(true), style: { background: adminMode ? "#2f5d35" : "#fffdf7", color: adminMode ? "#ffffff" : "#2f5d35", border: `1px solid ${adminMode ? "#2f5d35" : "#a9bea1"}` } }, adminMode ? "ADMIN ✓" : "ADMIN"),
                 React.createElement("button", { className: "versionBtn", onClick: () => setShowReleaseNotes(true), title: "View release notes" },
                     "\uD83D\uDFE2 ",
-                    status))),
+                    status),
+                React.createElement("button", { className: "helpBtn", onClick: () => setShowHelp(true), title: "Open help" }, "HELP"))),
         message && React.createElement("div", { className: "msg" }, message),
         error && React.createElement("div", { className: "msg err" },
             "\u26A0\uFE0F ",
@@ -790,13 +800,40 @@ Bookings confirmed ✅`;
         showMyBookings && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 430 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "My bookings"),
-                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Your upcoming weekend status. This does not take up space on the main booking page."),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "One page to see all your bookings so you can see all the days on which you will play terrible golf!"),
                 React.createElement("div", { className: "releaseList" }, myBookingRows().map(row => React.createElement("div", { className: "bookingSummaryRow", key: row.key },
                     React.createElement("span", null, row.label),
                     React.createElement("strong", null, row.icons)))),
                 React.createElement("div", { className: "bookingLegend" }, "🟢 booked · ⚪ unavailable · 🔴 no response"),
                 React.createElement("div", { className: "modalActions" },
                     React.createElement("button", { className: "green", onClick: () => setShowMyBookings(false) }, "Close")))),
+        showHelp && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 430 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Help"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Quick guide to the Weekend Golf app."),
+                React.createElement("div", { className: "releaseList" },
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Icons and personal weekend status"),
+                        React.createElement("p", { className: "helpText" }, "The weekend dropdown icons are personal to the logged-in player, so different players may see different icons."),
+                        React.createElement("ul", { className: "helpList" },
+                            React.createElement("li", null, "🟢 booked / playing"),
+                            React.createElement("li", null, "⚪ unavailable"),
+                            React.createElement("li", null, "🔴 no response yet"))),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Booking choices"),
+                        React.createElement("p", { className: "helpText" }, "Choose Playing if you want to be booked in. Choose Unavailable if you cannot play and do not need chasing. Clear removes your response.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Cutoff rules"),
+                        React.createElement("p", { className: "helpText" }, "Saturday booking closes at 6:50pm on Wednesday. Sunday booking closes at 6:50pm on Thursday. Admin can still manage locked bookings.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Admin WhatsApp tools"),
+                        React.createElement("p", { className: "helpText" }, "Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list. The not-booked list excludes players who have marked themselves unavailable.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "More info"),
+                        React.createElement("p", { className: "helpText" }, "Use My Bookings to see your upcoming personal status. Use the live version number to view release notes."))),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => { setShowHelp(false); setShowReleaseNotes(true); } }, "Release notes"),
+                    React.createElement("button", { className: "green", onClick: () => setShowHelp(false) }, "Close")))),
         showReleaseNotes && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Release notes"),

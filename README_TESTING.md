@@ -296,3 +296,24 @@ The quick regression suite now checks the icon-only weekend status helper and co
 - Personal booking icons from v29 and WhatsApp copy features from v30 remain unchanged.
 - No database or SQL changes are required.
 - The visible app version marker is now `LIVE- v31`.
+
+
+## v32 unavailable status, personal icons and My Bookings
+- Added Unavailable as a player/day status.
+- Updated personal weekend dropdown icons: 🟢 booked, ⚪ unavailable, 🔴 no response.
+- Added My Bookings modal for logged-in players.
+- Updated the not-booked WhatsApp copy to exclude players who have marked themselves unavailable.
+- No new SQL table required; existing `player_status.status` stores the additional `unavailable` value.
+- The visible app version marker is now `LIVE- v32`.
+
+## v33 — Compact Help panel
+- Added a compact Help button in the header so guidance is available without taking up booking-page space.
+- Help explains personal dropdown icons, booking choices, cutoff rules, WhatsApp copy tools and My Bookings.
+- Help includes a link through to release notes.
+- No D1 SQL/schema change required.
+
+
+## v34 — My Bookings wording update
+- Updated the My Bookings panel intro text to: "One page to see all your bookings so you can see all the days on which you will play terrible golf!"
+- No booking, login, API, or D1 schema behaviour changed.
+- The visible app version marker is now `LIVE- v34`.
