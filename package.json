@@ -8,7 +8,9 @@
     "test:live": "node test/live-api-tests.js",
     "test:soak": "node test/soak-test.js --minutes=60",
     "test:soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250",
-    "test:all": "npm run test && npm run test:live"
+    "test:all": "npm run test && npm run test:live",
+    "soak": "node test/soak-test.js --minutes=60",
+    "soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250"
   },
   "devDependencies": {
     "wrangler": "latest"
