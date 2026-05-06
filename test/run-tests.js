@@ -93,7 +93,7 @@ assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(
 assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(2026,5,6,18,50)), true);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,49)), false);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,50)), true);
-assert.equal(auditDateLabel("2026-06-07"), "Sunday 7 June", "v28 keeps v24 audit date label with amended booking day/date");
+assert.equal(auditDateLabel("2026-06-07"), "Sunday 7 June", "v29 keeps v24 audit date label with amended booking day/date");
 
 const db = new FakeDB();
 let r = await call(db, "/api/schedule");
@@ -119,6 +119,10 @@ assert.equal(r.json.configured.Jason, true);
 r = await call(db, "/api/player-login", "POST", { name:"Jason", pin:"1111" });
 assert.equal(r.json.ok, true);
 
+r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
+assert.equal(r.json.ok, true, "v29 player weekend summary should authenticate and return personal booking indicators");
+assert.deepEqual(r.json.summary["2026-06-06"], { sat:false, sun:false }, "v29 initially shows no personal bookings for that weekend");
+
 r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"maybe", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.status, 400, "maybe status should be rejected in v15");
 assert.equal(r.json.ok, false);
@@ -127,12 +131,15 @@ r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"J
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, ["Jason"]);
 assert.equal("maybes" in r.json.data, false);
+
+r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
+assert.deepEqual(r.json.summary["2026-06-06"], { sat:false, sun:true }, "v29 should show one booked day for Jason's weekend");
 r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
 assert.equal(r.json.ok, true);
 assert.equal(r.json.events[0].action, "joined", "v23 should read joined events from audit_events table");
-assert.equal(r.json.events[0].dateLabel, "Sunday 7 June", "v28 keeps v24 audit event amended booking day/date");
-assert.equal(r.json.events[0].from, "none", "v28 keeps v24 audit event previous booking status");
-assert.equal(r.json.events[0].to, "playing", "v28 keeps v24 audit event new booking status");
+assert.equal(r.json.events[0].dateLabel, "Sunday 7 June", "v29 keeps v24 audit event amended booking day/date");
+assert.equal(r.json.events[0].from, "none", "v29 keeps v24 audit event previous booking status");
+assert.equal(r.json.events[0].to, "playing", "v29 keeps v24 audit event new booking status");
 
 r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"none", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
@@ -164,7 +171,7 @@ r = await call(db, "/api/admin/competition", "POST", { dateKey:"2026-06-07", com
 assert.equal(r.json.ok, true);
 assert.equal(r.json.data.competition, "Stableford");
 r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
-assert.ok(r.json.events.some(e => e.action === "competition_changed" && e.dateLabel === "Sunday 7 June" && e.to === "Stableford"), "v28 keeps v24 competition audit date and new value");
+assert.ok(r.json.events.some(e => e.action === "competition_changed" && e.dateLabel === "Sunday 7 June" && e.to === "Stableford"), "v29 keeps v24 competition audit date and new value");
 
 r = await call(db, "/api/schedule");
 assert.equal(r.json.schedule["2026-06-07"].players[0], "Ethan");
@@ -173,13 +180,13 @@ assert.equal("maybes" in r.json.schedule["2026-06-07"], false);
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 30 API/helper tests passed");
+console.log("PASS: 31 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v28"')) throw new Error("v28 marker missing");
+if (!html.includes('const VERSION = "v29"')) throw new Error("v29 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
-if (!html.includes('.versionBtn')) throw new Error('v28 live version should be a clickable release-notes button');
-if (!html.includes('className: "headerRight"')) throw new Error('v28 version/admin controls should sit top-right');
+if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
+if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
 if (!html.includes('setActiveDay("sat");') || !html.includes('const saturdayKey = e.target.value;')) throw new Error("v20 weekend change must default selected day to Saturday");
 if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
@@ -206,7 +213,7 @@ if (!html.includes("[playerName, ...basePlayerDisplayNames.filter(name => name !
 if (!html.includes("playerLogoutBtn")) throw new Error("v22 player logout button style missing");
 if (!html.includes("!adminMode && !pinLoggedIn && React.createElement")) throw new Error("v22 login box should hide once player is logged in");
 if (!html.includes("!adminMode && pinLoggedIn && React.createElement(\"button\", { className: \"playerLogoutBtn\"")) throw new Error("v22 logged-in player logout button missing");
-if (!html.includes("LOG OFF") || !html.includes("logoutName")) throw new Error("v28 logout button should show logged-in player name on a second row");
+if (!html.includes("LOG OFF") || !html.includes("logoutName")) throw new Error("v29 logout button should show logged-in player name on a second row");
 if (!html.includes("Activity log, live DB")) throw new Error("v23 audit log should be labelled as live DB-backed");
 if (!html.includes("setInterval(loadAudit, 5000)")) throw new Error("v23 audit log should live-poll the D1 lookup while open");
 if (!html.includes("Reading latest activity directly from D1")) throw new Error("v23 audit status copy missing");
@@ -214,19 +221,20 @@ if (!html.includes("changed booking status for ${day}")) throw new Error("v24 au
 if (!html.includes("changed ${name} for ${day}")) throw new Error("v24 audit log should describe player booking changes by day/date");
 if (!html.includes("changed competition for ${day}")) throw new Error("v24 audit log should describe competition changes by day/date");
 if (html.includes("auditEvents.length || (current.audit || []).length")) throw new Error("v23 UI should not fall back to local day.audit counts");
-if (!html.includes("padding: 8px 10px 8px")) throw new Error("v28 header should remain compact to save vertical space");
-if (!html.includes("fontSize: 22, lineHeight: 1")) throw new Error("v28 golf icon should remain visible but smaller");
-if (!html.includes('className: "headerLeft"')) throw new Error('v28 logoff control should move to the top-left');
-if (!html.includes('String(playerName || "").toUpperCase()')) throw new Error('v28 logged-in player name should display in capitals');
-if (!html.includes('className: "logoutName"')) throw new Error('v28 logoff player name should have safe truncation styling');
+if (!html.includes("padding: 8px 10px 8px")) throw new Error("v29 header should remain compact to save vertical space");
+if (!html.includes("fontSize: 22, lineHeight: 1")) throw new Error("v29 golf icon should remain visible but smaller");
+if (!html.includes('className: "headerLeft"')) throw new Error('v29 logoff control should move to the top-left');
+if (!html.includes('String(playerName || "").toUpperCase()')) throw new Error('v29 logged-in player name should display in capitals');
+if (!html.includes('className: "logoutName"')) throw new Error('v29 logoff player name should have safe truncation styling');
 if (!html.includes('RELEASE_NOTES')) throw new Error('v28 release notes data missing');
 if (!html.includes('setShowReleaseNotes(true)')) throw new Error('v27 version button should open release notes');
 
-if (!html.includes('weekendStatusIcon')) throw new Error('v28 weekend dropdown status icon helper missing');
-if (!html.includes('isClosedForWeekendPicker')) throw new Error('v28 weekend dropdown should derive open/closed state from each day');
-if (!html.includes('return "🔴"') || !html.includes('return "🟠"') || !html.includes('return "🟢"')) throw new Error('v28 weekend dropdown must use icon-only red/amber/green status markers');
-if (!html.includes('`${weekendStatusIcon(w)} ${weekendIndexLabel(w, i)}')) throw new Error('v28 weekend dropdown labels should be prefixed with a status icon');
-if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v28 should not add weekend dropdown text-colour classes');
-if (!html.includes('Kevin Request: Added coloured circular status icons to the weekend dropdown.')) throw new Error('v28 release notes should flag the weekend dropdown status icons as a Kevin Request');
-console.log("PASS: v28 UI regression checks passed");
+if (!html.includes('personalWeekendBookingIcon')) throw new Error('v29 personal weekend booking icon helper missing');
+if (!html.includes('player/weekend-summary')) throw new Error('v29 should use a D1-backed player weekend summary lookup');
+if (!html.includes('playerWeekendSummary')) throw new Error('v29 player weekend summary state missing');
+if (!html.includes('bookedCount >= 2') || !html.includes('return "🟢🟢"') || !html.includes('bookedCount === 1') || !html.includes('return "🟢"') || !html.includes('return "🔴"')) throw new Error('v29 weekend dropdown must show two green, one green, or one red circular booking icons');
+if (html.includes('weekendStatusIcon') || html.includes('isClosedForWeekendPicker') || html.includes('return "🟠"')) throw new Error('v29 should remove v28 open/closed amber weekend status icons');
+if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v29 should not add weekend dropdown text-colour classes');
+if (!html.includes('Kevin Request clarification: replaced the v28 open/closed weekend icons')) throw new Error('v29 release notes should flag the Kevin Request clarification');
+console.log("PASS: v29 UI regression checks passed");
 

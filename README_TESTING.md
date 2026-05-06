@@ -1,4 +1,4 @@
-# Baz and Nobby School — Test Pack v7.
+# Baz and Nobby School — Test Pack v7
 
 This patch adds a regression and soak-testing package for the Cloudflare Pages + D1 app.
 
@@ -270,3 +270,11 @@ Kevin Request: this patch adds a compact visual cue to the weekend selector with
 - the visible app version marker is now `LIVE- v28`.
 
 The quick regression suite now checks the icon-only weekend status helper and confirms no dropdown text-colour classes were added.
+
+
+## v29 - Personal weekend booking icons
+
+- Replaced the v28 open/closed weekend dropdown icons after Kevin Request clarification.
+- Weekend dropdown indicators are now personalised for the logged-in player using a D1-backed `/api/player/weekend-summary` lookup.
+- `🟢🟢` means booked Saturday and Sunday, `🟢` means booked one day, and `🔴` means not booked that weekend.
+- Anonymous/non-logged-in users do not see personal booking icons because there is no player context.

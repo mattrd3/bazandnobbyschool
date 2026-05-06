@@ -144,7 +144,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v28";
+const VERSION = "v29";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -155,7 +155,7 @@ const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const RELEASE_NOTES = [
-    { version: "v28", title: "Weekend dropdown status icons", changes: ["Kevin Request: Added coloured circular status icons to the weekend dropdown.", "Green icon means both days are open, amber means one day is closed, and red means both days are closed.", "No weekend dropdown text colour changes were added; the visual aid is icon-only."] },
+    { version: "v29", title: "Personal weekend booking icons", changes: ["Kevin Request clarification: replaced the v28 open/closed weekend icons with personal booking indicators for the logged-in player.", "The weekend dropdown now uses a live D1-backed lookup so each player sees their own booked-week indicators.", "Two green circular icons mean the logged-in player is booked Saturday and Sunday; one green icon means one booked day; one red icon means no booking that weekend."] },
     { version: "v27", title: "Mobile-safe header controls", changes: ["Moved player logoff to the top-left as a compact two-row button.", "Displays the logged-in player name in capitals and truncates long names safely.", "Moved the live/version label under Admin on the top-right.", "Made the version label clickable to show recent release notes."] },
     { version: "v26", title: "Compact top banner", changes: ["Slimmed the top banner/header to save vertical space.", "Kept the golf icon and WHO'S PLAYING? message."] },
     { version: "v25", title: "Version label position", changes: ["Moved the live/version label into the sticky header."] },
@@ -284,9 +284,12 @@ function App() {
     const [auditEvents, setAuditEvents] = useState([]);
     const [auditStatus, setAuditStatus] = useState("");
     const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+    const [playerWeekendSummary, setPlayerWeekendSummary] = useState({});
     const upcoming = useMemo(() => getUpcomingWeekends(52), []);
     const past = useMemo(() => getPastWeekends(8), []);
     const weekends = adminMode ? [...past, ...upcoming] : upcoming.slice(0, 8);
+    const visibleWeekendDates = useMemo(() => weekends.map(w => ({ sat: toDateKey(w.sat), sun: toDateKey(w.sun) })), [adminMode, past, upcoming]);
+    const visibleWeekendKey = visibleWeekendDates.map(w => `${w.sat}/${w.sun}`).join("|");
     const defaultW = weekends[0];
     const chosenW = useMemo(() => {
         if (selectedKey) {
@@ -360,6 +363,20 @@ function App() {
             setAuditStatus("Activity log refresh failed");
         }
     }
+    async function loadPlayerWeekendSummary() {
+        if (!pinLoggedIn || !playerName || !playerPin) {
+            setPlayerWeekendSummary({});
+            return;
+        }
+        try {
+            const res = await api("player/weekend-summary", { playerName, playerPin, weekends: visibleWeekendDates });
+            setPlayerWeekendSummary(res.summary || {});
+        }
+        catch (e) {
+            // Keep the main booking UI usable even if the personal dropdown indicator lookup fails.
+            setPlayerWeekendSummary({});
+        }
+    }
     useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
     useEffect(() => { localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
     useEffect(() => { localStorage.setItem("wg_admin", adminMode ? "1" : "0"); loadPinConfig(); }, [adminMode]);
@@ -372,6 +389,7 @@ function App() {
         return () => clearInterval(t);
     }, [adminMode, showAudit, dateKey]);
     useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
+    useEffect(() => { loadPlayerWeekendSummary(); }, [pinLoggedIn, playerName, playerPin, visibleWeekendKey]);
     // Prevent a competition edit draft from being carried onto another day/weekend.
     useEffect(() => { setEditingComp(false); setCompInput(""); }, [dateKey]);
     function optimistic(dateKey, day) { setSchedule(prev => mergeWithBase({ ...prev, [dateKey]: day })); }
@@ -423,6 +441,7 @@ function App() {
             const r = await api("player-status", { dateKey, name, status: playerStatus, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
             optimistic(r.dateKey, r.data);
             setTimeout(load, 500);
+            setTimeout(loadPlayerWeekendSummary, 650);
             if (adminMode && showAudit) await loadAudit();
             setMessage(`✅ ${r.message}`);
         }
@@ -439,6 +458,7 @@ function App() {
             if (r.dateKey && r.data)
                 optimistic(r.dateKey, r.data);
             setTimeout(load, 500);
+            setTimeout(loadPlayerWeekendSummary, 650);
             if (adminMode && showAudit) await loadAudit();
             setMessage("✅ Saved");
             return r;
@@ -506,19 +526,18 @@ function App() {
             return "Next weekend";
         return `In ${futureIndex} weekends`;
     };
-    const isClosedForWeekendPicker = date => {
-        const key = toDateKey(date);
-        const day = schedule[key] || initDay(FIXTURE_COMPS[key] || "");
-        return !!day.locked || isAutoLocked(date) || isSignupClosed(date);
+    const personalWeekendBookingIcon = w => {
+        if (!pinLoggedIn || !playerName) return "";
+        const summary = playerWeekendSummary[toDateKey(w.sat)] || { sat: false, sun: false };
+        const bookedCount = (summary.sat ? 1 : 0) + (summary.sun ? 1 : 0);
+        if (bookedCount >= 2) return "🟢🟢";
+        if (bookedCount === 1) return "🟢";
+        return "🔴";
     };
-    const weekendStatusIcon = w => {
-        const satClosed = isClosedForWeekendPicker(w.sat);
-        const sunClosed = isClosedForWeekendPicker(w.sun);
-        if (satClosed && sunClosed) return "🔴";
-        if (satClosed || sunClosed) return "🟠";
-        return "🟢";
+    const optionLabel = (w, i) => {
+        const icon = personalWeekendBookingIcon(w);
+        return `${icon ? `${icon} ` : ""}${weekendIndexLabel(w, i)} — ${weekendShort(w)}`;
     };
-    const optionLabel = (w, i) => `${weekendStatusIcon(w)} ${weekendIndexLabel(w, i)} — ${weekendShort(w)}`;
     const copyText = async (text, setter) => {
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
