@@ -317,3 +317,20 @@ The quick regression suite now checks the icon-only weekend status helper and co
 - Updated the My Bookings panel intro text to: "One page to see all your bookings so you can see all the days on which you will play terrible golf!"
 - No booking, login, API, or D1 schema behaviour changed.
 - The visible app version marker is now `LIVE- v34`.
+
+
+## v36 — My Bookings week jump
+- Added a short instruction line in My Bookings: "Click any week to jump to that weekend to book."
+- Each My Bookings week row can now be clicked/tapped to close the panel and open that weekend booking screen.
+- The jump defaults the selected day to Saturday, preserving the v20 Saturday-default behaviour.
+- No extra row icons, underline styling, hyperlink styling, or D1 schema changes were added.
+- The visible app version marker is now `LIVE- v35`.
+
+
+## v36 — Admin booking stats
+
+- Added an admin-only Booking Stats panel.
+- Stats show booked, unavailable and no-response counts by player.
+- Period choices: last 4 weeks, last 8 weeks, last 12 weeks and all time.
+- Sort choices: most booked, least booked and most no response.
+- No SQL or D1 schema migration required.

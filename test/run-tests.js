@@ -183,13 +183,21 @@ r = await call(db, "/api/schedule");
 assert.equal(r.json.schedule["2026-06-07"].players[0], "Ethan");
 assert.equal("maybes" in r.json.schedule["2026-06-07"], false);
 
+r = await call(db, "/api/admin/booking-stats?adminPin=2727&period=12&asOf=2026-06-30");
+assert.equal(r.json.ok, true, "v36 booking stats endpoint should return admin stats");
+const jasonStats = r.json.stats.find(x => x.name === "Jason");
+const ethanStats = r.json.stats.find(x => x.name === "Ethan");
+assert.equal(jasonStats.unavailable, 1, "v36 stats should count unavailable player days");
+assert.equal(ethanStats.booked, 1, "v36 stats should count booked player days");
+assert.ok(jasonStats.noResponse >= 1, "v36 stats should count no-response days");
+
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 32 API/helper tests passed");
+console.log("PASS: 33 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v34"')) throw new Error("v34 marker missing");
+if (!html.includes('const VERSION = "v36"')) throw new Error("v36 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -263,4 +271,20 @@ if (!html.includes('{ version: "v33", title: "Compact help panel"')) throw new E
 if (!html.includes('One page to see all your bookings so you can see all the days on which you will play terrible golf!')) throw new Error('v34 My Bookings wording missing');
 if (!html.includes('{ version: "v34", title: "My Bookings wording"')) throw new Error('v34 release notes entry missing');
 if (html.includes('Your upcoming weekend status. This does not take up space on the main booking page.')) throw new Error('v34 should remove old My Bookings wording');
-console.log("PASS: v34 UI regression checks passed");
+
+if (!html.includes('{ version: "v35", title: "My Bookings week jump"')) throw new Error('v35 release notes entry missing');
+if (!html.includes('Click any week to jump to that weekend to book.')) throw new Error('v35 My Bookings jump instruction missing');
+if (!html.includes('jumpToMyBookingWeekend')) throw new Error('v35 My Bookings jump helper missing');
+if (!html.includes('onClick: () => jumpToMyBookingWeekend(row.key)')) throw new Error('v35 My Bookings rows should be clickable');
+if (!html.includes('setActiveDay("sat");') || !html.includes('setSelectedKey(saturdayKey);')) throw new Error('v35 My Bookings jump should preserve Saturday default');
+if (html.includes('View weekend') || html.includes('VIEW WEEKEND')) throw new Error('v35 should not add extra My Bookings view buttons');
+
+if (!html.includes('{ version: "v36", title: "Admin booking stats"')) throw new Error('v36 release notes entry missing');
+if (!html.includes('showBookingStats')) throw new Error('v36 Booking Stats modal state missing');
+if (!html.includes('/api/admin/booking-stats')) throw new Error('v36 Booking Stats should use DB-backed admin endpoint');
+if (!html.includes('📊 Booking stats')) throw new Error('v36 admin Booking Stats button missing');
+if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes('No response')) throw new Error('v36 Booking Stats table headings missing');
+if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
+if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
+if (!html.includes('Admins can use Booking Stats to see who has booked, marked unavailable, or not responded over recent weeks.')) throw new Error('v36 Help panel should mention Booking Stats');
+console.log("PASS: v36 UI regression checks passed");

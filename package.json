@@ -1,6 +1,6 @@
 {
   "name": "bazandnobbyschool",
-  "version": "1.0.34",
+  "version": "1.0.36",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,9 +8,7 @@
     "test:live": "node test/live-api-tests.js",
     "test:soak": "node test/soak-test.js --minutes=60",
     "test:soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250",
-    "test:all": "npm run test && npm run test:live",
-    "soak": "node test/soak-test.js --minutes=60",
-    "soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250"
+    "test:all": "npm run test && npm run test:live"
   },
   "devDependencies": {
     "wrangler": "latest"

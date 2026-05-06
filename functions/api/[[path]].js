@@ -206,6 +206,73 @@ async function verifyPlayerIdentity(db, input, targetName) { const actorName=Str
 async function getDay(db, dateKey) { const key=normaliseDateKey(dateKey); const row=await db.prepare("SELECT data FROM days WHERE dateKey = ?").bind(key).first(); let day=initDay(); if(row){ try { day=safeDay(JSON.parse(row.data)); } catch { day=initDay(); } } return applyStatusRows(db,key,day); }
 async function upsertDay(db, dateKey, day) { const key=normaliseDateKey(dateKey); const ts=Date.now(); const clean=safeDay(day); clean.updatedAt=clean.updatedAt||ts; await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(key, JSON.stringify(clean), clean.updatedAt).run(); return clean; }
 async function readSchedule(db) { const rows=await db.prepare("SELECT dateKey, data FROM days ORDER BY dateKey").all(); const schedule={}; for(const row of rows.results||[]){ const key=normaliseDateKey(row.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue; try { schedule[key]=safeDay(JSON.parse(row.data)); } catch {} } return applyAllStatusRows(db, schedule); }
+
+function dateKeyToUtcDate(dateKey) { const p = parseDateKeyParts(dateKey); return p ? new Date(Date.UTC(p.y, p.m - 1, p.d)) : null; }
+function utcDateToDateKey(d) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`; }
+function addUtcDays(d, days) { const n = new Date(d.getTime()); n.setUTCDate(n.getUTCDate() + days); return n; }
+function clampStartDate(a, b) { if (!a) return b; if (!b) return a; return a.getTime() > b.getTime() ? a : b; }
+function weekendDateKeysBetween(startDate, endDate) {
+  const out = [];
+  if (!startDate || !endDate || startDate.getTime() > endDate.getTime()) return out;
+  const d = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+  while (d.getTime() <= endDate.getTime()) {
+    const dow = d.getUTCDay();
+    if (dow === 6 || dow === 0) out.push(utcDateToDateKey(d));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+async function buildBookingStats(db, { period = "12", asOf = "" } = {}) {
+  const schedule = await readSchedule(db);
+  let statusRows = [];
+  try {
+    const rows = await db.prepare("SELECT dateKey, name, status FROM player_status").all();
+    statusRows = rows.results || [];
+  } catch (e) { statusRows = []; }
+  const members = await getRosterConfig(db);
+  const statusByDateName = new Map();
+  const knownDateKeys = new Set();
+  for (const [dateKey, day] of Object.entries(schedule || {})) {
+    const key = normaliseDateKey(dateKey);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) continue;
+    const hasPlayers = cleanNames(day.players).length || cleanNames(day.unavailablePlayers).length;
+    if (hasPlayers) knownDateKeys.add(key);
+    for (const name of cleanNames(day.players)) statusByDateName.set(`${key}::${name}`, "playing");
+    for (const name of cleanNames(day.unavailablePlayers)) if (!statusByDateName.has(`${key}::${name}`)) statusByDateName.set(`${key}::${name}`, "unavailable");
+  }
+  for (const row of statusRows) {
+    const key = normaliseDateKey(row.dateKey);
+    const name = String(row.name || "").trim();
+    const status = ["playing", "unavailable", "none"].includes(String(row.status)) ? String(row.status) : "none";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || !name) continue;
+    knownDateKeys.add(key);
+    statusByDateName.set(`${key}::${name}`, status);
+  }
+  const knownDates = [...knownDateKeys].map(dateKeyToUtcDate).filter(Boolean).sort((a, b) => a - b);
+  const asOfDate = /^\d{4}-\d{2}-\d{2}$/.test(String(asOf || "")) ? dateKeyToUtcDate(asOf) : new Date();
+  const endDate = new Date(Date.UTC(asOfDate.getUTCFullYear(), asOfDate.getUTCMonth(), asOfDate.getUTCDate()));
+  let requestedStart = null;
+  const periodText = String(period || "12").toLowerCase();
+  if (periodText !== "all") {
+    const weeks = Math.max(1, Math.min(104, Number.parseInt(periodText, 10) || 12));
+    requestedStart = addUtcDays(endDate, -(weeks * 7) + 1);
+  }
+  const earliestKnown = knownDates[0] || requestedStart || endDate;
+  const startDate = periodText === "all" ? earliestKnown : clampStartDate(requestedStart, earliestKnown);
+  const dateKeys = weekendDateKeysBetween(startDate, endDate);
+  const stats = members.map(name => {
+    let booked = 0, unavailable = 0, noResponse = 0;
+    for (const dateKey of dateKeys) {
+      const status = statusByDateName.get(`${dateKey}::${name}`) || "none";
+      if (status === "playing") booked += 1;
+      else if (status === "unavailable") unavailable += 1;
+      else noResponse += 1;
+    }
+    return { name, booked, unavailable, noResponse, totalDays: dateKeys.length };
+  });
+  return { period: periodText, from: utcDateToDateKey(startDate), to: utcDateToDateKey(endDate), dateCount: dateKeys.length, stats };
+}
+
 async function bodyJson(request){ try { return await request.json(); } catch { return {}; } }
 function isAdmin(input){ return String(input.adminPin||"")===ADMIN_PIN; }
 function actorDetails(input, adminOverride, playerAuth=null){ if(adminOverride) return {actor:"Admin", actorType:"admin"}; if(playerAuth?.ok) return {actor:playerAuth.actor, actorType:"player"}; return {actor:"Unknown", actorType:"unknown"}; }
@@ -221,6 +288,7 @@ async function handle(request, env) {
   if (route === "admin/pins" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, configured: maskedPins(await getPinConfig(env.DB))}); }
   if (route === "admin/roster" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, members: await getRosterConfig(env.DB)}); }
   if (route === "admin/audit" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(url.searchParams.get("dateKey")); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); return json({ok:true,dateKey,events:await readAuditEvents(env.DB,dateKey)}); }
+  if (route === "admin/booking-stats" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); const result=await buildBookingStats(env.DB,{ period:url.searchParams.get("period")||"12", asOf:url.searchParams.get("asOf")||"" }); return json({ok:true,...result}); }
   if (route === "admin/member" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const name=String(input.name||"").trim(); const op=String(input.op||"add"); if(!name) return json({ok:false,error:"Missing player name"},400); let members=await getRosterConfig(env.DB); if(op==="remove"){ members=members.filter(n=>n!==name); } else { members=cleanNames([...members,name]).sort(); } members=await saveRosterConfig(env.DB,members); return json({ok:true,members,name,op}); }
   if (route === "admin/player-pin" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const name=String(input.name||"").trim(), pin=String(input.pin||"").trim(); if(!name) return json({ok:false,error:"Missing player name"},400); const pins=await getPinConfig(env.DB); if(pin) pins[name]=pin; else delete pins[name]; await savePinConfig(env.DB,pins); return json({ok:true, configured:maskedPins(pins), name, hasPin:Boolean(pin)}); }
 
@@ -247,4 +315,4 @@ async function handle(request, env) {
   return json({ ok:false, error:`No route for ${method} /api/${route}` }, 404);
 }
 export async function onRequest(context) { try { return await handle(context.request, context.env); } catch(err) { return json({ ok:false, error:err.message || String(err) }, 500); } }
-export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows, migrateLegacyAuditEvents, readAuditEvents, auditDateLabel };
+export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows, migrateLegacyAuditEvents, readAuditEvents, auditDateLabel, buildBookingStats };
