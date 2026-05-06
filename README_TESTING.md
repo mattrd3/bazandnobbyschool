@@ -256,3 +256,17 @@ This patch reorganises the sticky header to avoid long logged-in player names ov
 - the Admin button remains top-right;
 - `LIVE- v27` moves under the Admin button and is clickable;
 - clicking the version label opens an in-app release notes modal covering recent changes.
+
+
+## v28 weekend dropdown status icons
+
+Kevin Request: this patch adds a compact visual cue to the weekend selector without changing text colour.
+
+- weekend dropdown entries now start with a coloured circular status icon;
+- 🟢 means both Saturday and Sunday are open;
+- 🟠 means one of the two days is closed;
+- 🔴 means both days are closed;
+- the dropdown text colour remains unchanged for a cleaner, more consistent UI;
+- the visible app version marker is now `LIVE- v28`.
+
+The quick regression suite now checks the icon-only weekend status helper and confirms no dropdown text-colour classes were added.

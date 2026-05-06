@@ -144,7 +144,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v27";
+const VERSION = "v28";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -155,6 +155,7 @@ const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const RELEASE_NOTES = [
+    { version: "v28", title: "Weekend dropdown status icons", changes: ["Kevin Request: Added coloured circular status icons to the weekend dropdown.", "Green icon means both days are open, amber means one day is closed, and red means both days are closed.", "No weekend dropdown text colour changes were added; the visual aid is icon-only."] },
     { version: "v27", title: "Mobile-safe header controls", changes: ["Moved player logoff to the top-left as a compact two-row button.", "Displays the logged-in player name in capitals and truncates long names safely.", "Moved the live/version label under Admin on the top-right.", "Made the version label clickable to show recent release notes."] },
     { version: "v26", title: "Compact top banner", changes: ["Slimmed the top banner/header to save vertical space.", "Kept the golf icon and WHO'S PLAYING? message."] },
     { version: "v25", title: "Version label position", changes: ["Moved the live/version label into the sticky header."] },
@@ -505,7 +506,19 @@ function App() {
             return "Next weekend";
         return `In ${futureIndex} weekends`;
     };
-    const optionLabel = (w, i) => `${weekendIndexLabel(w, i)} — ${weekendShort(w)}`;
+    const isClosedForWeekendPicker = date => {
+        const key = toDateKey(date);
+        const day = schedule[key] || initDay(FIXTURE_COMPS[key] || "");
+        return !!day.locked || isAutoLocked(date) || isSignupClosed(date);
+    };
+    const weekendStatusIcon = w => {
+        const satClosed = isClosedForWeekendPicker(w.sat);
+        const sunClosed = isClosedForWeekendPicker(w.sun);
+        if (satClosed && sunClosed) return "🔴";
+        if (satClosed || sunClosed) return "🟠";
+        return "🟢";
+    };
+    const optionLabel = (w, i) => `${weekendStatusIcon(w)} ${weekendIndexLabel(w, i)} — ${weekendShort(w)}`;
     const copyText = async (text, setter) => {
         try {
             if (navigator.clipboard && navigator.clipboard.writeText) {
