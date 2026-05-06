@@ -278,3 +278,11 @@ The quick regression suite now checks the icon-only weekend status helper and co
 - Weekend dropdown indicators are now personalised for the logged-in player using a D1-backed `/api/player/weekend-summary` lookup.
 - `🟢🟢` means booked Saturday and Sunday, `🟢` means booked one day, and `🔴` means not booked that weekend.
 - Anonymous/non-logged-in users do not see personal booking icons because there is no player context.
+
+## v30 not-booked WhatsApp copy message
+
+- Added a third admin WhatsApp copy option for the selected weekend.
+- The new message lists roster players who are not booked for either Saturday or Sunday.
+- Existing WhatsApp copy options for sign-up reminder and confirmed attendee list remain unchanged.
+- No database or SQL changes are required.
+- The visible app version marker is now `LIVE- v30`.

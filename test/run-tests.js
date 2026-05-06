@@ -183,7 +183,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 31 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v29"')) throw new Error("v29 marker missing");
+if (!html.includes('const VERSION = "v30"')) throw new Error("v30 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -191,6 +191,10 @@ if (!html.includes('setActiveDay("sat");') || !html.includes('const saturdayKey 
 if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
 if (!html.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
+if (!html.includes("Copy not-booked weekend list for WhatsApp")) throw new Error("v30 WhatsApp not-booked weekend list button missing");
+if (!html.includes("buildNotBookedWeekendText")) throw new Error("v30 not-booked weekend WhatsApp message builder missing");
+if (!html.includes("notBookedForWeekend")) throw new Error("v30 not-booked weekend roster helper missing");
+if (!html.includes("Players not booked for Saturday or Sunday")) throw new Error("v30 not-booked WhatsApp copy should describe players not booked either day");
 if (!html.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
 if (!html.includes("getSignupCutoff")) throw new Error("client signup cutoff helper missing");
 if (!html.includes("Add to booking?")) throw new Error("add confirmation modal missing");
@@ -236,5 +240,5 @@ if (!html.includes('bookedCount >= 2') || !html.includes('return "🟢🟢"') ||
 if (html.includes('weekendStatusIcon') || html.includes('isClosedForWeekendPicker') || html.includes('return "🟠"')) throw new Error('v29 should remove v28 open/closed amber weekend status icons');
 if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v29 should not add weekend dropdown text-colour classes');
 if (!html.includes('Kevin Request clarification: replaced the v28 open/closed weekend icons')) throw new Error('v29 release notes should flag the Kevin Request clarification');
-console.log("PASS: v29 UI regression checks passed");
+console.log("PASS: v30 UI regression checks passed");
 

@@ -144,7 +144,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v29";
+const VERSION = "v30";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -155,6 +155,7 @@ const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2
 const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const RELEASE_NOTES = [
+    { version: "v30", title: "Not-booked WhatsApp copy message", changes: ["Added a third admin WhatsApp copy option for the selected weekend.", "Admins can now copy a message listing roster players who are not booked for either Saturday or Sunday that weekend.", "This sits alongside the existing sign-up reminder and confirmed-player WhatsApp copy tools." ] },
     { version: "v29", title: "Personal weekend booking icons", changes: ["Kevin Request clarification: replaced the v28 open/closed weekend icons with personal booking indicators for the logged-in player.", "The weekend dropdown now uses a live D1-backed lookup so each player sees their own booked-week indicators.", "Two green circular icons mean the logged-in player is booked Saturday and Sunday; one green icon means one booked day; one red icon means no booking that weekend."] },
     { version: "v27", title: "Mobile-safe header controls", changes: ["Moved player logoff to the top-left as a compact two-row button.", "Displays the logged-in player name in capitals and truncates long names safely.", "Moved the live/version label under Admin on the top-right.", "Made the version label clickable to show recent release notes."] },
     { version: "v26", title: "Compact top banner", changes: ["Slimmed the top banner/header to save vertical space.", "Kept the golf icon and WHO'S PLAYING? message."] },
@@ -274,6 +275,7 @@ function App() {
     const [compInput, setCompInput] = useState("");
     const [copiedReminder, setCopiedReminder] = useState(false);
     const [copiedSummary, setCopiedSummary] = useState(false);
+    const [copiedNotBooked, setCopiedNotBooked] = useState(false);
     const [playerName, setPlayerName] = useState(localStorage.getItem("wg_player_name") || "");
     const [playerPin, setPlayerPin] = useState(localStorage.getItem("wg_player_pin") || "");
     const [pinLoggedIn, setPinLoggedIn] = useState(localStorage.getItem("wg_player_ok") === "1");
@@ -606,6 +608,21 @@ Bookings confirmed ✅`;
     const buildReminderText = () => {
         return `⛳ Weekend Golf Sign-Up is open!\n\nPlease confirm if you're playing:\n📅 ${formatDate(chosenW.sat)}\n📅 ${formatDate(chosenW.sun)}\n\nSign-up closes at 6:50pm on Wednesday (Saturday) and Thursday (Sunday).\n\nTap the link to add your name 👇\n${APP_URL}`;
     };
+    const weekendBookedPlayers = () => {
+        const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
+        const sun = schedule[toDateKey(chosenW.sun)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sun)] || "");
+        return new Set([...(Array.isArray(sat.players) ? sat.players : []), ...(Array.isArray(sun.players) ? sun.players : [])]);
+    };
+    const notBookedForWeekend = () => {
+        const booked = weekendBookedPlayers();
+        return members.filter(name => !booked.has(name)).sort();
+    };
+    const buildNotBookedWeekendText = () => {
+        const names = notBookedForWeekend();
+        const weekendLine = `${formatDate(chosenW.sat)} / ${formatDate(chosenW.sun)}`;
+        const list = names.length ? names.map((p, i) => `${i + 1}. ${p}`).join("\n") : "Everyone is booked for at least one day this weekend ✅";
+        return `⛳ Golf booking check – ${weekendLine}\n\nPlayers not booked for Saturday or Sunday:\n${list}\n\nPlease update your booking here 👇\n${APP_URL}`;
+    };
     return React.createElement("div", { className: "wrap" },
         React.createElement("div", { className: "header" },
             React.createElement("div", { className: "headerLeft" },
@@ -737,6 +754,7 @@ Bookings confirmed ✅`;
                 formatDate(currentDate)),
             React.createElement("button", { className: "btn", onClick: () => copyText(buildConfirmedListText(), setCopiedSummary) }, copiedSummary ? "✓ Copied confirmed list" : "📋 Copy confirmed attendee list for WhatsApp"),
             React.createElement("button", { className: "btn", onClick: () => copyText(buildReminderText(), setCopiedReminder) }, copiedReminder ? "✓ Copied reminder" : "📣 Copy sign-up reminder for WhatsApp"),
+            React.createElement("button", { className: "btn", onClick: () => copyText(buildNotBookedWeekendText(), setCopiedNotBooked) }, copiedNotBooked ? "✓ Copied not-booked list" : "📋 Copy not-booked weekend list for WhatsApp"),
             React.createElement("button", { className: "btn", onClick: () => adminPost("admin/lock", { locked: !current.locked }) }, current.locked ? "🔓 Unlock list" : "🔒 Lock list & generate draw"),
             current.locked && React.createElement("button", { className: "btn", onClick: () => adminPost("admin/redraw", {}) }, "\uD83D\uDD00 Re-draw"),
             React.createElement("button", { className: "btn", onClick: async () => { const next = !showAudit; setShowAudit(next); if (next) await loadAudit(); } },
