@@ -103,6 +103,13 @@
       box-shadow: 0 3px 12px rgba(46,68,44,.06);
     }
     .player.in { background: linear-gradient(135deg,#dcebd4,#c8dfbd); border-color: var(--green-2); color: var(--green); font-weight:bold; }
+    .player.unavailable { background:#f7f7f2; border-color:#b8c0b2; color:#667064; font-style:italic; }
+    .unavailableBtn { min-width:92px; padding:12px 8px; border-radius:10px; border:1px solid #b8c0b2; background:#f7f7f2; color:#667064; cursor:pointer; font-size:12px; }
+    .unavailableBtn.active { background:#e9ece3; border-color:#8f9a89; font-weight:bold; }
+    .myBookingsBtn { width:100%; margin-top:8px; padding:10px 12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); cursor:pointer; font-size:12px; letter-spacing:.06em; }
+    .bookingSummaryRow { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text); }
+    .bookingSummaryRow:last-child { border-bottom:0; }
+    .bookingLegend { margin-top:8px; font-size:11px; color:var(--muted); line-height:1.5; }
     .player:disabled { opacity:.58; cursor:not-allowed; }
     .confirmedBox { margin:14px 16px 0; padding:12px 14px; border:1px solid var(--border-strong); background: var(--panel-soft); border-radius:12px; box-shadow: var(--shadow); }
     .confirmedTitle { font-size:12px; color:var(--green); letter-spacing:.08em; margin-bottom:8px; font-weight:bold; }
@@ -144,17 +151,18 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v31";
+const VERSION = "v32";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
     "2026-01-03": "Medal", "2026-01-04": "Winter League", "2026-01-10": "4 Ball", "2026-01-11": "Bogey", "2026-01-17": "Yellow Ball Competition", "2026-01-18": "Winter League", "2026-01-24": "Stableford", "2026-01-25": "4 Ball", "2026-01-31": "Stableford Team Event (4 person waltz)", "2026-02-01": "Winter League", "2026-02-07": "Stableford", "2026-02-08": "Bogey", "2026-02-14": "Medal", "2026-02-15": "Winter League", "2026-02-21": "Mixed Yellow Ball Stableford", "2026-02-22": "4 Ball", "2026-02-28": "Bogey", "2026-03-01": "Stableford", "2026-03-07": "Medal", "2026-03-08": "Texas Scramble", "2026-03-14": "Stableford", "2026-03-15": "4 Ball (Mother's Day)", "2026-03-21": "2-Man Aggregate Stableford", "2026-03-22": "Medal", "2026-03-28": "Stableford", "2026-03-29": "Captains' Drive-Ins & 4BBB", "2026-04-04": "4-Ball Stableford", "2026-04-05": "Medal (Easter Sunday)", "2026-04-11": "Chairman's Trophy (Greensome)", "2026-04-12": "Druids Cup / Medal", "2026-04-18": "Stableford", "2026-04-19": "Champion of Champions Medal", "2026-04-25": "V H Pearce 2-Man Texas Scramble", "2026-04-26": "Dusty Bin Stableford", "2026-05-02": "Stan Creswell Trophy Medal", "2026-05-03": "Foursomes Cup", "2026-05-09": "1st Invitation Day", "2026-05-10": "Over 50's Cup Medal", "2026-05-16": "Mixed 4BBB Stableford", "2026-05-17": "Stableford (4 person team)", "2026-05-23": "Stableford", "2026-05-24": "Boldmere Bowl Medal", "2026-05-30": "4 Ball", "2026-05-31": "Captain's Charity Shield Stableford", "2026-06-06": "Presidents Championship Day Medal", "2026-06-07": "Stableford", "2026-06-13": "4 Ball", "2026-06-14": "Members Memorial Salver Medal", "2026-06-20": "Captain's Open AM AM", "2026-06-21": "Stableford (Father's Day)", "2026-06-27": "Pro's Day Medal", "2026-06-28": "4 Ball", "2026-07-04": "Greensome / Yardley Holland Cup", "2026-07-05": "Secretary's Cup Medal", "2026-07-11": "Club Championship Round 1", "2026-07-12": "Club Championship Round 2", "2026-07-18": "Captain's Weekend Texas Scramble", "2026-07-19": "Captain's Weekend Men's 4 Ball", "2026-07-25": "Scratch Stableford", "2026-07-26": "M & S Pooley Cup 4 Ball", "2026-08-01": "Greensome / Yardley Holland Cup", "2026-08-02": "Twyford Seeds Cup Medal", "2026-08-08": "Stableford Yellow Ball", "2026-08-09": "Bill Mountford Memorial Trophy Stableford", "2026-08-15": "Gents Open", "2026-08-16": "Bogey", "2026-08-22": "Stableford", "2026-08-23": "Ray Garnett Trophy Texas Scramble", "2026-08-29": "President's Day", "2026-08-30": "Golfer Non-Golfer", "2026-09-05": "Batevale Trophy Medal", "2026-09-06": "Stableford", "2026-09-12": "P.G. Whatton Trophy Stableford", "2026-09-13": "2nd Invitation Day", "2026-09-19": "L.E. Swain Trophy Medal", "2026-09-20": "4 Ball", "2026-09-26": "Stableford (Junior Fundraiser)", "2026-09-27": "Paul Canning Trophy Medal", "2026-10-03": "Green's Committee Cup Medal", "2026-10-04": "Stableford", "2026-10-10": "4 Ball", "2026-10-11": "Greenkeeper's Tankard", "2026-10-17": "Bogey", "2026-10-18": "Stableford", "2026-10-24": "Stableford Texas AM-AM", "2026-10-25": "Winter League", "2026-10-31": "Bogey", "2026-11-01": "Winter League", "2026-11-07": "Stableford", "2026-11-08": "4 Ball", "2026-11-14": "Medal", "2026-11-15": "Winter League", "2026-11-21": "Stableford", "2026-11-22": "2 Man Aggregate Stableford", "2026-11-28": "4 Ball", "2026-11-29": "Stableford", "2026-12-06": "Winter League", "2026-12-12": "Texas AM AM", "2026-12-13": "Winter League", "2026-12-19": "Pro's Christmas Jumper", "2026-12-20": "Christmas Stableford"
 };
-const initDay = (comp = "") => ({ players: [], priorityPlayers: [], locked: false, competition: comp, audit: [], draw: null });
+const initDay = (comp = "") => ({ players: [], unavailablePlayers: [], priorityPlayers: [], locked: false, competition: comp, audit: [], draw: null });
 const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 const RELEASE_NOTES = [
+    { version: "v32", title: "Unavailable status and My Bookings", changes: ["Added an Unavailable option for each player/day so players can confirm they cannot play without being chased as not booked.", "Updated the personal weekend dropdown icons: green means booked, white means unavailable, and red means no response for each day.", "Added a compact My Bookings button for logged-in players, opening a modal summary without taking up booking-page space.", "Updated the not-booked WhatsApp copy so it lists only players who have neither booked nor marked themselves unavailable." ] },
     { version: "v31", title: "Shorter weekend dropdown wording", changes: ["Changed future weekend dropdown wording from weekend-based labels to week-based labels to save horizontal UI space.", "Future options now show labels such as In 1 week and In 2 weeks rather than longer weekend wording.", "No booking, login, or database behaviour changed." ] },
     { version: "v30", title: "Not-booked WhatsApp copy message", changes: ["Added a third admin WhatsApp copy option for the selected weekend.", "Admins can now copy a message listing roster players who are not booked for either Saturday or Sunday that weekend.", "This sits alongside the existing sign-up reminder and confirmed-player WhatsApp copy tools." ] },
     { version: "v29", title: "Personal weekend booking icons", changes: ["Kevin Request clarification: replaced the v28 open/closed weekend icons with personal booking indicators for the logged-in player.", "The weekend dropdown now uses a live D1-backed lookup so each player sees their own booked-week indicators.", "Two green circular icons mean the logged-in player is booked Saturday and Sunday; one green icon means one booked day; one red icon means no booking that weekend."] },
@@ -287,6 +295,7 @@ function App() {
     const [auditEvents, setAuditEvents] = useState([]);
     const [auditStatus, setAuditStatus] = useState("");
     const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+    const [showMyBookings, setShowMyBookings] = useState(false);
     const [playerWeekendSummary, setPlayerWeekendSummary] = useState({});
     const upcoming = useMemo(() => getUpcomingWeekends(52), []);
     const past = useMemo(() => getPastWeekends(8), []);
@@ -308,16 +317,18 @@ function App() {
     const signupClosed = isSignupClosed(currentDate);
     const effectiveLocked = current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
     const currentPlayers = Array.isArray(current.players) ? current.players : [];
+    const currentUnavailable = Array.isArray(current.unavailablePlayers) ? current.unavailablePlayers : [];
     const currentPriority = Array.isArray(current.priorityPlayers) ? current.priorityPlayers.filter(name => currentPlayers.includes(name)) : [];
-    const allNames = [...new Set([...members, ...currentPlayers, playerName].filter(Boolean))].sort();
+    const allNames = [...new Set([...members, ...currentPlayers, ...currentUnavailable, playerName].filter(Boolean))].sort();
     const basePlayerDisplayNames = [
         ...currentPlayers,
-        ...allNames.filter(name => !currentPlayers.includes(name))
+        ...currentUnavailable.filter(name => !currentPlayers.includes(name)),
+        ...allNames.filter(name => !currentPlayers.includes(name) && !currentUnavailable.includes(name))
     ];
     // v21: keep the logged-in player's own row at the top while bookings are actionable,
     // or when they are already confirmed on a locked/closed date. If a date is closed and
     // they are not playing, leave confirmed players first.
-    const shouldPinLoggedInPlayer = pinLoggedIn && playerName && (!effectiveLocked || currentPlayers.includes(playerName));
+    const shouldPinLoggedInPlayer = pinLoggedIn && playerName && (!effectiveLocked || currentPlayers.includes(playerName) || currentUnavailable.includes(playerName));
     const playerDisplayNames = shouldPinLoggedInPlayer
         ? [playerName, ...basePlayerDisplayNames.filter(name => name !== playerName)]
         : basePlayerDisplayNames;
@@ -438,7 +449,7 @@ function App() {
     }
     async function setPlayerStatus(name, playerStatus) {
         try {
-            const label = playerStatus === "playing" ? "playing" : "not playing";
+            const label = playerStatus === "playing" ? "playing" : playerStatus === "unavailable" ? "unavailable" : "not playing";
             setMessage(`Saving ${dateKey}: ${name} as ${label}...`);
             setError("");
             const r = await api("player-status", { dateKey, name, status: playerStatus, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
@@ -529,13 +540,11 @@ function App() {
             return "In 1 week";
         return `In ${futureIndex} weeks`;
     };
+    const statusIcon = status => status === "playing" ? "🟢" : status === "unavailable" ? "⚪" : "🔴";
     const personalWeekendBookingIcon = w => {
         if (!pinLoggedIn || !playerName) return "";
-        const summary = playerWeekendSummary[toDateKey(w.sat)] || { sat: false, sun: false };
-        const bookedCount = (summary.sat ? 1 : 0) + (summary.sun ? 1 : 0);
-        if (bookedCount >= 2) return "🟢🟢";
-        if (bookedCount === 1) return "🟢";
-        return "🔴";
+        const summary = playerWeekendSummary[toDateKey(w.sat)] || { sat: "none", sun: "none" };
+        return `${statusIcon(summary.sat)}${statusIcon(summary.sun)}`;
     };
     const optionLabel = (w, i) => {
         const icon = personalWeekendBookingIcon(w);
@@ -579,7 +588,7 @@ ${confirmedLine}
 
 Bookings confirmed ✅`;
     };
-    const auditStatusLabel = (status) => ({ playing: "Confirmed", none: "Not playing", "early tee": "Early tee", standard: "Standard" }[status] || status || "?");
+    const auditStatusLabel = (status) => ({ playing: "Confirmed", unavailable: "Unavailable", none: "No response", "early tee": "Early tee", standard: "Standard" }[status] || status || "?");
     const auditText = (entry) => {
         const time = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
         const actor = entry.actor || "Unknown";
@@ -616,13 +625,23 @@ Bookings confirmed ✅`;
     };
     const notBookedForWeekend = () => {
         const booked = weekendBookedPlayers();
-        return members.filter(name => !booked.has(name)).sort();
+        const unavailable = weekendUnavailablePlayers();
+        return members.filter(name => !booked.has(name) && !unavailable.has(name)).sort();
     };
+    const weekendUnavailablePlayers = () => {
+        const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
+        const sun = schedule[toDateKey(chosenW.sun)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sun)] || "");
+        return new Set([...(Array.isArray(sat.unavailablePlayers) ? sat.unavailablePlayers : []), ...(Array.isArray(sun.unavailablePlayers) ? sun.unavailablePlayers : [])]);
+    };
+    const myBookingRows = () => weekends.filter(w => !w.past).map(w => {
+        const summary = playerWeekendSummary[toDateKey(w.sat)] || { sat: "none", sun: "none" };
+        return { key: toDateKey(w.sat), label: `${formatDate(w.sat)} / ${formatDate(w.sun)}`, icons: `${statusIcon(summary.sat)}${statusIcon(summary.sun)}`, sat: summary.sat || "none", sun: summary.sun || "none" };
+    });
     const buildNotBookedWeekendText = () => {
         const names = notBookedForWeekend();
         const weekendLine = `${formatDate(chosenW.sat)} / ${formatDate(chosenW.sun)}`;
-        const list = names.length ? names.map((p, i) => `${i + 1}. ${p}`).join("\n") : "Everyone is booked for at least one day this weekend ✅";
-        return `⛳ Golf booking check – ${weekendLine}\n\nPlayers not booked for Saturday or Sunday:\n${list}\n\nPlease update your booking here 👇\n${APP_URL}`;
+        const list = names.length ? names.map((p, i) => `${i + 1}. ${p}`).join("\n") : "Everyone has booked or marked unavailable for this weekend ✅";
+        return `⛳ Golf booking check – ${weekendLine}\n\nPlayers not booked and not marked unavailable for Saturday or Sunday:\n${list}\n\nPlease book in or mark yourself unavailable here 👇\n${APP_URL}`;
     };
     return React.createElement("div", { className: "wrap" },
         React.createElement("div", { className: "header" },
@@ -657,7 +676,8 @@ Bookings confirmed ✅`;
                 React.createElement("span", { style: { fontSize: 12, color: pinLoggedIn ? "#2f5d35" : "#7c8d78" } }, pinLoggedIn ? `Logged in as ${playerName}` : "Ask admin if you need a PIN."))),
         React.createElement("div", { className: "section" },
             React.createElement("div", { className: "label" }, "SELECT WEEKEND"),
-            React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i)))))),
+            React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i))))),
+            pinLoggedIn && React.createElement("button", { className: "myBookingsBtn", onClick: () => setShowMyBookings(true) }, "MY BOOKINGS")),
         React.createElement("div", { className: "tabs" },
             React.createElement("button", { className: `tab ${activeDay === "sat" ? "active" : ""}`, onClick: () => { setActiveDay("sat"); setSelectedKey(toDateKey(chosenW.sat)); } },
                 "SATURDAY",
@@ -711,14 +731,16 @@ Bookings confirmed ✅`;
                 currentPriority.includes(p) ? "⭐ " : "",
                 p)) : React.createElement("span", { style: { color: "#4a6a4a", fontSize: 13 } }, "No players confirmed yet."))),
         React.createElement("div", { className: "players" },
-            React.createElement("div", { className: "label" }, effectiveLocked ? "CONFIRMED PLAYERS, THEN OTHERS" : "CHOOSE PLAYING"),
+            React.createElement("div", { className: "label" }, effectiveLocked ? "CONFIRMED PLAYERS, UNAVAILABLE, THEN OTHERS" : "CHOOSE PLAYING OR UNAVAILABLE"),
             playerDisplayNames.map(name => {
                 const isIn = currentPlayers.includes(name);
+                const isUnavailable = currentUnavailable.includes(name);
                 const disabledForUser = (effectiveLocked && !adminMode) || (!adminMode && !canEditPlayer(name));
                 return React.createElement("div", { className: `row ${disabledForUser ? "lockedOther" : ""}`, key: name },
-                    React.createElement("button", { className: `player ${isIn ? "in" : ""}`, disabled: disabledForUser, onClick: () => choosePlaying(name) },
+                    React.createElement("button", { className: `player ${isIn ? "in" : ""} ${isUnavailable ? "unavailable" : ""}`, disabled: disabledForUser, onClick: () => choosePlaying(name) },
                         React.createElement("span", null, name),
-                        React.createElement("span", null, isIn ? "✓" : "")),
+                        React.createElement("span", null, isIn ? "✓" : isUnavailable ? "Unavailable" : "")),
+                    !isIn && React.createElement("button", { className: `unavailableBtn ${isUnavailable ? "active" : ""}`, disabled: disabledForUser, onClick: () => setPlayerStatus(name, isUnavailable ? "none" : "unavailable") }, isUnavailable ? "⚪ Unavailable" : "Unavailable"),
                     adminMode && isIn && React.createElement("button", { className: `priorityBtn ${currentPriority.includes(name) ? "active" : ""}`, onClick: () => togglePriority(name) }, currentPriority.includes(name) ? "⭐ Early" : "☆ Early"),
                     adminMode && isIn && React.createElement("button", { className: "smallBtn danger", onClick: () => setConfirmRemove({ name, from: "playing" }) }, "\u2715"));
             })),
@@ -765,6 +787,16 @@ Bookings confirmed ✅`;
             showAudit && React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginTop: -4 } }, auditStatus || "Reading latest activity directly from D1..."),
             showAudit && React.createElement("div", { className: "auditLog" }, auditEvents.length ? auditEvents.map((e, i) => React.createElement("div", { className: "auditItem", key: `${e.ts || "no-ts"}-${e.action || "event"}-${i}` }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
             React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
+        showMyBookings && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 430 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "My bookings"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Your upcoming weekend status. This does not take up space on the main booking page."),
+                React.createElement("div", { className: "releaseList" }, myBookingRows().map(row => React.createElement("div", { className: "bookingSummaryRow", key: row.key },
+                    React.createElement("span", null, row.label),
+                    React.createElement("strong", null, row.icons)))),
+                React.createElement("div", { className: "bookingLegend" }, "🟢 booked · ⚪ unavailable · 🔴 no response"),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "green", onClick: () => setShowMyBookings(false) }, "Close")))),
         showReleaseNotes && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Release notes"),
