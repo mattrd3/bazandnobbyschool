@@ -1,4 +1,4 @@
-# Baz and Nobby School — Test Pack v7
+# Baz and Nobby School — Test Pack v7.
 
 This patch adds a regression and soak-testing package for the Cloudflare Pages + D1 app.
 
