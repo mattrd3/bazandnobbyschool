@@ -1,4 +1,4 @@
-# Baz and Nobby School — Test Pack v37
+# Baz and Nobby School — Test Pack v38
 
 This patch adds a regression and soak-testing package for the Cloudflare Pages + D1 app.
 
@@ -345,3 +345,18 @@ The quick regression suite now checks the icon-only weekend status helper and co
 - Location: `Druids Heath Golf Club`.
 - Description includes `Competition: <competition name>` only when a competition is set.
 - No SQL or D1 schema change required.
+
+
+## v38 — BRS Booking
+
+Adds a logged-in-player/admin BRS Booking helper for the 7:30am tee-time scramble.
+
+- Button label: **BRS Booking**.
+- Toggles successful BRS bookers from the full roster, including players who are not playing that day.
+- Creates groups from confirmed players, keeping playing bookers in their own BRS booking group.
+- Non-playing bookers are assigned names to enter but are not included as players.
+- Copies a clear WhatsApp-ready BRS group message.
+- Saves BRS booking records to D1 for reporting.
+- Adds a BRS Booking League for the golf season, **1 April to 31 March**, showing only players with at least one recorded BRS booking.
+
+D1 table auto-created by the API on first use: `brs_bookings`.

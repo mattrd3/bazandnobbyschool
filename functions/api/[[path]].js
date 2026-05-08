@@ -30,6 +30,18 @@ const PLAYER_STATUS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS player_status (
   actorType TEXT,
   PRIMARY KEY (dateKey, name)
 )`;
+const BRS_BOOKINGS_TABLE_SQL = `CREATE TABLE IF NOT EXISTS brs_bookings (
+  id TEXT PRIMARY KEY,
+  dateKey TEXT NOT NULL,
+  createdAt INTEGER NOT NULL,
+  createdBy TEXT,
+  bookersJson TEXT NOT NULL,
+  confirmedPlayersJson TEXT NOT NULL,
+  groupsJson TEXT NOT NULL,
+  spareBookersJson TEXT,
+  detailsJson TEXT
+)`;
+const BRS_BOOKINGS_DATE_INDEX_SQL = `CREATE INDEX IF NOT EXISTS idx_brs_bookings_date ON brs_bookings (dateKey, createdAt DESC)`;
 const DEFAULT_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 
 function json(data, status = 200) {
@@ -106,6 +118,8 @@ async function ensureOperationalTables(db) {
   await db.prepare(AUDIT_EVENTS_TABLE_SQL).run();
   await db.prepare(AUDIT_EVENTS_INDEX_SQL).run();
   await db.prepare(PLAYER_STATUS_TABLE_SQL).run();
+  await db.prepare(BRS_BOOKINGS_TABLE_SQL).run();
+  await db.prepare(BRS_BOOKINGS_DATE_INDEX_SQL).run();
 }
 async function appendAuditEvent(db, dateKey, entry) {
   await ensureOperationalTables(db);
@@ -222,6 +236,83 @@ function weekendDateKeysBetween(startDate, endDate) {
   }
   return out;
 }
+
+function getSeasonBounds(asOf = "") {
+  const d = /^\d{4}-\d{2}-\d{2}$/.test(String(asOf || "")) ? dateKeyToUtcDate(asOf) : new Date();
+  const y = d.getUTCFullYear();
+  const m = d.getUTCMonth() + 1;
+  const startYear = m >= 4 ? y : y - 1;
+  return {
+    start: `${startYear}-04-01`,
+    end: `${startYear + 1}-03-31`,
+    label: `${startYear}/${String(startYear + 1).slice(2)}`
+  };
+}
+function buildBRSBookingGroups(confirmedPlayers, selectedBookers) {
+  const confirmed = cleanNames(confirmedPlayers);
+  const bookers = cleanNames(selectedBookers);
+  const playingSet = new Set(confirmed);
+  const teeTimesNeeded = Math.ceil(confirmed.length / 4);
+  const activeBookers = bookers.slice(0, teeTimesNeeded);
+  const spareBookers = bookers.slice(teeTimesNeeded);
+  const groups = activeBookers.map(booker => ({ booker, players: [] }));
+  const assigned = new Set();
+  for (const group of groups) {
+    if (playingSet.has(group.booker)) {
+      group.players.push(group.booker);
+      assigned.add(group.booker);
+    }
+  }
+  const remaining = confirmed.filter(name => !assigned.has(name));
+  for (const group of groups) {
+    while (group.players.length < 4 && remaining.length) {
+      const next = remaining.shift();
+      group.players.push(next);
+      assigned.add(next);
+    }
+  }
+  const unassignedPlayers = remaining;
+  return {
+    teeTimesNeeded,
+    bookers,
+    activeBookers,
+    spareBookers,
+    groups,
+    unassignedPlayers,
+    missingTeeTimes: Math.max(0, teeTimesNeeded - activeBookers.length),
+    confirmedCount: confirmed.length
+  };
+}
+async function saveBRSBooking(db, { dateKey, createdBy, bookers, confirmedPlayers, result }) {
+  await ensureOperationalTables(db);
+  const key = normaliseDateKey(dateKey);
+  const createdAt = Date.now();
+  const id = `${key}-${createdAt}-${Math.random().toString(36).slice(2, 10)}`;
+  const details = {
+    teeTimesNeeded: result.teeTimesNeeded,
+    missingTeeTimes: result.missingTeeTimes,
+    confirmedCount: result.confirmedCount,
+    unassignedPlayers: result.unassignedPlayers || []
+  };
+  await db.prepare("INSERT INTO brs_bookings (id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(id, key, createdAt, String(createdBy || "Unknown"), JSON.stringify(bookers || []), JSON.stringify(confirmedPlayers || []), JSON.stringify(result.groups || []), JSON.stringify(result.spareBookers || []), JSON.stringify(details))
+    .run();
+  await appendAuditEvent(db, key, { action:"brs_booking_created", name:"BRS Booking", ts:createdAt, actor:String(createdBy || "Unknown"), actorType:"player", dateKey:key, dateLabel:auditDateLabel(key), bookers:bookers || [], playerCount:(confirmedPlayers || []).length, groupCount:(result.groups || []).length });
+  return { id, dateKey:key, createdAt, createdBy:String(createdBy || "Unknown"), ...result };
+}
+async function buildBRSLeague(db, { asOf = "" } = {}) {
+  await ensureOperationalTables(db);
+  const season = getSeasonBounds(asOf);
+  const rows = await db.prepare("SELECT dateKey, createdAt, createdBy, bookersJson FROM brs_bookings WHERE dateKey >= ? AND dateKey <= ? ORDER BY dateKey DESC, createdAt DESC").bind(season.start, season.end).all();
+  const counts = new Map();
+  for (const row of rows.results || []) {
+    let bookers = [];
+    try { bookers = JSON.parse(row.bookersJson || "[]"); } catch { bookers = []; }
+    for (const name of cleanNames(bookers)) counts.set(name, (counts.get(name) || 0) + 1);
+  }
+  const league = [...counts.entries()].map(([name, count]) => ({ name, count })).filter(r => r.count > 0).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
+  return { season, league, bookingRecordCount: (rows.results || []).length };
+}
 async function buildBookingStats(db, { period = "12", asOf = "" } = {}) {
   const schedule = await readSchedule(db);
   let statusRows = [];
@@ -285,6 +376,38 @@ async function handle(request, env) {
   if (route === "day" && method === "GET") { const dateKey=normaliseDateKey(url.searchParams.get("dateKey")); return json({ ok:true, dateKey, data: await getDay(env.DB, dateKey) }); }
   if (route === "player-login" && method === "POST") { const input=await bodyJson(request); const name=String(input.name||"").trim(), pin=String(input.pin||"").trim(); const pins=await getPinConfig(env.DB); const members=await getRosterConfig(env.DB); if(!name||!pin) return json({ok:false,error:"Name and PIN are required"},400); if(!members.includes(name)) return json({ok:false,error:"This player is not on the roster yet. Ask admin to add them."},403); if(!pins[name]) return json({ok:false,error:"No player PIN has been set for this player yet. Ask admin to set one."},403); if(String(pins[name])!==pin) return json({ok:false,error:"Incorrect player PIN"},403); return json({ok:true,name}); }
   if (route === "player/weekend-summary" && method === "POST") { const input=await bodyJson(request); const name=String(input.playerName||input.name||"").trim(), pin=String(input.playerPin||input.pin||"").trim(); const pins=await getPinConfig(env.DB); const members=await getRosterConfig(env.DB); if(!name||!pin) return json({ok:false,error:"Name and PIN are required"},400); if(!members.includes(name)) return json({ok:false,error:"This player is not on the roster yet. Ask admin to add them."},403); if(!pins[name]) return json({ok:false,error:"No player PIN has been set for this player yet. Ask admin to set one."},403); if(String(pins[name])!==pin) return json({ok:false,error:"Incorrect player PIN"},403); const requested=Array.isArray(input.weekends)?input.weekends:[]; const schedule=await readSchedule(env.DB); const summary={}; for(const w of requested){ const sat=normaliseDateKey(w?.sat), sun=normaliseDateKey(w?.sun); if(!/^\d{4}-\d{2}-\d{2}$/.test(sat)||!/^\d{4}-\d{2}-\d{2}$/.test(sun)) continue; summary[sat]={ sat: cleanNames(schedule[sat]?.players).includes(name) ? "playing" : cleanNames(schedule[sat]?.unavailablePlayers).includes(name) ? "unavailable" : "none", sun: cleanNames(schedule[sun]?.players).includes(name) ? "playing" : cleanNames(schedule[sun]?.unavailablePlayers).includes(name) ? "unavailable" : "none" }; } return json({ok:true,name,summary}); }
+  if (route === "brs-booking" && method === "POST") {
+    const input = await bodyJson(request);
+    const dateKey = normaliseDateKey(input.dateKey);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ ok:false, error:"Invalid dateKey" }, 400);
+    const adminOverride = isAdmin(input);
+    let auth = null;
+    if (!adminOverride) {
+      auth = await verifyPlayerIdentity(env.DB, input, String(input.playerName || input.actor || "").trim());
+      if (!auth.ok) return json({ ok:false, error:auth.error }, 403);
+    }
+    const actor = adminOverride ? "Admin" : auth.actor;
+    const day = await getDay(env.DB, dateKey);
+    const members = await getRosterConfig(env.DB);
+    const validMembers = new Set(members);
+    const bookers = cleanNames(input.bookers).filter(n => validMembers.has(n));
+    if (!bookers.length) return json({ ok:false, error:"Select at least one BRS booker." }, 400);
+    const confirmedPlayers = cleanNames(day.players);
+    const result = buildBRSBookingGroups(confirmedPlayers, bookers);
+    const saved = await saveBRSBooking(env.DB, { dateKey, createdBy: actor, bookers, confirmedPlayers, result });
+    return json({ ok:true, booking:saved });
+  }
+  if (route === "brs-booking/league" && method === "GET") {
+    const adminOverride = url.searchParams.get("adminPin") === ADMIN_PIN;
+    if (!adminOverride) {
+      const name = String(url.searchParams.get("playerName") || "").trim();
+      const pin = String(url.searchParams.get("playerPin") || "").trim();
+      const pins = await getPinConfig(env.DB);
+      if (!name || !pin || !pins[name] || String(pins[name]) !== pin) return json({ ok:false, error:"Player login required" }, 403);
+    }
+    const league = await buildBRSLeague(env.DB, { asOf: url.searchParams.get("asOf") || "" });
+    return json({ ok:true, ...league });
+  }
   if (route === "admin/pins" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, configured: maskedPins(await getPinConfig(env.DB))}); }
   if (route === "admin/roster" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, members: await getRosterConfig(env.DB)}); }
   if (route === "admin/audit" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(url.searchParams.get("dateKey")); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); return json({ok:true,dateKey,events:await readAuditEvents(env.DB,dateKey)}); }
@@ -310,9 +433,9 @@ async function handle(request, env) {
   if (route === "admin/lock" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); const before=day.locked?"locked":"open"; const lock=typeof input.locked==="boolean"?input.locked:!day.locked; day.locked=lock; if(lock&&day.players.length&&!day.draw) day.draw=buildGroups(day.players,day.priorityPlayers); if(!lock) day.draw=null; day=await addAuditAndLog(env.DB,dateKey,day,lock?"admin_locked":"admin_unlocked","Admin",Date.now(),{actor:"Admin",actorType:"admin",from:before,to:lock?"locked":"open",playerCount:(day.players||[]).length,groupCount:Array.isArray(day.draw)?day.draw.length:0}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
   if (route === "admin/redraw" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); let day=await getDay(env.DB,dateKey); if(!day.competition&&input.competition) day.competition=String(input.competition).trim(); day.draw=buildGroups(day.players||[],day.priorityPlayers||[]); day=await addAuditAndLog(env.DB,dateKey,day,"draw_regenerated","Admin",Date.now(),{actor:"Admin",actorType:"admin",playerCount:(day.players||[]).length,groupCount:Array.isArray(day.draw)?day.draw.length:0}); day=await upsertDay(env.DB,dateKey,day); return json({ok:true,dateKey,data:day}); }
   if (route === "admin/import" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const schedule=input.schedule||{}, statements=[]; for(const [key,value] of Object.entries(schedule)){ const dateKey=normaliseDateKey(key), day=safeDay(value), ts=day.updatedAt||Date.now(); statements.push(env.DB.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind(dateKey, JSON.stringify(day), ts)); } if(statements.length) await env.DB.batch(statements); return json({ok:true, imported:statements.length}); }
-  if (route === "admin/delete-day" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); await env.DB.prepare("DELETE FROM days WHERE dateKey = ?").bind(dateKey).run(); await ensureOperationalTables(env.DB); await env.DB.prepare("DELETE FROM player_status WHERE dateKey = ?").bind(dateKey).run(); await env.DB.prepare("DELETE FROM audit_events WHERE dateKey = ?").bind(dateKey).run(); return json({ok:true,deleted:true,dateKey}); }
+  if (route === "admin/delete-day" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(input.dateKey); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); await env.DB.prepare("DELETE FROM days WHERE dateKey = ?").bind(dateKey).run(); await ensureOperationalTables(env.DB); await env.DB.prepare("DELETE FROM player_status WHERE dateKey = ?").bind(dateKey).run(); await env.DB.prepare("DELETE FROM audit_events WHERE dateKey = ?").bind(dateKey).run(); await ensureOperationalTables(env.DB); await env.DB.prepare("DELETE FROM brs_bookings WHERE dateKey = ?").bind(dateKey).run(); return json({ok:true,deleted:true,dateKey}); }
   if (route === "admin/export" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, exported:new Date().toISOString(), schedule:await readSchedule(env.DB)}); }
   return json({ ok:false, error:`No route for ${method} /api/${route}` }, 404);
 }
 export async function onRequest(context) { try { return await handle(context.request, context.env); } catch(err) { return json({ ok:false, error:err.message || String(err) }, 500); } }
-export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows, migrateLegacyAuditEvents, readAuditEvents, auditDateLabel, buildBookingStats };
+export const __test = { normaliseDateKey, safeDay, initDay, addAudit, buildGroups, groupLabel, signupCutoffUtcMillis, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, PIN_CONFIG_KEY, ROSTER_CONFIG_KEY, DEFAULT_MEMBERS, applyStatusRows, applyAllStatusRows, migrateLegacyAuditEvents, readAuditEvents, auditDateLabel, buildBookingStats, buildBRSBookingGroups, getSeasonBounds, buildBRSLeague };

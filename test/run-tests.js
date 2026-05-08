@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { onRequest, __test } from "../functions/api/[[path]].js";
 
 class FakeDB {
-  constructor() { this.rows = new Map(); this.statusRows = new Map(); this.auditRows = []; }
+  constructor() { this.rows = new Map(); this.statusRows = new Map(); this.auditRows = []; this.brsRows = []; }
   prepare(sql) { return new FakeStmt(this, sql); }
   async batch(statements) { for (const s of statements) await s.run(); }
 }
@@ -33,6 +33,10 @@ class FakeStmt {
       const limit = this.args[1] || 300;
       return { results: this.db.auditRows.filter(r => r.dateKey === dateKey).sort((a,b)=>b.ts-a.ts).slice(0, limit) };
     }
+    if (this.sql.includes("SELECT dateKey, createdAt, createdBy, bookersJson FROM brs_bookings")) {
+      const [start, end] = this.args;
+      return { results: this.db.brsRows.filter(r => r.dateKey >= start && r.dateKey <= end).sort((a,b)=>b.dateKey.localeCompare(a.dateKey) || b.createdAt-a.createdAt) };
+    }
     throw new Error("Unsupported all SQL: " + this.sql);
   }
   async run() {
@@ -54,6 +58,11 @@ class FakeStmt {
       this.db.auditRows.push({ id, dateKey, ts, action, name, actor, actorType, details });
       return { success: true };
     }
+    if (this.sql.includes("INSERT INTO brs_bookings")) {
+      const [id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson] = this.args;
+      this.db.brsRows.push({ id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson });
+      return { success: true };
+    }
     if (this.sql.includes("DELETE FROM days WHERE dateKey")) {
       this.db.rows.delete(this.args[0]);
       return { success: true };
@@ -66,6 +75,11 @@ class FakeStmt {
     if (this.sql.includes("DELETE FROM audit_events WHERE dateKey")) {
       const key = this.args[0];
       this.db.auditRows = this.db.auditRows.filter(r => r.dateKey !== key);
+      return { success: true };
+    }
+    if (this.sql.includes("DELETE FROM brs_bookings WHERE dateKey")) {
+      const key = this.args[0];
+      this.db.brsRows = this.db.brsRows.filter(r => r.dateKey !== key);
       return { success: true };
     }
     throw new Error("Unsupported run SQL: " + this.sql);
@@ -82,7 +96,7 @@ async function call(db, path, method="GET", body=null) {
   return { status: res.status, json };
 }
 
-const { normaliseDateKey, safeDay, buildGroups, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, DEFAULT_MEMBERS, auditDateLabel } = __test;
+const { normaliseDateKey, safeDay, buildGroups, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, DEFAULT_MEMBERS, auditDateLabel, buildBRSBookingGroups, getSeasonBounds } = __test;
 
 assert.equal(normaliseDateKey("2026-06-07"), "2026-06-07");
 assert.equal(normaliseDateKey("Sun May 10 2026 00:00:00 GMT+0100 (British Summer Time)"), "2026-05-10");
@@ -94,6 +108,13 @@ assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,49)), false);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,50)), true);
 assert.equal(auditDateLabel("2026-06-07"), "Sunday 7 June", "v29 keeps v24 audit date label with amended booking day/date");
+assert.deepEqual(getSeasonBounds("2026-05-17"), { start:"2026-04-01", end:"2027-03-31", label:"2026/27" }, "v38 BRS league season should run April to March");
+const brsScenario = buildBRSBookingGroups(["Baby Dave", "Meeky", "Kevin", "Mark", "Bob", "Danny", "Doc", "Wayne"], ["Baby Dave", "Colin"]);
+assert.equal(brsScenario.teeTimesNeeded, 2, "v38 BRS helper should calculate tee times needed");
+assert.equal(brsScenario.groups[0].booker, "Baby Dave", "v38 playing booker should own their group");
+assert.ok(brsScenario.groups[0].players.includes("Baby Dave"), "v38 playing booker should be included as a player");
+assert.equal(brsScenario.groups[1].booker, "Colin", "v38 non-playing booker should still own a BRS group");
+assert.equal(brsScenario.groups[1].players.includes("Colin"), false, "v38 non-playing booker should not be added as a player");
 
 const db = new FakeDB();
 let r = await call(db, "/api/schedule");
@@ -191,13 +212,31 @@ assert.equal(jasonStats.unavailable, 1, "v36 stats should count unavailable play
 assert.equal(ethanStats.booked, 1, "v36 stats should count booked player days");
 assert.ok(jasonStats.noResponse >= 1, "v36 stats should count no-response days");
 
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Baby Dave", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Meeky", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Kevin", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Mark Mark", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+r = await call(db, "/api/brs-booking", "POST", { dateKey:"2026-06-14", bookers:["Baby Dave"], adminPin:"2727" });
+assert.equal(r.json.ok, true, "v38 BRS Booking endpoint should create and save groups");
+assert.equal(r.json.booking.groups[0].booker, "Baby Dave");
+assert.ok(r.json.booking.groups[0].players.includes("Baby Dave"));
+r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2026-06-30");
+assert.equal(r.json.ok, true, "v38 BRS league endpoint should return season stats");
+assert.equal(r.json.season.label, "2026/27");
+assert.equal(r.json.league.find(x => x.name === "Baby Dave").count, 1, "v38 BRS league should count successful bookers");
+assert.equal(r.json.league.some(x => x.count === 0), false, "v38 BRS league should only include players with at least one booking");
+
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 33 API/helper tests passed");
+console.log("PASS: 34 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v37"')) throw new Error("v37 marker missing");
+if (!html.includes('const VERSION = "v38"')) throw new Error("v37 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -287,6 +326,14 @@ if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes(
 if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
 if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
 if (!html.includes('Admins can use Booking Stats to see who has booked, marked unavailable, or not responded over recent weeks.')) throw new Error('v36 Help panel should mention Booking Stats');
+if (!html.includes('{ version: "v38", title: "BRS Booking"')) throw new Error('v38 release notes entry missing');
+if (!html.includes('showBRSBooking')) throw new Error('v38 BRS Booking modal state missing');
+if (!html.includes('BRS Booking')) throw new Error('v38 BRS Booking button/copy missing');
+if (!html.includes('brs-booking')) throw new Error('v38 should use DB-backed BRS booking endpoints');
+if (!html.includes('BRS Booking League')) throw new Error('v38 BRS league table missing');
+if (!html.includes('1 April to 31 March')) throw new Error('v38 BRS league should explain April to March season');
+if (!html.includes('Copy BRS groups for WhatsApp')) throw new Error('v38 BRS WhatsApp copy button missing');
+if (!html.includes('Create BRS groups')) throw new Error('v38 BRS group creation button missing');
 if (!html.includes('{ version: "v37", title: "Add to Calendar"')) throw new Error('v37 release notes entry missing');
 if (!html.includes('calendarBtn')) throw new Error('v37 calendar icon button style missing');
 if (!html.includes('buildGoogleCalendarUrl')) throw new Error('v37 Google Calendar URL helper missing');
@@ -297,4 +344,4 @@ if (!html.includes('calendarDateStamp(date, 8)') || !html.includes('calendarDate
 if (!html.includes('Competition: ${String(competition).trim()}')) throw new Error('v37 calendar description should include competition only');
 if (!html.includes('canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName)')) throw new Error('v37 calendar icon should only show for logged-in booked players');
 if (!html.includes('Add to Google Calendar')) throw new Error('v37 calendar button title missing');
-console.log("PASS: v37 UI regression checks passed");
+console.log("PASS: v38 UI regression checks passed");
