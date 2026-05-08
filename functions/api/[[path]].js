@@ -295,8 +295,9 @@ async function saveBRSBooking(db, { dateKey, createdBy, bookers, confirmedPlayer
     missingTeeTimes: result.missingTeeTimes,
     confirmedCount: result.confirmedCount,
     unassignedPlayers: result.unassignedPlayers || [],
-    leagueEligible: true,
-    leagueRecordedVersion: "v40"
+    leagueEligible: false,
+    leagueRecordedVersion: "v41",
+    note: "BRS league parked; create groups is not counted as a final booking result."
   };
   await db.prepare("INSERT INTO brs_bookings (id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(id, key, createdAt, String(createdBy || "Unknown"), JSON.stringify(bookers || []), JSON.stringify(confirmedPlayers || []), JSON.stringify(result.groups || []), JSON.stringify(result.spareBookers || []), JSON.stringify(details))
@@ -403,8 +404,9 @@ async function handle(request, env) {
     if (!bookers.length) return json({ ok:false, error:"Select at least one BRS booker." }, 400);
     const confirmedPlayers = cleanNames(day.players);
     const result = buildBRSBookingGroups(confirmedPlayers, bookers);
-    const saved = await saveBRSBooking(env.DB, { dateKey, createdBy: actor, bookers, confirmedPlayers, result });
-    return json({ ok:true, booking:saved });
+    // v41: BRS Booking is an operational speed helper. Creating/regenerating groups should not
+    // create league/reporting rows because users may redraw or multiple people may use it.
+    return json({ ok:true, booking:{ id:null, dateKey, createdAt:Date.now(), createdBy:actor, ...result } });
   }
   if (route === "brs-booking/league" && method === "GET") {
     const adminOverride = url.searchParams.get("adminPin") === ADMIN_PIN;

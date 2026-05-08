@@ -379,3 +379,11 @@ D1 table auto-created by the API on first use: `brs_bookings`.
 - BRS Booking League only counts corrected/eligible BRS booking records created from v40 onward.
 - Historic/pre-v40 BRS rows are ignored for the league so accidental early values do not populate the table.
 - No-response player stats remain admin-only.
+
+## v41 — BRS Booking mobile cleanup
+
+- Reporting is back to admin-only while BRS reporting/league-table behaviour is parked.
+- BRS Booking is focused on fast operational group creation and WhatsApp copy rather than reporting.
+- Creating/recreating BRS groups no longer creates league-table rows.
+- BRS Booking modal is more compact on mobile, with sticky header/close and sticky Clear/Create/Copy controls.
+- The visible app version marker is now `LIVE- v41`.
