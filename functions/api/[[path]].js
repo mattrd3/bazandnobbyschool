@@ -294,7 +294,9 @@ async function saveBRSBooking(db, { dateKey, createdBy, bookers, confirmedPlayer
     teeTimesNeeded: result.teeTimesNeeded,
     missingTeeTimes: result.missingTeeTimes,
     confirmedCount: result.confirmedCount,
-    unassignedPlayers: result.unassignedPlayers || []
+    unassignedPlayers: result.unassignedPlayers || [],
+    leagueEligible: true,
+    leagueRecordedVersion: "v40"
   };
   await db.prepare("INSERT INTO brs_bookings (id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)")
     .bind(id, key, createdAt, String(createdBy || "Unknown"), JSON.stringify(bookers || []), JSON.stringify(confirmedPlayers || []), JSON.stringify(result.groups || []), JSON.stringify(result.spareBookers || []), JSON.stringify(details))
@@ -305,15 +307,20 @@ async function saveBRSBooking(db, { dateKey, createdBy, bookers, confirmedPlayer
 async function buildBRSLeague(db, { asOf = "" } = {}) {
   await ensureOperationalTables(db);
   const season = getSeasonBounds(asOf);
-  const rows = await db.prepare("SELECT dateKey, createdAt, createdBy, bookersJson FROM brs_bookings WHERE dateKey >= ? AND dateKey <= ? ORDER BY dateKey DESC, createdAt DESC").bind(season.start, season.end).all();
+  const rows = await db.prepare("SELECT dateKey, createdAt, createdBy, bookersJson, detailsJson FROM brs_bookings WHERE dateKey >= ? AND dateKey <= ? ORDER BY dateKey DESC, createdAt DESC").bind(season.start, season.end).all();
   const counts = new Map();
+  let eligibleRecordCount = 0;
   for (const row of rows.results || []) {
+    let details = {};
+    try { details = JSON.parse(row.detailsJson || "{}"); } catch { details = {}; }
+    if (details.leagueEligible !== true) continue;
+    eligibleRecordCount += 1;
     let bookers = [];
     try { bookers = JSON.parse(row.bookersJson || "[]"); } catch { bookers = []; }
     for (const name of cleanNames(bookers)) counts.set(name, (counts.get(name) || 0) + 1);
   }
   const league = [...counts.entries()].map(([name, count]) => ({ name, count })).filter(r => r.count > 0).sort((a,b) => b.count - a.count || a.name.localeCompare(b.name));
-  return { season, league, bookingRecordCount: (rows.results || []).length };
+  return { season, league, bookingRecordCount: eligibleRecordCount, rawBookingRecordCount: (rows.results || []).length };
 }
 async function buildBookingStats(db, { period = "12", asOf = "" } = {}) {
   const schedule = await readSchedule(db);
@@ -413,7 +420,7 @@ async function handle(request, env) {
   if (route === "admin/pins" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, configured: maskedPins(await getPinConfig(env.DB))}); }
   if (route === "admin/roster" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); return json({ok:true, members: await getRosterConfig(env.DB)}); }
   if (route === "admin/audit" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); const dateKey=normaliseDateKey(url.searchParams.get("dateKey")); if(!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) return json({ok:false,error:"Invalid dateKey"},400); return json({ok:true,dateKey,events:await readAuditEvents(env.DB,dateKey)}); }
-  if (route === "admin/booking-stats" && method === "GET") { if(url.searchParams.get("adminPin")!==ADMIN_PIN) return json({ok:false,error:"Admin PIN required"},403); const result=await buildBookingStats(env.DB,{ period:url.searchParams.get("period")||"12", asOf:url.searchParams.get("asOf")||"" }); return json({ok:true,...result}); }
+  if (route === "admin/booking-stats" && method === "GET") { const adminOverride=url.searchParams.get("adminPin")===ADMIN_PIN; if(!adminOverride){ const name=String(url.searchParams.get("playerName")||"").trim(); const pin=String(url.searchParams.get("playerPin")||"").trim(); const pins=await getPinConfig(env.DB); if(!name||!pin||!pins[name]||String(pins[name])!==pin) return json({ok:false,error:"Player login required"},403); } const result=await buildBookingStats(env.DB,{ period:url.searchParams.get("period")||"12", asOf:url.searchParams.get("asOf")||"" }); if(!adminOverride){ result.stats=(result.stats||[]).map(({ noResponse, ...row })=>row); } return json({ok:true,includeNoResponse:adminOverride,...result}); }
   if (route === "admin/member" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const name=String(input.name||"").trim(); const op=String(input.op||"add"); if(!name) return json({ok:false,error:"Missing player name"},400); let members=await getRosterConfig(env.DB); if(op==="remove"){ members=members.filter(n=>n!==name); } else { members=cleanNames([...members,name]).sort(); } members=await saveRosterConfig(env.DB,members); return json({ok:true,members,name,op}); }
   if (route === "admin/player-pin" && method === "POST") { const input=await bodyJson(request); if(!isAdmin(input)) return json({ok:false,error:"Admin PIN required"},403); const name=String(input.name||"").trim(), pin=String(input.pin||"").trim(); if(!name) return json({ok:false,error:"Missing player name"},400); const pins=await getPinConfig(env.DB); if(pin) pins[name]=pin; else delete pins[name]; await savePinConfig(env.DB,pins); return json({ok:true, configured:maskedPins(pins), name, hasPin:Boolean(pin)}); }
 

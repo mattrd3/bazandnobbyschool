@@ -179,7 +179,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v39";
+const VERSION = "v40";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -207,6 +207,7 @@ function openCalendarForDay(date, competition = "") {
     window.open(buildGoogleCalendarUrl(date, competition), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v40", title: "Reporting visibility and BRS league reset", changes: ["Made the Reporting footer available to all logged-in players, not just admins.", "Kept no-response booking stats visible to admins only, while logged-in players can still see booked and unavailable counts.", "Updated the BRS Booking League so it only counts BRS bookings recorded from this corrected version onward; historic or accidental pre-v40 records are not backfilled." ] },
     { version: "v39", title: "Reporting area and BRS speed fix", changes: ["BRS Booking now opens with no players pre-selected, so users only tick the people who actually secured tee times.", "Moved BRS Booking League and player Booking Stats into a compact Reporting panel to keep the BRS Booking screen fast and uncluttered.", "Added a permanent Reporting footer button so admin reporting is easy to find without taking up booking-screen space." ] },
     { version: "v38", title: "BRS Booking", changes: ["Added a fast BRS Booking helper for logged-in players and admins to use during the 7:30am tee-time scramble.", "Users can toggle who secured BRS tee times, create BRS groups, and copy the result to WhatsApp.", "BRS booking results are saved to D1 and feed a fun season league table from 1 April to 31 March, only showing players with at least one booking." ] },
     { version: "v37", title: "Add to Calendar", changes: ["Added a tiny calendar icon beside the active day heading for logged-in players who are booked on that day.", "The icon opens Google Calendar with a pre-filled 8am to 2pm event titled Weekend Golf.", "Calendar events include the competition name where set and use Druids Heath Golf Club as the location." ] },
@@ -458,10 +459,11 @@ function App() {
         }
     }
     async function loadBookingStats(period = bookingStatsPeriod) {
-        if (!adminMode) return;
+        if (!(adminMode || pinLoggedIn)) return;
         try {
             setBookingStatsStatus("Loading booking stats...");
-            const res = await fetch(`/api/admin/booking-stats?adminPin=${ADMIN_PIN}&period=${encodeURIComponent(period)}&ts=${Date.now()}`);
+            const qs = adminMode ? `adminPin=${ADMIN_PIN}` : `playerName=${encodeURIComponent(playerName)}&playerPin=${encodeURIComponent(playerPin)}`;
+            const res = await fetch(`/api/admin/booking-stats?${qs}&period=${encodeURIComponent(period)}&ts=${Date.now()}`);
             const data = await res.json();
             if (!data.ok) throw new Error(data.error || "Booking stats failed");
             setBookingStats(data);
@@ -791,7 +793,7 @@ Bookings confirmed ✅`;
         const rows = [...((bookingStats && bookingStats.stats) || [])];
         const byName = (a, b) => a.name.localeCompare(b.name);
         if (bookingStatsSort === "leastBooked") return rows.sort((a, b) => a.booked - b.booked || byName(a, b));
-        if (bookingStatsSort === "mostNoResponse") return rows.sort((a, b) => b.noResponse - a.noResponse || byName(a, b));
+        if (adminMode && bookingStatsSort === "mostNoResponse") return rows.sort((a, b) => b.noResponse - a.noResponse || byName(a, b));
         return rows.sort((a, b) => b.booked - a.booked || byName(a, b));
     };
     const bookingStatsPeriodLabel = () => bookingStatsPeriod === "all" ? "All time" : `Last ${bookingStatsPeriod} weeks`;
@@ -943,7 +945,7 @@ Bookings confirmed ✅`;
             showAudit && React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginTop: -4 } }, auditStatus || "Reading latest activity directly from D1..."),
             showAudit && React.createElement("div", { className: "auditLog" }, auditEvents.length ? auditEvents.map((e, i) => React.createElement("div", { className: "auditItem", key: `${e.ts || "no-ts"}-${e.action || "event"}-${i}` }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
             React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
-        adminMode && React.createElement("div", { className: "reportingFooter" },
+        (adminMode || pinLoggedIn) && React.createElement("div", { className: "reportingFooter" },
             React.createElement("button", { className: "reportingBtn", onClick: async () => { setShowReporting(true); setReportingTab("brs"); await loadBRSLeague(); } }, "REPORTING")),
         showBRSBooking && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 540 } },
@@ -974,7 +976,7 @@ Bookings confirmed ✅`;
         showReporting && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 540 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Reporting"),
-                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Admin reporting for BRS booking success and player booking activity."),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, adminMode ? "Reporting for BRS booking success and player booking activity. No-response stats are admin-only." : "Reporting for BRS booking success and player booking activity."),
                 React.createElement("div", { className: "reportingTabs" },
                     React.createElement("button", { className: `reportingTab ${reportingTab === "brs" ? "active" : ""}`, onClick: async () => { setReportingTab("brs"); await loadBRSLeague(); } }, "BRS League"),
                     React.createElement("button", { className: `reportingTab ${reportingTab === "stats" ? "active" : ""}`, onClick: async () => { setReportingTab("stats"); await loadBookingStats(); } }, "Player Stats")),
@@ -997,7 +999,7 @@ Bookings confirmed ✅`;
                         React.createElement("select", { className: "select", value: bookingStatsSort, onChange: e => setBookingStatsSort(e.target.value) },
                             React.createElement("option", { value: "mostBooked" }, "Most booked"),
                             React.createElement("option", { value: "leastBooked" }, "Least booked"),
-                            React.createElement("option", { value: "mostNoResponse" }, "Most no response"))),
+                            adminMode && React.createElement("option", { value: "mostNoResponse" }, "Most no response"))),
                     React.createElement("div", { className: "bookingLegend" }, bookingStats ? `${bookingStatsPeriodLabel()} · ${bookingStats.dateCount || 0} weekend days · ${bookingStats.from} to ${bookingStats.to}` : bookingStatsStatus || "Loading..."),
                     React.createElement("div", { className: "releaseList" },
                         React.createElement("table", { className: "statsTable" },
@@ -1006,12 +1008,12 @@ Bookings confirmed ✅`;
                                     React.createElement("th", null, "Player"),
                                     React.createElement("th", { style: { textAlign: "right" } }, "Booked"),
                                     React.createElement("th", { style: { textAlign: "right" } }, "Unavailable"),
-                                    React.createElement("th", { style: { textAlign: "right" } }, "No response"))),
+                                    adminMode && React.createElement("th", { style: { textAlign: "right" } }, "No response"))),
                             React.createElement("tbody", null, sortedBookingStats().map(row => React.createElement("tr", { key: row.name },
                                 React.createElement("td", { className: "name" }, row.name),
                                 React.createElement("td", { className: "num" }, row.booked),
                                 React.createElement("td", { className: "num" }, row.unavailable),
-                                React.createElement("td", { className: "num" }, row.noResponse))))),
+                                adminMode && React.createElement("td", { className: "num" }, row.noResponse))))),
                         bookingStats && !sortedBookingStats().length && React.createElement("div", { className: "auditItem" }, "No booking stats available yet.")),
                     React.createElement("div", { className: "bookingLegend" }, bookingStatsStatus)),
                 React.createElement("div", { className: "modalActions" },
@@ -1051,7 +1053,7 @@ Bookings confirmed ✅`;
                         React.createElement("p", { className: "helpText" }, "Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list. The not-booked list excludes players who have marked themselves unavailable.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Admin booking stats"),
-                        React.createElement("p", { className: "helpText" }, "Admins can use Reporting to view the BRS Booking League and player Booking Stats. Logged-in players can use BRS Booking to record who secured tee times and create WhatsApp-ready BRS groups.")),
+                        React.createElement("p", { className: "helpText" }, "Logged-in players can use Reporting to view the BRS Booking League and booking stats. No-response stats are only visible to admins. Logged-in players can use BRS Booking to record who secured tee times and create WhatsApp-ready BRS groups.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "More info"),
                         React.createElement("p", { className: "helpText" }, "Use My Bookings to see your upcoming personal status. Click any week in My Bookings to jump straight to that weekend. Use the live version number to view release notes."))),

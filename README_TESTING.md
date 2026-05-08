@@ -372,3 +372,10 @@ D1 table auto-created by the API on first use: `brs_bookings`.
 - The API now safely adds missing `brs_bookings` compatibility columns if an earlier v38 table was created manually.
 - No further manual SQL is required if the v38 `brs_bookings` table already exists.
 - The visible app version marker is now `LIVE- v39`.
+
+## v40 — Reporting visibility and BRS league reset
+
+- Reporting footer is now visible to logged-in players as well as admins.
+- BRS Booking League only counts corrected/eligible BRS booking records created from v40 onward.
+- Historic/pre-v40 BRS rows are ignored for the league so accidental early values do not populate the table.
+- No-response player stats remain admin-only.

@@ -33,7 +33,7 @@ class FakeStmt {
       const limit = this.args[1] || 300;
       return { results: this.db.auditRows.filter(r => r.dateKey === dateKey).sort((a,b)=>b.ts-a.ts).slice(0, limit) };
     }
-    if (this.sql.includes("SELECT dateKey, createdAt, createdBy, bookersJson FROM brs_bookings")) {
+    if (this.sql.includes("SELECT dateKey, createdAt, createdBy, bookersJson") && this.sql.includes("FROM brs_bookings")) {
       const [start, end] = this.args;
       return { results: this.db.brsRows.filter(r => r.dateKey >= start && r.dateKey <= end).sort((a,b)=>b.dateKey.localeCompare(a.dateKey) || b.createdAt-a.createdAt) };
     }
@@ -220,23 +220,31 @@ r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name
 assert.equal(r.json.ok, true);
 r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Mark Mark", adminPin:"2727" });
 assert.equal(r.json.ok, true);
+await db.prepare("INSERT INTO brs_bookings (id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("legacy-brs", "2026-06-14", Date.now(), "Admin", JSON.stringify(["Meeky"]), JSON.stringify([]), JSON.stringify([]), JSON.stringify([]), JSON.stringify({})).run();
+r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2026-06-30");
+assert.equal(r.json.ok, true, "v40 BRS league endpoint should return season stats");
+assert.equal(r.json.season.label, "2026/27");
+assert.equal(r.json.league.length, 0, "v40 BRS league should ignore historic/pre-v40 records with no league eligibility marker");
 r = await call(db, "/api/brs-booking", "POST", { dateKey:"2026-06-14", bookers:["Baby Dave"], adminPin:"2727" });
 assert.equal(r.json.ok, true, "v38 BRS Booking endpoint should create and save groups");
 assert.equal(r.json.booking.groups[0].booker, "Baby Dave");
 assert.ok(r.json.booking.groups[0].players.includes("Baby Dave"));
 r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2026-06-30");
-assert.equal(r.json.ok, true, "v38 BRS league endpoint should return season stats");
-assert.equal(r.json.season.label, "2026/27");
-assert.equal(r.json.league.find(x => x.name === "Baby Dave").count, 1, "v38 BRS league should count successful bookers");
+assert.equal(r.json.ok, true, "v40 BRS league endpoint should return season stats");
+assert.equal(r.json.league.find(x => x.name === "Baby Dave").count, 1, "v40 BRS league should count eligible successful bookers");
 assert.equal(r.json.league.some(x => x.count === 0), false, "v38 BRS league should only include players with at least one booking");
+r = await call(db, "/api/admin/booking-stats?playerName=Jason&playerPin=1111&period=12&asOf=2026-06-30");
+assert.equal(r.json.ok, true, "v40 booking stats should be available to logged-in players");
+assert.equal(r.json.includeNoResponse, false, "v40 non-admin booking stats should hide no-response visibility");
+assert.equal("noResponse" in r.json.stats[0], false, "v40 non-admin booking stats should not include noResponse values");
 
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 34 API/helper tests passed");
+console.log("PASS: 35 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v39"')) throw new Error("v39 marker missing");
+if (!html.includes('const VERSION = "v40"')) throw new Error("v40 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -324,8 +332,11 @@ if (!html.includes('/api/admin/booking-stats')) throw new Error('v36 Booking Sta
 if (!html.includes('REPORTING')) throw new Error('v39 Reporting footer button missing');
 if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes('No response')) throw new Error('v36 Booking Stats table headings missing');
 if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
+if (!html.includes('(adminMode || pinLoggedIn) && React.createElement("div", { className: "reportingFooter" }')) throw new Error('v40 Reporting footer should be visible to all logged-in users');
+if (!html.includes('adminMode && React.createElement("option", { value: "mostNoResponse" }')) throw new Error('v40 no-response sort should be admin-only');
+if (!html.includes('adminMode && React.createElement("th", { style: { textAlign: "right" } }, "No response")')) throw new Error('v40 no-response column should be admin-only');
 if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
-if (!html.includes('Admins can use Reporting to view the BRS Booking League and player Booking Stats.')) throw new Error('v39 Help panel should mention Reporting');
+if (!html.includes('No-response stats are only visible to admins.')) throw new Error('v40 Help panel should mention admin-only no-response stats');
 if (!html.includes('{ version: "v38", title: "BRS Booking"')) throw new Error('v38 release notes entry missing');
 if (!html.includes('showBRSBooking')) throw new Error('v38 BRS Booking modal state missing');
 if (!html.includes('BRS Booking')) throw new Error('v38 BRS Booking button/copy missing');
@@ -334,6 +345,7 @@ if (!html.includes('BRS Booking League')) throw new Error('v38 BRS league table 
 if (!html.includes('1 April to 31 March')) throw new Error('v38 BRS league should explain April to March season');
 if (!html.includes('Copy BRS groups for WhatsApp')) throw new Error('v38 BRS WhatsApp copy button missing');
 if (!html.includes('Create BRS groups')) throw new Error('v38 BRS group creation button missing');
+if (!html.includes('{ version: "v40", title: "Reporting visibility and BRS league reset"')) throw new Error('v40 release notes entry missing');
 if (!html.includes('{ version: "v39", title: "Reporting area and BRS speed fix"')) throw new Error('v39 release notes entry missing');
 if (!html.includes('clearBRSBooking(); setBRSStatus(""); setShowBRSBooking(true);')) throw new Error('v39 BRS Booking should open with no selected bookers');
 if (!html.includes('reportingFooter') || !html.includes('reportingBtn')) throw new Error('v39 Reporting footer styling missing');
@@ -348,4 +360,4 @@ if (!html.includes('calendarDateStamp(date, 8)') || !html.includes('calendarDate
 if (!html.includes('Competition: ${String(competition).trim()}')) throw new Error('v37 calendar description should include competition only');
 if (!html.includes('canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName)')) throw new Error('v37 calendar icon should only show for logged-in booked players');
 if (!html.includes('Add to Google Calendar')) throw new Error('v37 calendar button title missing');
-console.log("PASS: v39 UI regression checks passed");
+console.log("PASS: v40 UI regression checks passed");
