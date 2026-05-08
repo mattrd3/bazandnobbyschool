@@ -133,6 +133,11 @@
     .brsResult { border:1px solid var(--border); border-radius:10px; background:#fffdf7; margin-top:10px; overflow:hidden; }
     .brsResultBlock { padding:9px 10px; border-bottom:1px solid var(--border); font-size:12px; }
     .brsResultBlock:last-child { border-bottom:0; }
+    .reportingFooter { position:fixed; left:0; right:0; bottom:0; z-index:4; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); background:rgba(248,250,243,.96); border-top:1px solid var(--border); box-shadow:0 -4px 18px rgba(47,93,53,.08); display:flex; justify-content:center; }
+    .reportingBtn { width:min(260px, 92vw); padding:9px 12px; border-radius:999px; border:1px solid var(--border-strong); background:var(--green); color:white; cursor:pointer; font-size:12px; letter-spacing:.08em; text-align:center; }
+    .reportingTabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+    .reportingTab { padding:9px 10px; border-radius:8px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); cursor:pointer; font-size:12px; }
+    .reportingTab.active { background:var(--green); color:white; }
     .player:disabled { opacity:.58; cursor:not-allowed; }
     .confirmedBox { margin:14px 16px 0; padding:12px 14px; border:1px solid var(--border-strong); background: var(--panel-soft); border-radius:12px; box-shadow: var(--shadow); }
     .confirmedTitle { font-size:12px; color:var(--green); letter-spacing:.08em; margin-bottom:8px; font-weight:bold; }
@@ -174,7 +179,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v38";
+const VERSION = "v39";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -202,6 +207,7 @@ function openCalendarForDay(date, competition = "") {
     window.open(buildGoogleCalendarUrl(date, competition), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v39", title: "Reporting area and BRS speed fix", changes: ["BRS Booking now opens with no players pre-selected, so users only tick the people who actually secured tee times.", "Moved BRS Booking League and player Booking Stats into a compact Reporting panel to keep the BRS Booking screen fast and uncluttered.", "Added a permanent Reporting footer button so admin reporting is easy to find without taking up booking-screen space." ] },
     { version: "v38", title: "BRS Booking", changes: ["Added a fast BRS Booking helper for logged-in players and admins to use during the 7:30am tee-time scramble.", "Users can toggle who secured BRS tee times, create BRS groups, and copy the result to WhatsApp.", "BRS booking results are saved to D1 and feed a fun season league table from 1 April to 31 March, only showing players with at least one booking." ] },
     { version: "v37", title: "Add to Calendar", changes: ["Added a tiny calendar icon beside the active day heading for logged-in players who are booked on that day.", "The icon opens Google Calendar with a pre-filled 8am to 2pm event titled Weekend Golf.", "Calendar events include the competition name where set and use Druids Heath Golf Club as the location." ] },
     { version: "v36", title: "Admin booking stats", changes: ["Added an admin-only Booking Stats panel to review player activity over recent periods.", "Stats show booked days, unavailable days and no-response days by player.", "Admins can switch between last 4, 8, 12 weeks or all time, and sort by most booked, least booked or most no response."] },
@@ -343,7 +349,8 @@ function App() {
     const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [showMyBookings, setShowMyBookings] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
-    const [showBookingStats, setShowBookingStats] = useState(false);
+    const [showReporting, setShowReporting] = useState(false);
+    const [reportingTab, setReportingTab] = useState("brs");
     const [bookingStatsPeriod, setBookingStatsPeriod] = useState("12");
     const [bookingStatsSort, setBookingStatsSort] = useState("mostBooked");
     const [bookingStats, setBookingStats] = useState(null);
@@ -492,7 +499,8 @@ function App() {
     }, [adminMode, showAudit, dateKey]);
     useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
     useEffect(() => { loadPlayerWeekendSummary(); }, [pinLoggedIn, playerName, playerPin, visibleWeekendKey]);
-    useEffect(() => { if (showBookingStats) loadBookingStats(bookingStatsPeriod); }, [showBookingStats, bookingStatsPeriod]);
+    useEffect(() => { if (showReporting && reportingTab === "stats") loadBookingStats(bookingStatsPeriod); }, [showReporting, reportingTab, bookingStatsPeriod]);
+    useEffect(() => { if (showReporting && reportingTab === "brs") loadBRSLeague(); }, [showReporting, reportingTab]);
     // Prevent a competition edit draft from being carried onto another day/weekend.
     useEffect(() => { setEditingComp(false); setCompInput(""); }, [dateKey]);
     function optimistic(dateKey, day) { setSchedule(prev => mergeWithBase({ ...prev, [dateKey]: day })); }
@@ -840,7 +848,7 @@ Bookings confirmed ✅`;
                 current.competition && React.createElement("div", { className: "comp" },
                     "\uD83C\uDFC6 ",
                     current.competition),
-                (adminMode || pinLoggedIn) && React.createElement("button", { className: "brsBtn", onClick: async () => { setShowBRSBooking(true); setBRSResult(null); await loadBRSLeague(); }, title: "Open BRS Booking helper" }, "BRS Booking"),
+                (adminMode || pinLoggedIn) && React.createElement("button", { className: "brsBtn", onClick: () => { clearBRSBooking(); setBRSStatus(""); setShowBRSBooking(true); }, title: "Open BRS Booking helper" }, "BRS Booking"),
                 React.createElement("div", { className: "key" },
                     "Saving date key: ",
                     dateKey),
@@ -934,8 +942,9 @@ Bookings confirmed ✅`;
                 ")"),
             showAudit && React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginTop: -4 } }, auditStatus || "Reading latest activity directly from D1..."),
             showAudit && React.createElement("div", { className: "auditLog" }, auditEvents.length ? auditEvents.map((e, i) => React.createElement("div", { className: "auditItem", key: `${e.ts || "no-ts"}-${e.action || "event"}-${i}` }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
-            React.createElement("button", { className: "btn", onClick: async () => { setShowBookingStats(true); await loadBookingStats(); } }, "📊 Booking stats"),
             React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
+        adminMode && React.createElement("div", { className: "reportingFooter" },
+            React.createElement("button", { className: "reportingBtn", onClick: async () => { setShowReporting(true); setReportingTab("brs"); await loadBRSLeague(); } }, "REPORTING")),
         showBRSBooking && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 540 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "BRS Booking"),
@@ -960,49 +969,54 @@ Bookings confirmed ✅`;
                     brsResult.spareBookers && brsResult.spareBookers.length ? React.createElement("div", { className: "brsResultBlock" }, `Spare BRS booking: ${brsResult.spareBookers.join(", ")}`) : null,
                     React.createElement("div", { className: "brsResultBlock" },
                         React.createElement("button", { className: "btn", onClick: () => copyText(buildBRSWhatsAppText(), setCopiedBRS) }, copiedBRS ? "✓ Copied BRS groups" : "📋 Copy BRS groups for WhatsApp"))),
-                React.createElement("div", { className: "releaseList", style: { marginTop: 10 } },
-                    React.createElement("div", { className: "helpSection" },
-                        React.createElement("div", { className: "helpTitle" }, "🏆 BRS Booking League"),
-                        React.createElement("p", { className: "helpText" }, brsLeague && brsLeague.season ? `Season ${brsLeague.season.label} · 1 April to 31 March · players shown once they have at least one booking.` : "Loading season league...")),
-                    brsLeague && brsLeague.league && brsLeague.league.length ? React.createElement("table", { className: "statsTable" },
-                        React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "Player"), React.createElement("th", { style: { textAlign: "right" } }, "BRS bookings"))),
-                        React.createElement("tbody", null, brsLeague.league.map((row, i) => React.createElement("tr", { key: row.name }, React.createElement("td", { className: "name" }, `${i + 1}. ${row.name}`), React.createElement("td", { className: "num" }, row.count))))) : React.createElement("div", { className: "auditItem" }, "No BRS bookings recorded this season yet.")),
                 React.createElement("div", { className: "modalActions" },
-                    React.createElement("button", { className: "ghost", onClick: loadBRSLeague }, "Refresh league"),
                     React.createElement("button", { className: "green", onClick: () => setShowBRSBooking(false) }, "Close")))),
-        showBookingStats && React.createElement("div", { className: "modal" },
-            React.createElement("div", { className: "modalBox", style: { maxWidth: 520 } },
-                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Booking stats"),
-                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Admin view of booked, unavailable and no-response days by player."),
-                React.createElement("div", { className: "statsControls" },
-                    React.createElement("select", { className: "select", value: bookingStatsPeriod, onChange: e => setBookingStatsPeriod(e.target.value) },
-                        React.createElement("option", { value: "4" }, "Last 4 weeks"),
-                        React.createElement("option", { value: "8" }, "Last 8 weeks"),
-                        React.createElement("option", { value: "12" }, "Last 12 weeks"),
-                        React.createElement("option", { value: "all" }, "All time")),
-                    React.createElement("select", { className: "select", value: bookingStatsSort, onChange: e => setBookingStatsSort(e.target.value) },
-                        React.createElement("option", { value: "mostBooked" }, "Most booked"),
-                        React.createElement("option", { value: "leastBooked" }, "Least booked"),
-                        React.createElement("option", { value: "mostNoResponse" }, "Most no response"))),
-                React.createElement("div", { className: "bookingLegend" }, bookingStats ? `${bookingStatsPeriodLabel()} · ${bookingStats.dateCount || 0} weekend days · ${bookingStats.from} to ${bookingStats.to}` : bookingStatsStatus || "Loading..."),
-                React.createElement("div", { className: "releaseList" },
-                    React.createElement("table", { className: "statsTable" },
-                        React.createElement("thead", null,
-                            React.createElement("tr", null,
-                                React.createElement("th", null, "Player"),
-                                React.createElement("th", { style: { textAlign: "right" } }, "Booked"),
-                                React.createElement("th", { style: { textAlign: "right" } }, "Unavailable"),
-                                React.createElement("th", { style: { textAlign: "right" } }, "No response"))),
-                        React.createElement("tbody", null, sortedBookingStats().map(row => React.createElement("tr", { key: row.name },
-                            React.createElement("td", { className: "name" }, row.name),
-                            React.createElement("td", { className: "num" }, row.booked),
-                            React.createElement("td", { className: "num" }, row.unavailable),
-                            React.createElement("td", { className: "num" }, row.noResponse))))),
-                    bookingStats && !sortedBookingStats().length && React.createElement("div", { className: "auditItem" }, "No booking stats available yet.")),
-                React.createElement("div", { className: "bookingLegend" }, bookingStatsStatus),
+        showReporting && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 540 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Reporting"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Admin reporting for BRS booking success and player booking activity."),
+                React.createElement("div", { className: "reportingTabs" },
+                    React.createElement("button", { className: `reportingTab ${reportingTab === "brs" ? "active" : ""}`, onClick: async () => { setReportingTab("brs"); await loadBRSLeague(); } }, "BRS League"),
+                    React.createElement("button", { className: `reportingTab ${reportingTab === "stats" ? "active" : ""}`, onClick: async () => { setReportingTab("stats"); await loadBookingStats(); } }, "Player Stats")),
+                reportingTab === "brs" && React.createElement(React.Fragment, null,
+                    React.createElement("div", { className: "helpSection", style: { border: "1px solid var(--border)", borderRadius: 10, background: "#fffdf7", marginBottom: 8 } },
+                        React.createElement("div", { className: "helpTitle" }, "🏆 BRS Booking League"),
+                        React.createElement("p", { className: "helpText" }, brsLeague && brsLeague.season ? `Season ${brsLeague.season.label} · 1 April to 31 March · players shown once they have at least one booking.` : brsStatus || "Loading season league...")),
+                    React.createElement("div", { className: "releaseList" },
+                        brsLeague && brsLeague.league && brsLeague.league.length ? React.createElement("table", { className: "statsTable" },
+                            React.createElement("thead", null, React.createElement("tr", null, React.createElement("th", null, "Player"), React.createElement("th", { style: { textAlign: "right" } }, "BRS bookings"))),
+                            React.createElement("tbody", null, brsLeague.league.map((row, i) => React.createElement("tr", { key: row.name }, React.createElement("td", { className: "name" }, `${i + 1}. ${row.name}`), React.createElement("td", { className: "num" }, row.count))))) : React.createElement("div", { className: "auditItem" }, "No BRS bookings recorded this season yet.")),
+                    React.createElement("div", { className: "bookingLegend" }, brsStatus)),
+                reportingTab === "stats" && React.createElement(React.Fragment, null,
+                    React.createElement("div", { className: "statsControls" },
+                        React.createElement("select", { className: "select", value: bookingStatsPeriod, onChange: e => setBookingStatsPeriod(e.target.value) },
+                            React.createElement("option", { value: "4" }, "Last 4 weeks"),
+                            React.createElement("option", { value: "8" }, "Last 8 weeks"),
+                            React.createElement("option", { value: "12" }, "Last 12 weeks"),
+                            React.createElement("option", { value: "all" }, "All time")),
+                        React.createElement("select", { className: "select", value: bookingStatsSort, onChange: e => setBookingStatsSort(e.target.value) },
+                            React.createElement("option", { value: "mostBooked" }, "Most booked"),
+                            React.createElement("option", { value: "leastBooked" }, "Least booked"),
+                            React.createElement("option", { value: "mostNoResponse" }, "Most no response"))),
+                    React.createElement("div", { className: "bookingLegend" }, bookingStats ? `${bookingStatsPeriodLabel()} · ${bookingStats.dateCount || 0} weekend days · ${bookingStats.from} to ${bookingStats.to}` : bookingStatsStatus || "Loading..."),
+                    React.createElement("div", { className: "releaseList" },
+                        React.createElement("table", { className: "statsTable" },
+                            React.createElement("thead", null,
+                                React.createElement("tr", null,
+                                    React.createElement("th", null, "Player"),
+                                    React.createElement("th", { style: { textAlign: "right" } }, "Booked"),
+                                    React.createElement("th", { style: { textAlign: "right" } }, "Unavailable"),
+                                    React.createElement("th", { style: { textAlign: "right" } }, "No response"))),
+                            React.createElement("tbody", null, sortedBookingStats().map(row => React.createElement("tr", { key: row.name },
+                                React.createElement("td", { className: "name" }, row.name),
+                                React.createElement("td", { className: "num" }, row.booked),
+                                React.createElement("td", { className: "num" }, row.unavailable),
+                                React.createElement("td", { className: "num" }, row.noResponse))))),
+                        bookingStats && !sortedBookingStats().length && React.createElement("div", { className: "auditItem" }, "No booking stats available yet.")),
+                    React.createElement("div", { className: "bookingLegend" }, bookingStatsStatus)),
                 React.createElement("div", { className: "modalActions" },
-                    React.createElement("button", { className: "ghost", onClick: () => loadBookingStats() }, "Refresh"),
-                    React.createElement("button", { className: "green", onClick: () => setShowBookingStats(false) }, "Close")))),
+                    React.createElement("button", { className: "ghost", onClick: () => reportingTab === "brs" ? loadBRSLeague() : loadBookingStats() }, "Refresh"),
+                    React.createElement("button", { className: "green", onClick: () => setShowReporting(false) }, "Close")))),
         showMyBookings && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 430 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "My bookings"),
@@ -1037,7 +1051,7 @@ Bookings confirmed ✅`;
                         React.createElement("p", { className: "helpText" }, "Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list. The not-booked list excludes players who have marked themselves unavailable.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Admin booking stats"),
-                        React.createElement("p", { className: "helpText" }, "Admins can use Booking Stats to see who has booked, marked unavailable, or not responded over recent weeks. Logged-in players can use BRS Booking to record who secured tee times and create WhatsApp-ready BRS groups.")),
+                        React.createElement("p", { className: "helpText" }, "Admins can use Reporting to view the BRS Booking League and player Booking Stats. Logged-in players can use BRS Booking to record who secured tee times and create WhatsApp-ready BRS groups.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "More info"),
                         React.createElement("p", { className: "helpText" }, "Use My Bookings to see your upcoming personal status. Click any week in My Bookings to jump straight to that weekend. Use the live version number to view release notes."))),

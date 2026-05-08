@@ -236,7 +236,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 34 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v38"')) throw new Error("v37 marker missing");
+if (!html.includes('const VERSION = "v39"')) throw new Error("v39 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -319,13 +319,13 @@ if (!html.includes('setActiveDay("sat");') || !html.includes('setSelectedKey(sat
 if (html.includes('View weekend') || html.includes('VIEW WEEKEND')) throw new Error('v35 should not add extra My Bookings view buttons');
 
 if (!html.includes('{ version: "v36", title: "Admin booking stats"')) throw new Error('v36 release notes entry missing');
-if (!html.includes('showBookingStats')) throw new Error('v36 Booking Stats modal state missing');
+if (!html.includes('showReporting')) throw new Error('v39 Reporting modal state missing');
 if (!html.includes('/api/admin/booking-stats')) throw new Error('v36 Booking Stats should use DB-backed admin endpoint');
-if (!html.includes('📊 Booking stats')) throw new Error('v36 admin Booking Stats button missing');
+if (!html.includes('REPORTING')) throw new Error('v39 Reporting footer button missing');
 if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes('No response')) throw new Error('v36 Booking Stats table headings missing');
 if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
 if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
-if (!html.includes('Admins can use Booking Stats to see who has booked, marked unavailable, or not responded over recent weeks.')) throw new Error('v36 Help panel should mention Booking Stats');
+if (!html.includes('Admins can use Reporting to view the BRS Booking League and player Booking Stats.')) throw new Error('v39 Help panel should mention Reporting');
 if (!html.includes('{ version: "v38", title: "BRS Booking"')) throw new Error('v38 release notes entry missing');
 if (!html.includes('showBRSBooking')) throw new Error('v38 BRS Booking modal state missing');
 if (!html.includes('BRS Booking')) throw new Error('v38 BRS Booking button/copy missing');
@@ -334,6 +334,10 @@ if (!html.includes('BRS Booking League')) throw new Error('v38 BRS league table 
 if (!html.includes('1 April to 31 March')) throw new Error('v38 BRS league should explain April to March season');
 if (!html.includes('Copy BRS groups for WhatsApp')) throw new Error('v38 BRS WhatsApp copy button missing');
 if (!html.includes('Create BRS groups')) throw new Error('v38 BRS group creation button missing');
+if (!html.includes('{ version: "v39", title: "Reporting area and BRS speed fix"')) throw new Error('v39 release notes entry missing');
+if (!html.includes('clearBRSBooking(); setBRSStatus(""); setShowBRSBooking(true);')) throw new Error('v39 BRS Booking should open with no selected bookers');
+if (!html.includes('reportingFooter') || !html.includes('reportingBtn')) throw new Error('v39 Reporting footer styling missing');
+if (!html.includes('reportingTab') || !html.includes('BRS League') || !html.includes('Player Stats')) throw new Error('v39 Reporting panel should contain BRS League and Player Stats tabs');
 if (!html.includes('{ version: "v37", title: "Add to Calendar"')) throw new Error('v37 release notes entry missing');
 if (!html.includes('calendarBtn')) throw new Error('v37 calendar icon button style missing');
 if (!html.includes('buildGoogleCalendarUrl')) throw new Error('v37 Google Calendar URL helper missing');
@@ -344,4 +348,4 @@ if (!html.includes('calendarDateStamp(date, 8)') || !html.includes('calendarDate
 if (!html.includes('Competition: ${String(competition).trim()}')) throw new Error('v37 calendar description should include competition only');
 if (!html.includes('canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName)')) throw new Error('v37 calendar icon should only show for logged-in booked players');
 if (!html.includes('Add to Google Calendar')) throw new Error('v37 calendar button title missing');
-console.log("PASS: v38 UI regression checks passed");
+console.log("PASS: v39 UI regression checks passed");

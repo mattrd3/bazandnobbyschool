@@ -119,6 +119,8 @@ async function ensureOperationalTables(db) {
   await db.prepare(AUDIT_EVENTS_INDEX_SQL).run();
   await db.prepare(PLAYER_STATUS_TABLE_SQL).run();
   await db.prepare(BRS_BOOKINGS_TABLE_SQL).run();
+  await db.prepare("ALTER TABLE brs_bookings ADD COLUMN spareBookersJson TEXT").run().catch(() => {});
+  await db.prepare("ALTER TABLE brs_bookings ADD COLUMN detailsJson TEXT").run().catch(() => {});
   await db.prepare(BRS_BOOKINGS_DATE_INDEX_SQL).run();
 }
 async function appendAuditEvent(db, dateKey, entry) {

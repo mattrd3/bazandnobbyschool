@@ -1,4 +1,4 @@
-# Baz and Nobby School — Test Pack v38
+# Baz and Nobby School — Test Pack v39
 
 This patch adds a regression and soak-testing package for the Cloudflare Pages + D1 app.
 
@@ -360,3 +360,15 @@ Adds a logged-in-player/admin BRS Booking helper for the 7:30am tee-time scrambl
 - Adds a BRS Booking League for the golf season, **1 April to 31 March**, showing only players with at least one recorded BRS booking.
 
 D1 table auto-created by the API on first use: `brs_bookings`.
+
+
+## v39 — Reporting area and BRS speed fix
+
+- BRS Booking now opens with no players pre-selected. Users only tick the people who actually secured BRS tee times.
+- Moved the BRS Booking League out of the BRS Booking modal to keep the 7:30am workflow fast and uncluttered.
+- Moved player Booking Stats into the new Reporting panel.
+- Added an admin-only fixed footer button labelled **REPORTING**.
+- The Reporting panel contains two tabs: **BRS League** and **Player Stats**.
+- The API now safely adds missing `brs_bookings` compatibility columns if an earlier v38 table was created manually.
+- No further manual SQL is required if the v38 `brs_bookings` table already exists.
+- The visible app version marker is now `LIVE- v39`.
