@@ -777,8 +777,7 @@ Bookings confirmed ✅`;
         if (r.spareBookers && r.spareBookers.length) lines.push(`Spare BRS booking${r.spareBookers.length === 1 ? "" : "s"}: ${r.spareBookers.join(", ")}`, "");
         lines.push(`Confirmed players: ${r.confirmedCount || currentPlayers.length}`);
         lines.push(`Tee times needed: ${r.teeTimesNeeded || Math.ceil(currentPlayers.length / 4)}`);
-        return lines.join("
-").trim();
+        return lines.join("\n").trim();
     };
     const sortedBookingStats = () => {
         const rows = [...((bookingStats && bookingStats.stats) || [])];
