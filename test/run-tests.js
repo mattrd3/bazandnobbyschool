@@ -197,7 +197,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 33 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v36"')) throw new Error("v36 marker missing");
+if (!html.includes('const VERSION = "v37"')) throw new Error("v37 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -287,4 +287,14 @@ if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes(
 if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
 if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
 if (!html.includes('Admins can use Booking Stats to see who has booked, marked unavailable, or not responded over recent weeks.')) throw new Error('v36 Help panel should mention Booking Stats');
-console.log("PASS: v36 UI regression checks passed");
+if (!html.includes('{ version: "v37", title: "Add to Calendar"')) throw new Error('v37 release notes entry missing');
+if (!html.includes('calendarBtn')) throw new Error('v37 calendar icon button style missing');
+if (!html.includes('buildGoogleCalendarUrl')) throw new Error('v37 Google Calendar URL helper missing');
+if (!html.includes('text: "Weekend Golf"')) throw new Error('v37 calendar event title should be Weekend Golf');
+if (!html.includes('location: "Druids Heath Golf Club"')) throw new Error('v37 calendar location should be Druids Heath Golf Club');
+if (!html.includes('ctz: "Europe/London"')) throw new Error('v37 calendar timezone should be Europe/London');
+if (!html.includes('calendarDateStamp(date, 8)') || !html.includes('calendarDateStamp(date, 14)')) throw new Error('v37 calendar event should use 8am to 2pm');
+if (!html.includes('Competition: ${String(competition).trim()}')) throw new Error('v37 calendar description should include competition only');
+if (!html.includes('canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName)')) throw new Error('v37 calendar icon should only show for logged-in booked players');
+if (!html.includes('Add to Google Calendar')) throw new Error('v37 calendar button title missing');
+console.log("PASS: v37 UI regression checks passed");

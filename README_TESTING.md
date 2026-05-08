@@ -1,4 +1,4 @@
-# Baz and Nobby School — Test Pack v7
+# Baz and Nobby School — Test Pack v37
 
 This patch adds a regression and soak-testing package for the Cloudflare Pages + D1 app.
 
@@ -334,3 +334,14 @@ The quick regression suite now checks the icon-only weekend status helper and co
 - Period choices: last 4 weeks, last 8 weeks, last 12 weeks and all time.
 - Sort choices: most booked, least booked and most no response.
 - No SQL or D1 schema migration required.
+
+
+## v37 — Add to Calendar
+
+- Added a tiny calendar icon beside the active day heading for logged-in players who are booked on that day.
+- The icon opens Google Calendar with a pre-filled event.
+- Event title: `Weekend Golf`.
+- Time: `08:00–14:00` using `Europe/London`.
+- Location: `Druids Heath Golf Club`.
+- Description includes `Competition: <competition name>` only when a competition is set.
+- No SQL or D1 schema change required.
