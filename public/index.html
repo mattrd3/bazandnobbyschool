@@ -188,7 +188,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v41";
+const VERSION = "v42";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -216,6 +216,7 @@ function openCalendarForDay(date, competition = "") {
     window.open(buildGoogleCalendarUrl(date, competition), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v42", title: "Current-weekend dropdown fix", changes: ["Fixed the weekend dropdown so This weekend stays on the current Saturday/Sunday through Saturday and Sunday.", "The app now only moves This weekend to the following weekend after Monday 00:01 UK/local time.", "This prevents Sunday users seeing the next weekend too early."] },
     { version: "v41", title: "BRS Booking mobile cleanup", changes: ["Moved Reporting back to admin-only while BRS reporting is parked for now.", "BRS Booking is now focused on fast operational use only and does not show the BRS League in the busy booking flow.", "Made the BRS Booking panel more compact on mobile with a sticky header, sticky action buttons, less explanatory text, and smaller toggle buttons so Close/Create/Copy are easier to reach." ] },
     { version: "v40", title: "Reporting visibility and BRS league reset", changes: ["Made the Reporting footer available to all logged-in players, not just admins.", "Kept no-response booking stats visible to admins only, while logged-in players can still see booked and unavailable counts.", "Updated the BRS Booking League so it only counts BRS bookings recorded from this corrected version onward; historic or accidental pre-v40 records are not backfilled." ] },
     { version: "v39", title: "Reporting area and BRS speed fix", changes: ["BRS Booking now opens with no players pre-selected, so users only tick the people who actually secured tee times.", "Moved BRS Booking League and player Booking Stats into a compact Reporting panel to keep the BRS Booking screen fast and uncluttered.", "Added a permanent Reporting footer button so admin reporting is easy to find without taking up booking-screen space." ] },
@@ -239,13 +240,32 @@ const RELEASE_NOTES = [
     { version: "v20", title: "Saturday default", changes: ["Changing weekend now selects Saturday by default."] }
 ];
 const groupLabel = n => n === 4 ? "4-ball" : n === 3 ? "3-ball" : n === 2 ? "2-ball" : `${n}-ball`;
+function getCurrentWeekendSaturday(now = new Date()) {
+    // v42: "This weekend" should mean the current Saturday/Sunday until Monday 00:01.
+    // Previously Saturday/Sunday could advance to the following weekend too early.
+    const anchor = new Date(now);
+    anchor.setHours(0, 0, 0, 0);
+    const day = now.getDay();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    if (day === 6)
+        return anchor;
+    if (day === 0) {
+        anchor.setDate(anchor.getDate() - 1);
+        return anchor;
+    }
+    if (day === 1 && minutes < 1) {
+        anchor.setDate(anchor.getDate() - 2);
+        return anchor;
+    }
+    const daysUntilSat = (6 - day + 7) % 7;
+    anchor.setDate(anchor.getDate() + daysUntilSat);
+    return anchor;
+}
 function getUpcomingWeekends(count = 52) {
     const out = [];
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const daysUntilSat = (6 - today.getDay() + 7) % 7 || 7;
-    const firstSat = new Date(today);
-    firstSat.setDate(today.getDate() + daysUntilSat);
+    const firstSat = getCurrentWeekendSaturday();
     for (let i = 0; i < count; i++) {
         const sat = new Date(firstSat);
         sat.setDate(firstSat.getDate() + i * 7);
@@ -258,11 +278,7 @@ function getUpcomingWeekends(count = 52) {
 }
 function getPastWeekends(count = 8) {
     const out = [];
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const daysUntilSat = (6 - today.getDay() + 7) % 7 || 7;
-    const firstSat = new Date(today);
-    firstSat.setDate(today.getDate() + daysUntilSat);
+    const firstSat = getCurrentWeekendSaturday();
     for (let i = 1; i <= count; i++) {
         const sat = new Date(firstSat);
         sat.setDate(firstSat.getDate() - i * 7);

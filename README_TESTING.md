@@ -387,3 +387,9 @@ D1 table auto-created by the API on first use: `brs_bookings`.
 - Creating/recreating BRS groups no longer creates league-table rows.
 - BRS Booking modal is more compact on mobile, with sticky header/close and sticky Clear/Create/Copy controls.
 - The visible app version marker is now `LIVE- v41`.
+
+
+## v42 - Current-weekend dropdown fix
+- Fixed the weekend dropdown so “This weekend” stays on the current Saturday/Sunday through Sunday.
+- The app only rolls forward to the next weekend after Monday 00:01.
+- No D1 schema or SQL change required.

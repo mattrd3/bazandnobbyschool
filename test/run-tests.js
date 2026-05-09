@@ -243,7 +243,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 35 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v41"')) throw new Error("v41 marker missing");
+if (!html.includes('const VERSION = "v42"')) throw new Error("v42 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -344,6 +344,11 @@ if (html.includes('🏆 BRS Booking League')) throw new Error('v41 should park/h
 if (!html.includes('Copy BRS groups for WhatsApp')) throw new Error('v38 BRS WhatsApp copy button missing');
 if (!html.includes('Create groups')) throw new Error('v41 compact BRS group creation button missing');
 if (!html.includes('{ version: "v41", title: "BRS Booking mobile cleanup"')) throw new Error('v41 release notes entry missing');
+
+if (!html.includes('{ version: "v42", title: "Current-weekend dropdown fix"')) throw new Error('v42 release notes entry missing');
+if (!html.includes('function getCurrentWeekendSaturday(now = new Date())')) throw new Error('v42 current weekend anchor helper missing');
+if (!html.includes('day === 0') || !html.includes('day === 1 && minutes < 1')) throw new Error('v42 should keep the current weekend through Sunday and Monday 00:00');
+if (html.includes('const daysUntilSat = (6 - today.getDay() + 7) % 7 || 7')) throw new Error('v42 should not skip the current Saturday/Sunday as This weekend');
 if (!html.includes('{ version: "v39", title: "Reporting area and BRS speed fix"')) throw new Error('v39 release notes entry missing');
 if (!html.includes('clearBRSBooking(); setBRSStatus(""); setShowBRSBooking(true);')) throw new Error('v39 BRS Booking should open with no selected bookers');
 if (!html.includes('reportingFooter') || !html.includes('reportingBtn')) throw new Error('v39 Reporting footer styling missing');
@@ -359,4 +364,4 @@ if (!html.includes('calendarDateStamp(date, 8)') || !html.includes('calendarDate
 if (!html.includes('Competition: ${String(competition).trim()}')) throw new Error('v37 calendar description should include competition only');
 if (!html.includes('canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName)')) throw new Error('v37 calendar icon should only show for logged-in booked players');
 if (!html.includes('Add to Google Calendar')) throw new Error('v37 calendar button title missing');
-console.log("PASS: v41 UI regression checks passed");
+console.log("PASS: v42 UI regression checks passed");
