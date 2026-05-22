@@ -243,7 +243,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 35 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v42"')) throw new Error("v42 marker missing");
+if (!html.includes('const VERSION = "v43"')) throw new Error("v43 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -255,7 +255,7 @@ if (!html.includes("Copy not-booked weekend list for WhatsApp")) throw new Error
 if (!html.includes("buildNotBookedWeekendText")) throw new Error("v30 not-booked weekend WhatsApp message builder missing");
 if (!html.includes("notBookedForWeekend")) throw new Error("v30 not-booked weekend roster helper missing");
 if (!html.includes("Players not booked and not marked unavailable for Saturday or Sunday")) throw new Error("v32 not-booked WhatsApp copy should exclude unavailable players");
-if (!html.includes("setEditingComp(false); setCompInput(\"\"); }, [dateKey])")) throw new Error("competition edit reset on date change missing");
+if (!html.includes("setEditingComp(false); setCompInput(\"\");") || !html.includes("setShowTeeTimesEditor(false); setTeeTimeInputs([]);")) throw new Error("competition/tee-time edit reset on date change missing");
 if (!html.includes("getSignupCutoff")) throw new Error("client signup cutoff helper missing");
 if (!html.includes("Add to booking?")) throw new Error("add confirmation modal missing");
 if (!html.includes("CONFIRMED FOR THIS DATE")) throw new Error("locked-date confirmed summary box missing");
@@ -360,8 +360,16 @@ if (!html.includes('buildGoogleCalendarUrl')) throw new Error('v37 Google Calend
 if (!html.includes('text: "Weekend Golf"')) throw new Error('v37 calendar event title should be Weekend Golf');
 if (!html.includes('location: "Druids Heath Golf Club"')) throw new Error('v37 calendar location should be Druids Heath Golf Club');
 if (!html.includes('ctz: "Europe/London"')) throw new Error('v37 calendar timezone should be Europe/London');
-if (!html.includes('calendarDateStamp(date, 8)') || !html.includes('calendarDateStamp(date, 14)')) throw new Error('v37 calendar event should use 8am to 2pm');
+if (!html.includes('buildGoogleCalendarUrl(date, competition = "", teeTimes = [])')) throw new Error('v43 calendar helper should accept tee times');
+if (!html.includes('addHoursToTime(cleanTimes[0] || "08:00", 5)')) throw new Error('v43 calendar event should use first tee time plus five hours with 08:00 fallback');
 if (!html.includes('Competition: ${String(competition).trim()}')) throw new Error('v37 calendar description should include competition only');
 if (!html.includes('canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName)')) throw new Error('v37 calendar icon should only show for logged-in booked players');
 if (!html.includes('Add to Google Calendar')) throw new Error('v37 calendar button title missing');
-console.log("PASS: v42 UI regression checks passed");
+if (!html.includes('{ version: "v43", title: "Tee times and smarter draw/calendar"')) throw new Error('v43 release notes entry missing');
+if (!html.includes('teeTimesLine')) throw new Error('v43 compact tee-time display missing');
+if (!html.includes('admin/tee-times')) throw new Error('v43 admin tee-time API call missing');
+if (!html.includes('Tee times: ')) throw new Error('v43 tee times display/copy text missing');
+if (!html.includes('buildDrawWhatsAppText')) throw new Error('v43 draw WhatsApp copy builder missing');
+if (!html.includes('Copy draw for WhatsApp')) throw new Error('v43 draw WhatsApp copy button missing');
+if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
+console.log("PASS: v43 UI regression checks passed");

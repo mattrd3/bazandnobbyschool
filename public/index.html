@@ -91,6 +91,9 @@
     .dateLine { display:flex; align-items:center; gap:7px; }
     .calendarBtn { border:0; background:transparent; padding:0 2px; margin:0; cursor:pointer; font-size:15px; line-height:1; color:var(--green); }
     .calendarBtn:disabled { opacity:.4; cursor:not-allowed; }
+    .teeTimesLine { margin-top:7px; font-size:12px; color:var(--green); text-align:right; }
+    .teeTimeGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .teeTimeHint { font-size:11px; color:var(--muted); line-height:1.35; margin-top:8px; }
     .comp { color: var(--warning); font-size:12px; margin-top:3px; }
     .key { color: var(--muted-2); font-size:11px; margin-top:3px; }
     .count { color: var(--muted); font-size:13px; text-align:right; }
@@ -188,20 +191,39 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v42";
+const VERSION = "v43";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
     "2026-01-03": "Medal", "2026-01-04": "Winter League", "2026-01-10": "4 Ball", "2026-01-11": "Bogey", "2026-01-17": "Yellow Ball Competition", "2026-01-18": "Winter League", "2026-01-24": "Stableford", "2026-01-25": "4 Ball", "2026-01-31": "Stableford Team Event (4 person waltz)", "2026-02-01": "Winter League", "2026-02-07": "Stableford", "2026-02-08": "Bogey", "2026-02-14": "Medal", "2026-02-15": "Winter League", "2026-02-21": "Mixed Yellow Ball Stableford", "2026-02-22": "4 Ball", "2026-02-28": "Bogey", "2026-03-01": "Stableford", "2026-03-07": "Medal", "2026-03-08": "Texas Scramble", "2026-03-14": "Stableford", "2026-03-15": "4 Ball (Mother's Day)", "2026-03-21": "2-Man Aggregate Stableford", "2026-03-22": "Medal", "2026-03-28": "Stableford", "2026-03-29": "Captains' Drive-Ins & 4BBB", "2026-04-04": "4-Ball Stableford", "2026-04-05": "Medal (Easter Sunday)", "2026-04-11": "Chairman's Trophy (Greensome)", "2026-04-12": "Druids Cup / Medal", "2026-04-18": "Stableford", "2026-04-19": "Champion of Champions Medal", "2026-04-25": "V H Pearce 2-Man Texas Scramble", "2026-04-26": "Dusty Bin Stableford", "2026-05-02": "Stan Creswell Trophy Medal", "2026-05-03": "Foursomes Cup", "2026-05-09": "1st Invitation Day", "2026-05-10": "Over 50's Cup Medal", "2026-05-16": "Mixed 4BBB Stableford", "2026-05-17": "Stableford (4 person team)", "2026-05-23": "Stableford", "2026-05-24": "Boldmere Bowl Medal", "2026-05-30": "4 Ball", "2026-05-31": "Captain's Charity Shield Stableford", "2026-06-06": "Presidents Championship Day Medal", "2026-06-07": "Stableford", "2026-06-13": "4 Ball", "2026-06-14": "Members Memorial Salver Medal", "2026-06-20": "Captain's Open AM AM", "2026-06-21": "Stableford (Father's Day)", "2026-06-27": "Pro's Day Medal", "2026-06-28": "4 Ball", "2026-07-04": "Greensome / Yardley Holland Cup", "2026-07-05": "Secretary's Cup Medal", "2026-07-11": "Club Championship Round 1", "2026-07-12": "Club Championship Round 2", "2026-07-18": "Captain's Weekend Texas Scramble", "2026-07-19": "Captain's Weekend Men's 4 Ball", "2026-07-25": "Scratch Stableford", "2026-07-26": "M & S Pooley Cup 4 Ball", "2026-08-01": "Greensome / Yardley Holland Cup", "2026-08-02": "Twyford Seeds Cup Medal", "2026-08-08": "Stableford Yellow Ball", "2026-08-09": "Bill Mountford Memorial Trophy Stableford", "2026-08-15": "Gents Open", "2026-08-16": "Bogey", "2026-08-22": "Stableford", "2026-08-23": "Ray Garnett Trophy Texas Scramble", "2026-08-29": "President's Day", "2026-08-30": "Golfer Non-Golfer", "2026-09-05": "Batevale Trophy Medal", "2026-09-06": "Stableford", "2026-09-12": "P.G. Whatton Trophy Stableford", "2026-09-13": "2nd Invitation Day", "2026-09-19": "L.E. Swain Trophy Medal", "2026-09-20": "4 Ball", "2026-09-26": "Stableford (Junior Fundraiser)", "2026-09-27": "Paul Canning Trophy Medal", "2026-10-03": "Green's Committee Cup Medal", "2026-10-04": "Stableford", "2026-10-10": "4 Ball", "2026-10-11": "Greenkeeper's Tankard", "2026-10-17": "Bogey", "2026-10-18": "Stableford", "2026-10-24": "Stableford Texas AM-AM", "2026-10-25": "Winter League", "2026-10-31": "Bogey", "2026-11-01": "Winter League", "2026-11-07": "Stableford", "2026-11-08": "4 Ball", "2026-11-14": "Medal", "2026-11-15": "Winter League", "2026-11-21": "Stableford", "2026-11-22": "2 Man Aggregate Stableford", "2026-11-28": "4 Ball", "2026-11-29": "Stableford", "2026-12-06": "Winter League", "2026-12-12": "Texas AM AM", "2026-12-13": "Winter League", "2026-12-19": "Pro's Christmas Jumper", "2026-12-20": "Christmas Stableford"
 };
-const initDay = (comp = "") => ({ players: [], unavailablePlayers: [], priorityPlayers: [], locked: false, competition: comp, audit: [], draw: null });
+const initDay = (comp = "") => ({ players: [], unavailablePlayers: [], priorityPlayers: [], locked: false, competition: comp, audit: [], draw: null, teeTimes: [] });
 const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
 const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
-const calendarDateStamp = (date, hour) => `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}T${String(hour).padStart(2, "0")}0000`;
-function buildGoogleCalendarUrl(date, competition = "") {
-    const start = calendarDateStamp(date, 8);
-    const end = calendarDateStamp(date, 14);
+const calendarDateStamp = (date, hour, minute = 0) => `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}T${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}00`;
+function parseTeeTime(value) {
+    const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return { hour, minute };
+}
+function addHoursToTime(time, hoursToAdd) {
+    const base = parseTeeTime(time) || { hour: 8, minute: 0 };
+    const totalMinutes = base.hour * 60 + base.minute + (hoursToAdd * 60);
+    return { hour: Math.floor(totalMinutes / 60) % 24, minute: totalMinutes % 60 };
+}
+function cleanTeeTimes(values) {
+    return Array.isArray(values) ? values.map(v => String(v || "").trim()).filter(v => parseTeeTime(v)) : [];
+}
+function buildGoogleCalendarUrl(date, competition = "", teeTimes = []) {
+    const cleanTimes = cleanTeeTimes(teeTimes);
+    const firstTime = parseTeeTime(cleanTimes[0]) || { hour: 8, minute: 0 };
+    const endTime = addHoursToTime(cleanTimes[0] || "08:00", 5);
+    const start = calendarDateStamp(date, firstTime.hour, firstTime.minute);
+    const end = calendarDateStamp(date, endTime.hour, endTime.minute);
     const params = new URLSearchParams({
         action: "TEMPLATE",
         text: "Weekend Golf",
@@ -212,10 +234,11 @@ function buildGoogleCalendarUrl(date, competition = "") {
     if (String(competition || "").trim()) params.set("details", `Competition: ${String(competition).trim()}`);
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
-function openCalendarForDay(date, competition = "") {
-    window.open(buildGoogleCalendarUrl(date, competition), "_blank", "noopener,noreferrer");
+function openCalendarForDay(date, competition = "", teeTimes = []) {
+    window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v43", title: "Tee times and smarter draw/calendar", changes: ["Admins can optionally add tee times for each day, with entry fields adapting to the number of tees needed.", "Saved tee times display compactly under the confirmed/tees-needed summary and are hidden when none are saved.", "Calendar invites now use the first saved tee time plus five hours, or 08:00–13:00 if no tee time exists.", "Draw output and WhatsApp draw copy now include tee times while preserving existing draw rules."] },
     { version: "v42", title: "Current-weekend dropdown fix", changes: ["Fixed the weekend dropdown so This weekend stays on the current Saturday/Sunday through Saturday and Sunday.", "The app now only moves This weekend to the following weekend after Monday 00:01 UK/local time.", "This prevents Sunday users seeing the next weekend too early."] },
     { version: "v41", title: "BRS Booking mobile cleanup", changes: ["Moved Reporting back to admin-only while BRS reporting is parked for now.", "BRS Booking is now focused on fast operational use only and does not show the BRS League in the busy booking flow.", "Made the BRS Booking panel more compact on mobile with a sticky header, sticky action buttons, less explanatory text, and smaller toggle buttons so Close/Create/Copy are easier to reach." ] },
     { version: "v40", title: "Reporting visibility and BRS league reset", changes: ["Made the Reporting footer available to all logged-in players, not just admins.", "Kept no-response booking stats visible to admins only, while logged-in players can still see booked and unavailable counts.", "Updated the BRS Booking League so it only counts BRS bookings recorded from this corrected version onward; historic or accidental pre-v40 records are not backfilled." ] },
@@ -364,6 +387,7 @@ function App() {
     const [copiedReminder, setCopiedReminder] = useState(false);
     const [copiedSummary, setCopiedSummary] = useState(false);
     const [copiedNotBooked, setCopiedNotBooked] = useState(false);
+    const [copiedDraw, setCopiedDraw] = useState(false);
     const [playerName, setPlayerName] = useState(localStorage.getItem("wg_player_name") || "");
     const [playerPin, setPlayerPin] = useState(localStorage.getItem("wg_player_pin") || "");
     const [pinLoggedIn, setPinLoggedIn] = useState(localStorage.getItem("wg_player_ok") === "1");
@@ -389,6 +413,8 @@ function App() {
     const [brsLeague, setBRSLeague] = useState(null);
     const [brsStatus, setBRSStatus] = useState("");
     const [copiedBRS, setCopiedBRS] = useState(false);
+    const [showTeeTimesEditor, setShowTeeTimesEditor] = useState(false);
+    const [teeTimeInputs, setTeeTimeInputs] = useState([]);
     const upcoming = useMemo(() => getUpcomingWeekends(52), []);
     const past = useMemo(() => getPastWeekends(8), []);
     const weekends = adminMode ? [...past, ...upcoming] : upcoming.slice(0, 8);
@@ -411,6 +437,9 @@ function App() {
     const currentPlayers = Array.isArray(current.players) ? current.players : [];
     const currentUnavailable = Array.isArray(current.unavailablePlayers) ? current.unavailablePlayers : [];
     const currentPriority = Array.isArray(current.priorityPlayers) ? current.priorityPlayers.filter(name => currentPlayers.includes(name)) : [];
+    const teeTimes = cleanTeeTimes(current.teeTimes);
+    const teesNeeded = currentPlayers.length ? Math.ceil(currentPlayers.length / 4) : 0;
+    const teeTimeForGroup = index => teeTimes[index] || "Tee time TBC";
     const canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName);
     const allNames = [...new Set([...members, ...currentPlayers, ...currentUnavailable, playerName].filter(Boolean))].sort();
     const basePlayerDisplayNames = [
@@ -530,7 +559,7 @@ function App() {
     useEffect(() => { if (showReporting && reportingTab === "stats") loadBookingStats(bookingStatsPeriod); }, [showReporting, reportingTab, bookingStatsPeriod]);
     useEffect(() => { if (showReporting && reportingTab === "brs") loadBRSLeague(); }, [showReporting, reportingTab]);
     // Prevent a competition edit draft from being carried onto another day/weekend.
-    useEffect(() => { setEditingComp(false); setCompInput(""); }, [dateKey]);
+    useEffect(() => { setEditingComp(false); setCompInput(""); setShowTeeTimesEditor(false); setTeeTimeInputs([]); }, [dateKey]);
     function optimistic(dateKey, day) { setSchedule(prev => mergeWithBase({ ...prev, [dateKey]: day })); }
     function canEditPlayer(name) { return adminMode || (pinLoggedIn && playerName === name); }
     function requireOwnPlayer(name) {
@@ -698,6 +727,16 @@ function App() {
             setError("Copy failed. Select and copy manually if your browser blocks clipboard access.");
         }
     };
+    function openTeeTimesEditor() {
+        const count = Math.max(teesNeeded || 1, teeTimes.length || 1);
+        setTeeTimeInputs(Array.from({ length: count }, (_, i) => teeTimes[i] || ""));
+        setShowTeeTimesEditor(true);
+    }
+    async function saveTeeTimes() {
+        const cleaned = cleanTeeTimes(teeTimeInputs);
+        await adminPost("admin/tee-times", { teeTimes: cleaned });
+        setShowTeeTimesEditor(false);
+    }
     const buildConfirmedListText = () => {
         const comp = current.competition ? `
 🏆 ${current.competition}` : "";
@@ -707,7 +746,10 @@ function App() {
 No players confirmed yet.`;
         const confirmedLine = `${currentPlayers.length} playing:
 ${currentPlayers.map((p, i) => `${i + 1}. ${p}`).join("\n")}`;
-        return `⛳ Golf – ${formatDate(currentDate)}${comp}
+        const times = teeTimes.length ? `
+
+Tee times: ${teeTimes.join(", ")}` : "";
+        return `⛳ Golf – ${formatDate(currentDate)}${comp}${times}
 
 ${confirmedLine}
 
@@ -728,6 +770,9 @@ Bookings confirmed ✅`;
         }
         if (entry.action === "competition_changed") {
             return `${time} — ${actor} changed competition for ${day}: ${entry.from || "None"} → ${entry.to || "None"}`;
+        }
+        if (entry.action === "tee_times_changed") {
+            return `${time} — ${actor} changed tee times for ${day}: ${entry.from || "None"} → ${entry.to || "None"}`;
         }
         if (entry.action === "admin_locked" || entry.action === "admin_unlocked") {
             const extra = entry.playerCount !== undefined ? ` (${entry.playerCount} players${entry.groupCount ? `, ${entry.groupCount} groups` : ""})` : "";
@@ -815,6 +860,18 @@ Bookings confirmed ✅`;
         lines.push(`Tee times needed: ${r.teeTimesNeeded || Math.ceil(currentPlayers.length / 4)}`);
         return lines.join("\n").trim();
     };
+    const buildDrawWhatsAppText = () => {
+        if (!Array.isArray(current.draw) || !current.draw.length) return "";
+        const lines = [`⛳ Weekend Golf Draw — ${formatDate(currentDate)}`];
+        if (current.competition) lines.push(`🏆 ${current.competition}`);
+        lines.push("", "Druids Heath Golf Club", "");
+        current.draw.forEach((group, i) => {
+            lines.push(teeTimes.length ? teeTimeForGroup(i) : `Tee ${i + 1}`);
+            lines.push((group || []).join(", ") || "No players assigned");
+            lines.push("");
+        });
+        return lines.join("\n").trim();
+    };
     const sortedBookingStats = () => {
         const rows = [...((bookingStats && bookingStats.stats) || [])];
         const byName = (a, b) => a.name.localeCompare(b.name);
@@ -872,7 +929,7 @@ Bookings confirmed ✅`;
             React.createElement("div", null,
                 React.createElement("div", { className: "dateLine" },
                     React.createElement("div", { className: "date" }, formatDate(currentDate)),
-                    canAddToCalendar && React.createElement("button", { className: "calendarBtn", onClick: () => openCalendarForDay(currentDate, current.competition), title: "Add to Google Calendar", "aria-label": "Add this booked golf day to Google Calendar" }, "📅")),
+                    canAddToCalendar && React.createElement("button", { className: "calendarBtn", onClick: () => openCalendarForDay(currentDate, current.competition, teeTimes), title: "Add to Google Calendar", "aria-label": "Add this booked golf day to Google Calendar" }, "📅")),
                 current.competition && React.createElement("div", { className: "comp" },
                     "\uD83C\uDFC6 ",
                     current.competition),
@@ -891,22 +948,23 @@ Bookings confirmed ✅`;
                 " confirmed",
                 React.createElement("br", null),
                 React.createElement("small", null,
-                    currentPlayers.length ? Math.ceil(currentPlayers.length / 4) : 0,
+                    teesNeeded,
                     " tee time",
-                    currentPlayers.length > 4 ? "s" : ""))),
+                    currentPlayers.length > 4 ? "s" : ""),
+                teeTimes.length > 0 && React.createElement("div", { className: "teeTimesLine" }, "Tee times: ", teeTimes.join(", ")))),
         current.locked && current.draw && React.createElement("div", { className: "draw" },
             React.createElement("div", { className: "drawHead" }, "\uD83C\uDFB2 TEE TIME DRAW"),
             current.draw.map((g, i) => React.createElement("div", { className: "group", key: i },
                 React.createElement("div", { className: "groupH" },
-                    React.createElement("span", null,
-                        "TEE ",
-                        i + 1),
+                    React.createElement("span", null, teeTimes.length ? teeTimeForGroup(i) : `TEE ${i + 1}`),
                     React.createElement("span", null, groupLabel(g.length))),
                 g.map((p, j) => React.createElement("div", { className: "groupP", key: p },
                     j + 1,
                     ". ",
                     currentPriority.includes(p) ? "⭐ " : "",
-                    p))))),
+                    p))),
+            adminMode && React.createElement("div", { className: "group" },
+                React.createElement("button", { className: "btn", onClick: () => copyText(buildDrawWhatsAppText(), setCopiedDraw) }, copiedDraw ? "✓ Copied draw" : "📋 Copy draw for WhatsApp")))),
         effectiveLocked && React.createElement("div", { className: "confirmedBox" },
             React.createElement("div", { className: "confirmedTitle" }, "CONFIRMED FOR THIS DATE"),
             React.createElement("div", { className: "confirmedChips" }, currentPlayers.length ? currentPlayers.map((p, i) => React.createElement("span", { className: "chip", key: p },
@@ -973,6 +1031,16 @@ Bookings confirmed ✅`;
             React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
         adminMode && React.createElement("div", { className: "reportingFooter" },
             React.createElement("button", { className: "reportingBtn", onClick: async () => { setShowReporting(true); setReportingTab("stats"); await loadBookingStats(); } }, "REPORTING")),
+        showTeeTimesEditor && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Tee times"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, `${formatDate(currentDate)} · ${currentPlayers.length} confirmed · ${teesNeeded} tee time${teesNeeded === 1 ? "" : "s"} needed`),
+                React.createElement("div", { className: "teeTimeGrid" }, teeTimeInputs.map((value, i) => React.createElement("input", { key: i, className: "input", type: "time", value, onChange: e => setTeeTimeInputs(prev => prev.map((v, idx) => idx === i ? e.target.value : v)), "aria-label": `Tee time ${i + 1}` }))),
+                React.createElement("div", { className: "teeTimeHint" }, "Leave a time blank if it is not known yet. If tee times are saved, calendar invites use the first tee time for five hours."),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => setShowTeeTimesEditor(false) }, "Cancel"),
+                    React.createElement("button", { className: "ghost danger", onClick: async () => { setTeeTimeInputs([]); await adminPost("admin/tee-times", { teeTimes: [] }); setShowTeeTimesEditor(false); } }, "Clear"),
+                    React.createElement("button", { className: "green", onClick: saveTeeTimes }, "Save tee times")))),
         showBRSBooking && React.createElement("div", { className: "modal", onClick: e => { if (e.target.className === "modal") setShowBRSBooking(false); } },
             React.createElement("div", { className: "modalBox brsModalBox" },
                 React.createElement("div", { className: "brsModalHeader" },
@@ -1062,6 +1130,9 @@ Bookings confirmed ✅`;
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Cutoff rules"),
                         React.createElement("p", { className: "helpText" }, "Saturday booking closes at 6:50pm on Wednesday. Sunday booking closes at 6:50pm on Thursday. Admin can still manage locked bookings.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Tee times and calendar"),
+                        React.createElement("p", { className: "helpText" }, "Admins can add optional tee times for a day. If you are booked, the calendar icon creates a Weekend Golf event using the first tee time for five hours, or 08:00–13:00 if no tee time is saved.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Admin WhatsApp tools"),
                         React.createElement("p", { className: "helpText" }, "Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list. The not-booked list excludes players who have marked themselves unavailable.")),

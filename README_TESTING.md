@@ -393,3 +393,12 @@ D1 table auto-created by the API on first use: `brs_bookings`.
 - Fixed the weekend dropdown so “This weekend” stays on the current Saturday/Sunday through Sunday.
 - The app only rolls forward to the next weekend after Monday 00:01.
 - No D1 schema or SQL change required.
+
+## v43 — Tee times, smarter calendar and draw tee-time display
+
+- Admins can optionally add tee times for each day.
+- Tee-time entry adapts to the number of tees needed.
+- Saved tee times display compactly under confirmed players / tees needed.
+- Calendar invites use the first tee time plus five hours, or 08:00–13:00 if no tee time exists.
+- Draw display and WhatsApp draw copy include tee times where available.
+- No SQL or D1 schema change required.
