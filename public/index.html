@@ -94,6 +94,9 @@
     .teeTimesLine { margin-top:7px; font-size:12px; color:var(--green); text-align:right; }
     .teeTimeGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
     .teeTimeHint { font-size:11px; color:var(--muted); line-height:1.35; margin-top:8px; }
+    .userStatusCue { margin-top:5px; font-size:12px; color:var(--green); background:rgba(220,235,212,.72); border:1px solid var(--border); border-radius:999px; display:inline-block; padding:4px 8px; }
+    .userStatusCue.unavailable { color:#667064; background:#f7f7f2; }
+    .userStatusCue.noresponse { color:var(--warning); background:#fff8df; }
     .comp { color: var(--warning); font-size:12px; margin-top:3px; }
     .key { color: var(--muted-2); font-size:11px; margin-top:3px; }
     .count { color: var(--muted); font-size:13px; text-align:right; }
@@ -238,7 +241,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
-    { version: "v44", title: "Tee-time admin control fix", changes: ["Added the missing admin Add/Edit tee times control beside the confirmed/tees-needed summary.", "Tee-time storage, calendar timing, draw display and WhatsApp tee-time behaviour remain unchanged from v43."] },
+    { version: "v44", title: "Tee-time entry control and user status cue", changes: ["Added the visible admin Add/Edit tee times control near the confirmed/tee-times summary.", "Added a small logged-in player status cue for the selected day so less tech-savvy users can clearly see whether they are booked, unavailable, or still need to respond.", "No booking rules, draw rules, or database schema changed."] },
     { version: "v43", title: "Tee times and smarter draw/calendar", changes: ["Admins can optionally add tee times for each day, with entry fields adapting to the number of tees needed.", "Saved tee times display compactly under the confirmed/tees-needed summary and are hidden when none are saved.", "Calendar invites now use the first saved tee time plus five hours, or 08:00–13:00 if no tee time exists.", "Draw output and WhatsApp draw copy now include tee times while preserving existing draw rules."] },
     { version: "v42", title: "Current-weekend dropdown fix", changes: ["Fixed the weekend dropdown so This weekend stays on the current Saturday/Sunday through Saturday and Sunday.", "The app now only moves This weekend to the following weekend after Monday 00:01 UK/local time.", "This prevents Sunday users seeing the next weekend too early."] },
     { version: "v41", title: "BRS Booking mobile cleanup", changes: ["Moved Reporting back to admin-only while BRS reporting is parked for now.", "BRS Booking is now focused on fast operational use only and does not show the BRS League in the busy booking flow.", "Made the BRS Booking panel more compact on mobile with a sticky header, sticky action buttons, less explanatory text, and smaller toggle buttons so Close/Create/Copy are easier to reach." ] },
@@ -442,6 +445,16 @@ function App() {
     const teesNeeded = currentPlayers.length ? Math.ceil(currentPlayers.length / 4) : 0;
     const teeTimeForGroup = index => teeTimes[index] || "Tee time TBC";
     const canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName);
+    const loggedInDayStatus = pinLoggedIn && playerName
+        ? (currentPlayers.includes(playerName) ? "playing" : currentUnavailable.includes(playerName) ? "unavailable" : "none")
+        : "";
+    const loggedInDayStatusText = loggedInDayStatus === "playing"
+        ? "You are booked for this day."
+        : loggedInDayStatus === "unavailable"
+            ? "You have marked yourself unavailable for this day."
+            : loggedInDayStatus === "none"
+                ? "You have not responded for this day yet."
+                : "";
     const allNames = [...new Set([...members, ...currentPlayers, ...currentUnavailable, playerName].filter(Boolean))].sort();
     const basePlayerDisplayNames = [
         ...currentPlayers,
@@ -934,6 +947,7 @@ Bookings confirmed ✅`;
                 current.competition && React.createElement("div", { className: "comp" },
                     "\uD83C\uDFC6 ",
                     current.competition),
+                loggedInDayStatusText && React.createElement("div", { className: `userStatusCue ${loggedInDayStatus === "unavailable" ? "unavailable" : loggedInDayStatus === "none" ? "noresponse" : ""}` }, loggedInDayStatusText),
                 (adminMode || pinLoggedIn) && React.createElement("button", { className: "brsBtn", onClick: () => { clearBRSBooking(); setBRSStatus(""); setShowBRSBooking(true); }, title: "Open BRS Booking helper" }, "BRS Booking"),
                 React.createElement("div", { className: "key" },
                     "Saving date key: ",
@@ -953,7 +967,7 @@ Bookings confirmed ✅`;
                     " tee time",
                     currentPlayers.length > 4 ? "s" : ""),
                 teeTimes.length > 0 && React.createElement("div", { className: "teeTimesLine" }, "Tee times: ", teeTimes.join(", ")),
-                adminMode && React.createElement("button", { className: "brsBtn", style: { marginTop: 6, padding: "6px 8px", fontSize: 11 }, onClick: openTeeTimesEditor }, teeTimes.length ? "Edit tee times" : "Add tee times"))),
+                adminMode && React.createElement("button", { className: "brsBtn", style: { marginTop: 7 }, onClick: openTeeTimesEditor }, teeTimes.length ? "Edit tee times" : "Add tee times"))),
         current.locked && current.draw && React.createElement("div", { className: "draw" },
             React.createElement("div", { className: "drawHead" }, "\uD83C\uDFB2 TEE TIME DRAW"),
             current.draw.map((g, i) => React.createElement("div", { className: "group", key: i },
