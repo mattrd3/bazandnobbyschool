@@ -208,7 +208,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v49-rollback";
+const VERSION = "v50";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -1069,6 +1069,8 @@ Bookings confirmed ✅`;
                 adminMode && React.createElement("button", { className: "brsBtn", style: { marginTop: 7 }, onClick: openTeeTimesEditor }, teeTimes.length ? "Edit tee times" : "Add tee times"))),
         current.locked && current.draw && React.createElement("div", { className: "draw" },
             React.createElement("div", { className: "drawHead" }, "\uD83C\uDFB2 TEE TIME DRAW"),
+            adminMode && React.createElement("div", { className: "group" },
+                React.createElement("button", { className: "btn", onClick: () => copyText(buildDrawWhatsAppText(), setCopiedDraw) }, copiedDraw ? "✓ Copied draw" : "📋 Copy WhatsApp draw message")),
             current.draw.map((g, i) => React.createElement("div", { className: "group", key: i },
                 React.createElement("div", { className: "groupH" },
                     React.createElement("span", null, teeTimes.length ? teeTimeForGroup(i) : `TEE ${i + 1}`),
@@ -1076,10 +1078,7 @@ Bookings confirmed ✅`;
                 g.map((p, j) => React.createElement("div", { className: "groupP", key: p },
                     j + 1,
                     ". ",
-                    teePreferenceIcon(p),
-                    p))),
-            adminMode && React.createElement("div", { className: "group" },
-                React.createElement("button", { className: "btn", onClick: () => copyText(buildDrawWhatsAppText(), setCopiedDraw) }, copiedDraw ? "✓ Copied draw" : "📋 Copy draw for WhatsApp")))),
+                    p))))),
         effectiveLocked && React.createElement("div", { className: "confirmedBox" },
             React.createElement("div", { className: "confirmedTitle" }, "CONFIRMED FOR THIS DATE"),
             React.createElement("div", { className: "confirmedChips" }, currentPlayers.length ? currentPlayers.map((p, i) => React.createElement("span", { className: "chip", key: p },

@@ -256,7 +256,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 39 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v46"')) throw new Error("v46 marker missing");
+if (!html.includes('const VERSION = "v50"')) throw new Error("v50 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -383,6 +383,6 @@ if (!html.includes('teeTimesLine')) throw new Error('v43 compact tee-time displa
 if (!html.includes('admin/tee-times')) throw new Error('v43 admin tee-time API call missing');
 if (!html.includes('Tee times: ')) throw new Error('v43 tee times display/copy text missing');
 if (!html.includes('buildDrawWhatsAppText')) throw new Error('v43 draw WhatsApp copy builder missing');
-if (!html.includes('Copy draw for WhatsApp')) throw new Error('v43 draw WhatsApp copy button missing');
+if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
 console.log("PASS: v43 UI regression checks passed");
