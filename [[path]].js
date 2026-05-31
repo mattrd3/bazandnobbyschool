@@ -1,0 +1,16 @@
+{
+  "name": "bazandnobbyschool",
+  "version": "1.0.46",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test/run-tests.js",
+    "test:live": "node test/live-api-tests.js",
+    "test:soak": "node test/soak-test.js --minutes=60",
+    "test:soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250",
+    "test:all": "npm run test && npm run test:live"
+  },
+  "devDependencies": {
+    "wrangler": "latest"
+  }
+}

@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#e9f0e4" />
+  <title>Weekend Golf</title>
+  <style>
+    :root {
+      --page-bg: #e9f0e4;
+      --page-bg-2: #f6f7ef;
+      --panel: #fffdf7;
+      --panel-soft: #f1f6ec;
+      --panel-sage: #e2ecd9;
+      --border: #cbd8c3;
+      --border-strong: #a9bea1;
+      --text: #223322;
+      --muted: #60715d;
+      --muted-2: #7c8d78;
+      --green: #2f5d35;
+      --green-2: #3f7a45;
+      --green-soft: #dcebd4;
+      --accent: #8fbf6d;
+      --warning: #9a6a24;
+      --danger: #b54343;
+      --danger-soft: #f6dfdb;
+      --shadow: 0 8px 24px rgba(46, 68, 44, .10);
+    }
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      color: var(--text);
+      font-family: Georgia, serif;
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,.95), rgba(255,255,255,0) 34%),
+        linear-gradient(180deg, var(--page-bg-2) 0%, var(--page-bg) 52%, #dfead8 100%);
+    }
+    button, input, select, textarea { font-family: Georgia, serif; }
+    .wrap { min-height: 100vh; padding-bottom: 80px; }
+    .header {
+      background: linear-gradient(135deg,#f8faf3,#e2ecd9);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 10px 8px;
+      text-align: center;
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      box-shadow: 0 2px 16px rgba(47,93,53,.08);
+      display:grid;
+      grid-template-columns:minmax(70px,1fr) auto minmax(70px,1fr);
+      align-items:start;
+      column-gap:8px;
+    }
+    .headerLeft { grid-column:1; justify-self:start; max-width:30vw; display:flex; flex-direction:column; align-items:flex-start; gap:4px; }
+    .headerCenter { grid-column:2; min-width:0; text-align:center; }
+    .headerRight { grid-column:3; justify-self:end; max-width:30vw; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+    .title { margin: 0; font-size: 20px; font-weight: normal; letter-spacing: .05em; color: var(--green); }
+    .sub { margin: 2px 0 0; font-size: 11px; color: var(--muted); letter-spacing: .08em; }
+    .versionBtn { border:0; background:transparent; padding:0; margin:0; font-size:10px; color:var(--green-2); font-weight:bold; text-align:right; cursor:pointer; text-decoration:underline; text-underline-offset:2px; }
+    .helpBtn { border-radius:6px; padding:4px 8px; font-size:10px; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); letter-spacing:.06em; }
+    .helpSection { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); }
+    .helpSection:last-child { border-bottom:0; }
+    .helpTitle { color:var(--green); font-weight:bold; font-size:13px; margin-bottom:5px; }
+    .helpText { margin:0; color:var(--muted); font-size:12px; line-height:1.45; }
+    .helpList { margin:5px 0 0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.45; }
+    .adminBtn { border-radius:6px; padding:5px 9px; font-size:11px; cursor:pointer; }
+    .playerLogoutBtn { border-radius:6px; padding:4px 7px; font-size:10px; line-height:1.05; cursor:pointer; background:#fffdf7; color:var(--green); border:1px solid var(--border-strong); max-width:30vw; min-width:58px; display:flex; flex-direction:column; gap:2px; align-items:center; text-transform:uppercase; }
+    .logoutName { display:block; max-width:26vw; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; color:var(--green); }
+    .releaseList { text-align:left; max-height:58vh; overflow:auto; margin-top:10px; border:1px solid var(--border); border-radius:10px; background:#fffdf7; }
+    .releaseItem { padding:10px 12px; border-bottom:1px solid var(--border); }
+    .releaseItem:last-child { border-bottom:0; }
+    .releaseVersion { color:var(--green); font-weight:bold; font-size:13px; margin-bottom:4px; }
+    .releaseChanges { margin:0; padding-left:18px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .section { padding: 12px 16px; border-bottom: 1px solid var(--border); background: rgba(255,253,247,.58); }
+    .label { font-size: 11px; color: var(--muted); letter-spacing:.1em; margin-bottom:8px; }
+    .select, .input {
+      width: 100%;
+      background: var(--panel);
+      color: var(--green);
+      border: 1px solid var(--border-strong);
+      border-radius: 8px;
+      padding: 11px 12px;
+      font-size: 14px;
+      box-shadow: var(--shadow);
+    }
+    .tabs { display:flex; border-bottom:1px solid var(--border); background: rgba(255,253,247,.45); }
+    .tab { flex:1; padding:14px 8px; background:transparent; border:0; color: var(--muted); cursor:pointer; }
+    .tab.active { background: var(--green-soft); color: var(--green); border-bottom:2px solid var(--green); font-weight:bold; }
+    .dateBar { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+    .date { color: var(--green); font-size:14px; font-weight:bold; }
+    .dateLine { display:flex; align-items:center; gap:7px; }
+    .calendarBtn { border:0; background:transparent; padding:0 2px; margin:0; cursor:pointer; font-size:15px; line-height:1; color:var(--green); }
+    .calendarBtn:disabled { opacity:.4; cursor:not-allowed; }
+    .teeTimesLine { margin-top:7px; font-size:12px; color:var(--green); text-align:right; }
+    .teeTimeGrid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .teeTimeHint { font-size:11px; color:var(--muted); line-height:1.35; margin-top:8px; }
+    .dayNotice { margin-top:7px; padding:7px 9px; border:1px solid #d9c488; background:#fff8dc; color:#66521e; border-radius:9px; font-size:12px; line-height:1.35; }
+    .teePrefSelect { min-width:92px; border:1px solid var(--border-strong); border-radius:9px; background:#fffdf7; color:#2f5d35; font-size:12px; padding:8px 7px; }
+    .messageBox { text-align:left; border:1px solid #d9c488; background:#fff8dc; color:#514013; border-radius:10px; padding:10px; margin:10px 0; font-size:13px; line-height:1.4; white-space:pre-wrap; }
+    .userStatusCue { margin-top:5px; font-size:12px; color:var(--green); background:rgba(220,235,212,.72); border:1px solid var(--border); border-radius:999px; display:inline-block; padding:4px 8px; }
+    .userStatusCue.unavailable { color:#667064; background:#f7f7f2; }
+    .userStatusCue.noresponse { color:var(--warning); background:#fff8df; }
+    .comp { color: var(--warning); font-size:12px; margin-top:3px; }
+    .key { color: var(--muted-2); font-size:11px; margin-top:3px; }
+    .count { color: var(--muted); font-size:13px; text-align:right; }
+    .players { padding: 16px; display:flex; flex-direction:column; gap:8px; }
+    .row { display:flex; gap:8px; align-items:center; }
+    .player {
+      flex:1;
+      padding:14px 16px;
+      border-radius:10px;
+      border:1px solid var(--border);
+      background: var(--panel);
+      color: var(--muted);
+      font-size:15px;
+      text-align:left;
+      cursor:pointer;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      box-shadow: 0 3px 12px rgba(46,68,44,.06);
+    }
+    .player.in { background: linear-gradient(135deg,#dcebd4,#c8dfbd); border-color: var(--green-2); color: var(--green); font-weight:bold; }
+    .player.unavailable { background:#f7f7f2; border-color:#b8c0b2; color:#667064; font-style:italic; }
+    .unavailableBtn { min-width:92px; padding:12px 8px; border-radius:10px; border:1px solid #b8c0b2; background:#f7f7f2; color:#667064; cursor:pointer; font-size:12px; }
+    .unavailableBtn.active { background:#e9ece3; border-color:#8f9a89; font-weight:bold; }
+    .myBookingsBtn { width:100%; margin-top:8px; padding:10px 12px; border-radius:8px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); cursor:pointer; font-size:12px; letter-spacing:.06em; }
+    .bookingSummaryRow { display:flex; justify-content:space-between; gap:10px; padding:8px 10px; border-bottom:1px solid var(--border); font-size:13px; color:var(--text); cursor:pointer; }
+    .bookingSummaryRow:last-child { border-bottom:0; }
+    .bookingLegend { margin-top:8px; font-size:11px; color:var(--muted); line-height:1.5; }
+    .statsControls { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+    .statsTable { width:100%; border-collapse:collapse; font-size:12px; text-align:left; }
+    .statsTable th, .statsTable td { padding:7px 6px; border-bottom:1px solid var(--border); }
+    .statsTable th { color:var(--green); font-size:11px; letter-spacing:.04em; }
+    .statsTable td.num { text-align:right; color:var(--text); }
+    .statsTable td.name { color:var(--green); font-weight:bold; }
+    .brsBtn { margin-top:7px; padding:7px 9px; border-radius:8px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); cursor:pointer; font-size:12px; }
+    .brsModalBox { max-width:540px; padding:0; max-height:92vh; overflow:hidden; display:flex; flex-direction:column; text-align:left; }
+    .brsModalHeader { position:sticky; top:0; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:8px; padding:12px 14px 8px; background:var(--panel); border-bottom:1px solid var(--border); }
+    .brsModalTitle { color:var(--green); font-weight:normal; margin:0; font-size:18px; }
+    .brsModalSub { margin:2px 0 0; font-size:11px; color:var(--muted); line-height:1.3; }
+    .brsCloseBtn { border:1px solid var(--border-strong); background:#fffdf7; color:var(--green); border-radius:8px; padding:6px 9px; font-size:12px; cursor:pointer; }
+    .brsModalBody { overflow:auto; padding:8px 12px 0; -webkit-overflow-scrolling:touch; }
+    .brsModalFooter { position:sticky; bottom:0; z-index:2; display:grid; grid-template-columns:1fr 1.3fr; gap:8px; padding:9px 12px calc(9px + env(safe-area-inset-bottom)); background:var(--panel); border-top:1px solid var(--border); }
+    .brsFooterCopy { grid-column:1 / -1; }
+    .brsQuickLine { font-size:11px; color:var(--muted); line-height:1.35; margin:0 0 6px; }
+    .brsToggleGrid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin:7px 0 8px; }
+    .brsToggle { border:1px solid var(--border); background:#fffdf7; color:var(--text); border-radius:8px; padding:7px 7px; cursor:pointer; text-align:left; font-size:11px; min-height:36px; line-height:1.1; }
+    .brsToggle.active { background:var(--green-soft); border-color:var(--green-2); color:var(--green); font-weight:bold; }
+    .brsTag { display:block; font-size:9px; color:var(--muted); margin-top:2px; font-weight:normal; }
+    .brsResult { border:1px solid var(--border); border-radius:10px; background:#fffdf7; margin:8px 0 10px; overflow:hidden; }
+    .brsResultBlock { padding:8px 9px; border-bottom:1px solid var(--border); font-size:12px; }
+    .brsResultBlock:last-child { border-bottom:0; }
+    .reportingFooter { position:fixed; left:0; right:0; bottom:0; z-index:4; padding:8px 12px calc(8px + env(safe-area-inset-bottom)); background:rgba(248,250,243,.96); border-top:1px solid var(--border); box-shadow:0 -4px 18px rgba(47,93,53,.08); display:flex; justify-content:center; }
+    .reportingBtn { width:min(260px, 92vw); padding:9px 12px; border-radius:999px; border:1px solid var(--border-strong); background:var(--green); color:white; cursor:pointer; font-size:12px; letter-spacing:.08em; text-align:center; }
+    .reportingTabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:10px 0; }
+    .reportingTab { padding:9px 10px; border-radius:8px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); cursor:pointer; font-size:12px; }
+    .reportingTab.active { background:var(--green); color:white; }
+    .player:disabled { opacity:.58; cursor:not-allowed; }
+    .confirmedBox { margin:14px 16px 0; padding:12px 14px; border:1px solid var(--border-strong); background: var(--panel-soft); border-radius:12px; box-shadow: var(--shadow); }
+    .confirmedTitle { font-size:12px; color:var(--green); letter-spacing:.08em; margin-bottom:8px; font-weight:bold; }
+    .confirmedChips { display:flex; flex-wrap:wrap; gap:7px; }
+    .chip { padding:6px 9px; border-radius:999px; background:#ffffff; border:1px solid var(--border-strong); color:var(--green); font-size:13px; }
+    .smallBtn { border-radius:8px; padding:11px 12px; border:1px solid var(--border-strong); background: var(--panel-soft); color: var(--green); cursor:pointer; }
+    .danger { border-color:#d19a92; background:var(--danger-soft); color:var(--danger); }
+    .adminMenuBar { margin:14px 16px 0; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .adminMenuBar .btn { text-align:center; background:var(--green); color:white; border-color:var(--green); font-size:12px; letter-spacing:.06em; }
+    .adminMenuBar .btn.secondary { background:var(--panel-soft); color:var(--green); border-color:var(--border-strong); }
+    .adminSubPanel { padding:10px; border:1px solid var(--border); border-radius:9px; background:#fffdf7; }
+    .textarea { width:100%; min-height:120px; resize:vertical; background:var(--panel); color:var(--green); border:1px solid var(--border-strong); border-radius:8px; padding:11px 12px; font-size:13px; box-shadow:var(--shadow); }
+    .brsMapGrid { display:grid; grid-template-columns:1fr 1.3fr; gap:7px; align-items:center; margin-top:8px; max-height:220px; overflow:auto; padding-right:2px; }
+    .brsMapName { font-size:12px; color:var(--green); font-weight:bold; }
+    .reconcileSummary { border:1px solid var(--border); border-radius:10px; background:#fffdf7; margin-top:10px; overflow:hidden; text-align:left; }
+    .reconcileBlock { padding:9px 10px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); line-height:1.45; }
+    .reconcileBlock:last-child { border-bottom:0; }
+    .reconcileBlock strong { color:var(--green); }
+    .adminPanel { margin: 14px 16px 0; padding: 12px; border:1px solid var(--border); background: rgba(255,253,247,.84); border-radius:12px; display:flex; flex-direction:column; gap:10px; box-shadow: var(--shadow); }
+    .adminTitle { font-size:12px; color:var(--muted); letter-spacing:.08em; }
+    .btn { width:100%; padding:12px 13px; border-radius:9px; border:1px solid var(--border-strong); background: var(--panel); color: var(--green); text-align:left; cursor:pointer; }
+    .msg { margin: 12px 16px 0; padding: 10px 12px; border-radius:9px; font-size:13px; border:1px solid var(--border-strong); background: var(--panel-soft); color:var(--green); box-shadow: var(--shadow); }
+    .msg.err { border-color:#d19a92; color:var(--danger); background:var(--danger-soft); }
+    .draw { margin: 14px 16px 0; border:1px solid var(--border-strong); background: var(--panel-soft); border-radius:12px; overflow:hidden; box-shadow: var(--shadow); }
+    .drawHead { padding:12px 14px; color:var(--green); border-bottom:1px solid var(--border); font-weight:bold; font-size:13px; }
+    .group { margin:10px 12px; border:1px solid var(--border); border-radius:9px; overflow:hidden; background:#fffdf7; }
+    .groupH { padding:8px 12px; background:#eaf2e4; color:var(--green); font-size:12px; display:flex; justify-content:space-between; }
+    .groupP { padding:9px 12px; border-top:1px solid var(--border); color:var(--text); }
+    .modal { position:fixed; inset:0; z-index:20; background:rgba(30,44,30,.38); backdrop-filter: blur(3px); display:flex; align-items:center; justify-content:center; padding:20px; }
+    .modalBox { width:100%; max-width:330px; background:var(--panel); border:1px solid var(--border-strong); border-radius:16px; padding:24px; text-align:center; box-shadow: 0 16px 48px rgba(46,68,44,.22); }
+    .modalActions { display:flex; gap:10px; margin-top:16px; }
+    .ghost { flex:1; padding:12px; background:#ffffff; border:1px solid var(--border); border-radius:8px; color:var(--muted); cursor:pointer; }
+    .green { flex:1; padding:12px; background:var(--green); border:0; border-radius:8px; color:#ffffff; font-weight:bold; cursor:pointer; }
+
+    .identityBox { margin: 12px 16px 0; padding: 12px; border:1px solid var(--border); background: rgba(255,253,247,.78); border-radius:12px; box-shadow: var(--shadow); }
+    .identityRow { display:flex; gap:8px; align-items:center; margin-top:8px; }
+    .identityRow .select, .identityRow .input { box-shadow:none; }
+    .lockedOther { opacity:.45; }
+    .priorityBtn { min-width:72px; padding:12px 8px; border-radius:10px; border:1px solid #d7b35f; background:#fff8df; color:#8a661c; cursor:pointer; font-size:12px; }
+    .priorityBtn.active { background:#f1d78a; border-color:#b98f2f; font-weight:bold; }
+    .auditLog { max-height:220px; overflow:auto; border:1px solid var(--border); border-radius:9px; background:#fffdf7; }
+    .auditItem { padding:8px 10px; border-bottom:1px solid var(--border); font-size:12px; color:var(--muted); }
+    .auditItem:last-child { border-bottom:0; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const { useEffect, useMemo, useState } = React;
+const ADMIN_PIN = "2727";
+const VERSION = "v46";
+const APP_URL = "https://bazandnobbyschool.pages.dev";
+const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
+const FIXTURE_COMPS = {
+    "2026-01-03": "Medal", "2026-01-04": "Winter League", "2026-01-10": "4 Ball", "2026-01-11": "Bogey", "2026-01-17": "Yellow Ball Competition", "2026-01-18": "Winter League", "2026-01-24": "Stableford", "2026-01-25": "4 Ball", "2026-01-31": "Stableford Team Event (4 person waltz)", "2026-02-01": "Winter League", "2026-02-07": "Stableford", "2026-02-08": "Bogey", "2026-02-14": "Medal", "2026-02-15": "Winter League", "2026-02-21": "Mixed Yellow Ball Stableford", "2026-02-22": "4 Ball", "2026-02-28": "Bogey", "2026-03-01": "Stableford", "2026-03-07": "Medal", "2026-03-08": "Texas Scramble", "2026-03-14": "Stableford", "2026-03-15": "4 Ball (Mother's Day)", "2026-03-21": "2-Man Aggregate Stableford", "2026-03-22": "Medal", "2026-03-28": "Stableford", "2026-03-29": "Captains' Drive-Ins & 4BBB", "2026-04-04": "4-Ball Stableford", "2026-04-05": "Medal (Easter Sunday)", "2026-04-11": "Chairman's Trophy (Greensome)", "2026-04-12": "Druids Cup / Medal", "2026-04-18": "Stableford", "2026-04-19": "Champion of Champions Medal", "2026-04-25": "V H Pearce 2-Man Texas Scramble", "2026-04-26": "Dusty Bin Stableford", "2026-05-02": "Stan Creswell Trophy Medal", "2026-05-03": "Foursomes Cup", "2026-05-09": "1st Invitation Day", "2026-05-10": "Over 50's Cup Medal", "2026-05-16": "Mixed 4BBB Stableford", "2026-05-17": "Stableford (4 person team)", "2026-05-23": "Stableford", "2026-05-24": "Boldmere Bowl Medal", "2026-05-30": "4 Ball", "2026-05-31": "Captain's Charity Shield Stableford", "2026-06-06": "Presidents Championship Day Medal", "2026-06-07": "Stableford", "2026-06-13": "4 Ball", "2026-06-14": "Members Memorial Salver Medal", "2026-06-20": "Captain's Open AM AM", "2026-06-21": "Stableford (Father's Day)", "2026-06-27": "Pro's Day Medal", "2026-06-28": "4 Ball", "2026-07-04": "Greensome / Yardley Holland Cup", "2026-07-05": "Secretary's Cup Medal", "2026-07-11": "Club Championship Round 1", "2026-07-12": "Club Championship Round 2", "2026-07-18": "Captain's Weekend Texas Scramble", "2026-07-19": "Captain's Weekend Men's 4 Ball", "2026-07-25": "Scratch Stableford", "2026-07-26": "M & S Pooley Cup 4 Ball", "2026-08-01": "Greensome / Yardley Holland Cup", "2026-08-02": "Twyford Seeds Cup Medal", "2026-08-08": "Stableford Yellow Ball", "2026-08-09": "Bill Mountford Memorial Trophy Stableford", "2026-08-15": "Gents Open", "2026-08-16": "Bogey", "2026-08-22": "Stableford", "2026-08-23": "Ray Garnett Trophy Texas Scramble", "2026-08-29": "President's Day", "2026-08-30": "Golfer Non-Golfer", "2026-09-05": "Batevale Trophy Medal", "2026-09-06": "Stableford", "2026-09-12": "P.G. Whatton Trophy Stableford", "2026-09-13": "2nd Invitation Day", "2026-09-19": "L.E. Swain Trophy Medal", "2026-09-20": "4 Ball", "2026-09-26": "Stableford (Junior Fundraiser)", "2026-09-27": "Paul Canning Trophy Medal", "2026-10-03": "Green's Committee Cup Medal", "2026-10-04": "Stableford", "2026-10-10": "4 Ball", "2026-10-11": "Greenkeeper's Tankard", "2026-10-17": "Bogey", "2026-10-18": "Stableford", "2026-10-24": "Stableford Texas AM-AM", "2026-10-25": "Winter League", "2026-10-31": "Bogey", "2026-11-01": "Winter League", "2026-11-07": "Stableford", "2026-11-08": "4 Ball", "2026-11-14": "Medal", "2026-11-15": "Winter League", "2026-11-21": "Stableford", "2026-11-22": "2 Man Aggregate Stableford", "2026-11-28": "4 Ball", "2026-11-29": "Stableford", "2026-12-06": "Winter League", "2026-12-12": "Texas AM AM", "2026-12-13": "Winter League", "2026-12-19": "Pro's Christmas Jumper", "2026-12-20": "Christmas Stableford"
+};
+const initDay = (comp = "") => ({ players: [], unavailablePlayers: [], priorityPlayers: [], latePriorityPlayers: [], locked: false, competition: comp, dayMessage: "", audit: [], draw: null, teeTimes: [] });
+const toDateKey = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+const fromDateKey = key => { const [y, m, d] = key.split("-").map(Number); return new Date(y, m - 1, d); };
+const formatDate = d => d.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+const calendarDateStamp = (date, hour, minute = 0) => `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, "0")}${String(date.getDate()).padStart(2, "0")}T${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}00`;
+function parseTeeTime(value) {
+    const match = String(value || "").trim().match(/^(\d{1,2}):(\d{2})$/);
+    if (!match) return null;
+    const hour = Number(match[1]);
+    const minute = Number(match[2]);
+    if (hour < 0 || hour > 23 || minute < 0 || minute > 59) return null;
+    return { hour, minute };
+}
+function addHoursToTime(time, hoursToAdd) {
+    const base = parseTeeTime(time) || { hour: 8, minute: 0 };
+    const totalMinutes = base.hour * 60 + base.minute + (hoursToAdd * 60);
+    return { hour: Math.floor(totalMinutes / 60) % 24, minute: totalMinutes % 60 };
+}
+function cleanTeeTimes(values) {
+    return Array.isArray(values) ? values.map(v => String(v || "").trim()).filter(v => parseTeeTime(v)) : [];
+}
+function buildGoogleCalendarUrl(date, competition = "", teeTimes = []) {
+    const cleanTimes = cleanTeeTimes(teeTimes);
+    const firstTime = parseTeeTime(cleanTimes[0]) || { hour: 8, minute: 0 };
+    const endTime = addHoursToTime(cleanTimes[0] || "08:00", 5);
+    const start = calendarDateStamp(date, firstTime.hour, firstTime.minute);
+    const end = calendarDateStamp(date, endTime.hour, endTime.minute);
+    const params = new URLSearchParams({
+        action: "TEMPLATE",
+        text: "Weekend Golf",
+        dates: `${start}/${end}`,
+        ctz: "Europe/London",
+        location: "Druids Heath Golf Club"
+    });
+    if (String(competition || "").trim()) params.set("details", `Competition: ${String(competition).trim()}`);
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+}
+function openCalendarForDay(date, competition = "", teeTimes = []) {
+    window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
+}
+const RELEASE_NOTES = [
+    { version: "v46", title: "BRS reconciliation and compact admin menu", changes: ["Added an admin-only BRS reconciliation helper so a pasted BRS tee sheet can be compared against the selected day in Weekend Golf.", "Added an editable nickname-to-BRS-full-name map to handle BRS using full names while the app can use nicknames or shortened names.", "Moved the growing admin controls behind a compact Admin Menu toggle to reduce clutter on the main booking screen.", "Added the missing admin day-message editor into the compact admin controls."] },
+    { version: "v45", title: "Late tee preference and day booking messages", changes: ["Admins can now mark confirmed players as Early, Late, or No tee preference before generating the draw.", "The draw now guides early-preference players towards the earliest groups and late-preference players towards the latest groups, while keeping randomisation inside each preference bucket.", "Admins can add an optional day-specific booking message that users must confirm before marking themselves as Playing.", "The WhatsApp draw copy has been made friendlier and continues to appear after the list is locked and a draw exists."] },
+    { version: "v44", title: "Tee-time entry control and user status cue", changes: ["Added the visible admin Add/Edit tee times control near the confirmed/tee-times summary.", "Added a small logged-in player status cue for the selected day so less tech-savvy users can clearly see whether they are booked, unavailable, or still need to respond.", "No booking rules, draw rules, or database schema changed."] },
+    { version: "v43", title: "Tee times and smarter draw/calendar", changes: ["Admins can optionally add tee times for each day, with entry fields adapting to the number of tees needed.", "Saved tee times display compactly under the confirmed/tees-needed summary and are hidden when none are saved.", "Calendar invites now use the first saved tee time plus five hours, or 08:00–13:00 if no tee time exists.", "Draw output and WhatsApp draw copy now include tee times while preserving existing draw rules."] },
+    { version: "v42", title: "Current-weekend dropdown fix", changes: ["Fixed the weekend dropdown so This weekend stays on the current Saturday/Sunday through Saturday and Sunday.", "The app now only moves This weekend to the following weekend after Monday 00:01 UK/local time.", "This prevents Sunday users seeing the next weekend too early."] },
+    { version: "v41", title: "BRS Booking mobile cleanup", changes: ["Moved Reporting back to admin-only while BRS reporting is parked for now.", "BRS Booking is now focused on fast operational use only and does not show the BRS League in the busy booking flow.", "Made the BRS Booking panel more compact on mobile with a sticky header, sticky action buttons, less explanatory text, and smaller toggle buttons so Close/Create/Copy are easier to reach." ] },
+    { version: "v40", title: "Reporting visibility and BRS league reset", changes: ["Made the Reporting footer available to all logged-in players, not just admins.", "Kept no-response booking stats visible to admins only, while logged-in players can still see booked and unavailable counts.", "Updated the BRS Booking League so it only counts BRS bookings recorded from this corrected version onward; historic or accidental pre-v40 records are not backfilled." ] },
+    { version: "v39", title: "Reporting area and BRS speed fix", changes: ["BRS Booking now opens with no players pre-selected, so users only tick the people who actually secured tee times.", "Moved BRS Booking League and player Booking Stats into a compact Reporting panel to keep the BRS Booking screen fast and uncluttered.", "Added a permanent Reporting footer button so admin reporting is easy to find without taking up booking-screen space." ] },
+    { version: "v38", title: "BRS Booking", changes: ["Added a fast BRS Booking helper for logged-in players and admins to use during the 7:30am tee-time scramble.", "Users can toggle who secured BRS tee times, create BRS groups, and copy the result to WhatsApp.", "BRS booking results are saved to D1 and feed a fun season league table from 1 April to 31 March, only showing players with at least one booking." ] },
+    { version: "v37", title: "Add to Calendar", changes: ["Added a tiny calendar icon beside the active day heading for logged-in players who are booked on that day.", "The icon opens Google Calendar with a pre-filled 8am to 2pm event titled Weekend Golf.", "Calendar events include the competition name where set and use Druids Heath Golf Club as the location." ] },
+    { version: "v36", title: "Admin booking stats", changes: ["Added an admin-only Booking Stats panel to review player activity over recent periods.", "Stats show booked days, unavailable days and no-response days by player.", "Admins can switch between last 4, 8, 12 weeks or all time, and sort by most booked, least booked or most no response."] },
+    { version: "v35", title: "My Bookings week jump", changes: ["Made each week row in My Bookings clickable so players can jump straight to that weekend booking screen.", "Added a short instruction line explaining that clicking any week opens that weekend to book.", "The jump keeps the existing Saturday-default behaviour and does not add extra row icons, buttons, or hyperlink styling." ] },
+    { version: "v34", title: "My Bookings wording", changes: ["Updated the My Bookings panel wording to better explain it as one page to see all your upcoming bookings.", "No booking, login, API, or database behaviour changed." ] },
+    { version: "v33", title: "Compact help panel", changes: ["Added a small Help button so guidance is available without taking up permanent booking-page space.", "Help explains the personal dropdown icons, booking statuses, cutoff rules and WhatsApp copy tools.", "The Help panel links through to release notes for users who want to see recent changes." ] },
+    { version: "v32", title: "Unavailable status and My Bookings", changes: ["Added an Unavailable option for each player/day so players can confirm they cannot play without being chased as not booked.", "Updated the personal weekend dropdown icons: green means booked, white means unavailable, and red means no response for each day.", "Added a compact My Bookings button for logged-in players, opening a modal summary without taking up booking-page space.", "Updated the not-booked WhatsApp copy so it lists only players who have neither booked nor marked themselves unavailable." ] },
+    { version: "v31", title: "Shorter weekend dropdown wording", changes: ["Changed future weekend dropdown wording from weekend-based labels to week-based labels to save horizontal UI space.", "Future options now show labels such as In 1 week and In 2 weeks rather than longer weekend wording.", "No booking, login, or database behaviour changed." ] },
+    { version: "v30", title: "Not-booked WhatsApp copy message", changes: ["Added a third admin WhatsApp copy option for the selected weekend.", "Admins can now copy a message listing roster players who are not booked for either Saturday or Sunday that weekend.", "This sits alongside the existing sign-up reminder and confirmed-player WhatsApp copy tools." ] },
+    { version: "v29", title: "Personal weekend booking icons", changes: ["Kevin Request clarification: replaced the v28 open/closed weekend icons with personal booking indicators for the logged-in player.", "The weekend dropdown now uses a live D1-backed lookup so each player sees their own booked-week indicators.", "Two green circular icons mean the logged-in player is booked Saturday and Sunday; one green icon means one booked day; one red icon means no booking that weekend."] },
+    { version: "v27", title: "Mobile-safe header controls", changes: ["Moved player logoff to the top-left as a compact two-row button.", "Displays the logged-in player name in capitals and truncates long names safely.", "Moved the live/version label under Admin on the top-right.", "Made the version label clickable to show recent release notes."] },
+    { version: "v26", title: "Compact top banner", changes: ["Slimmed the top banner/header to save vertical space.", "Kept the golf icon and WHO'S PLAYING? message."] },
+    { version: "v25", title: "Version label position", changes: ["Moved the live/version label into the sticky header."] },
+    { version: "v24", title: "Descriptive activity log", changes: ["Improved activity log text with day/date and previous/new values."] },
+    { version: "v23", title: "DB-backed live activity log", changes: ["Moved audit log events to D1 and refreshed the open log from the database."] },
+    { version: "v22", title: "Hide login after login", changes: ["Hid the player login box after successful login.", "Added logoff behaviour that restores the login box."] },
+    { version: "v21", title: "Logged-in player first", changes: ["Pinned the logged-in player to the top of open booking lists.", "Kept confirmed players first when a closed booking does not include the logged-in player."] },
+    { version: "v20", title: "Saturday default", changes: ["Changing weekend now selects Saturday by default."] }
+];
+const groupLabel = n => n === 4 ? "4-ball" : n === 3 ? "3-ball" : n === 2 ? "2-ball" : `${n}-ball`;
+function getCurrentWeekendSaturday(now = new Date()) {
+    // v42: "This weekend" should mean the current Saturday/Sunday until Monday 00:01.
+    // Previously Saturday/Sunday could advance to the following weekend too early.
+    const anchor = new Date(now);
+    anchor.setHours(0, 0, 0, 0);
+    const day = now.getDay();
+    const minutes = now.getHours() * 60 + now.getMinutes();
+    if (day === 6)
+        return anchor;
+    if (day === 0) {
+        anchor.setDate(anchor.getDate() - 1);
+        return anchor;
+    }
+    if (day === 1 && minutes < 1) {
+        anchor.setDate(anchor.getDate() - 2);
+        return anchor;
+    }
+    const daysUntilSat = (6 - day + 7) % 7;
+    anchor.setDate(anchor.getDate() + daysUntilSat);
+    return anchor;
+}
+function getUpcomingWeekends(count = 52) {
+    const out = [];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const firstSat = getCurrentWeekendSaturday();
+    for (let i = 0; i < count; i++) {
+        const sat = new Date(firstSat);
+        sat.setDate(firstSat.getDate() + i * 7);
+        const sun = new Date(sat);
+        sun.setDate(sat.getDate() + 1);
+        const daysUntil = Math.round((sat - today) / 86400000);
+        out.push({ sat, sun, past: false, tooSoon: daysUntil < 10 });
+    }
+    return out;
+}
+function getPastWeekends(count = 8) {
+    const out = [];
+    const firstSat = getCurrentWeekendSaturday();
+    for (let i = 1; i <= count; i++) {
+        const sat = new Date(firstSat);
+        sat.setDate(firstSat.getDate() - i * 7);
+        const sun = new Date(sat);
+        sun.setDate(sat.getDate() + 1);
+        out.unshift({ sat, sun, past: true });
+    }
+    return out;
+}
+function isAutoLocked(date) {
+    const now = new Date();
+    const dow = now.getDay();
+    const mins = now.getHours() * 60 + now.getMinutes();
+    const cutoff = 18 * 60 + 50;
+    const dateDow = date.getDay();
+    const daysAway = Math.round((date - now) / 86400000);
+    if (dateDow === 6 && dow === 3 && mins >= cutoff && daysAway >= 2 && daysAway <= 4)
+        return true;
+    if (dateDow === 0 && dow === 4 && mins >= cutoff && daysAway >= 2 && daysAway <= 4)
+        return true;
+    return false;
+}
+function getSignupCutoff(date) {
+    // Tee times are booked 10 days before the playing date at 6:50pm UK time.
+    // Saturday therefore closes on the Wednesday 10 days before; Sunday closes on the Thursday 10 days before.
+    const cutoff = new Date(date);
+    cutoff.setDate(cutoff.getDate() - 10);
+    cutoff.setHours(18, 50, 0, 0);
+    return cutoff;
+}
+function isSignupClosed(date) {
+    return Date.now() >= getSignupCutoff(date).getTime();
+}
+function formatCutoff(date) {
+    return getSignupCutoff(date).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "short" }) + " at 6:50pm";
+}
+function buildBase() { const base = {}; Object.entries(FIXTURE_COMPS).forEach(([key, comp]) => base[key] = initDay(comp)); return base; }
+function mergeWithBase(saved) {
+    const base = buildBase();
+    const merged = { ...base };
+    Object.entries(saved || {}).forEach(([key, val]) => {
+        var _a;
+        const fixtureComp = ((_a = base[key]) === null || _a === void 0 ? void 0 : _a.competition) || "";
+        const savedVal = val || {};
+        // Important: old/empty saved records must not wipe out fixture names.
+        const savedComp = typeof savedVal.competition === "string" ? savedVal.competition.trim() : "";
+        const { maybes, ...cleanSavedVal } = savedVal;
+        merged[key] = {
+            ...initDay(fixtureComp),
+            ...(base[key] || {}),
+            ...cleanSavedVal,
+            competition: savedComp || fixtureComp
+        };
+    });
+    return merged;
+}
+function weekendShort(w) { return `${w.sat.getDate()} – ${w.sun.getDate()} ${w.sun.toLocaleDateString("en-GB", { month: "short" })}`; }
+async function api(path, payload) {
+    const options = payload === undefined ? {} : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
+    const res = await fetch(`/api/${path}`, options);
+    const data = await res.json().catch(() => ({ ok: false, error: "Bad JSON response" }));
+    if (!data.ok)
+        throw new Error(data.error || "Request failed");
+    return data;
+}
+function App() {
+    const [schedule, setSchedule] = useState(mergeWithBase({}));
+    const [members, setMembers] = useState(INITIAL_MEMBERS);
+    const [status, setStatus] = useState("Loading...");
+    const [message, setMessage] = useState("");
+    const [error, setError] = useState("");
+    const [adminMode, setAdminMode] = useState(localStorage.getItem("wg_admin") === "1");
+    const [pin, setPin] = useState("");
+    const [showPin, setShowPin] = useState(false);
+    const [selectedKey, setSelectedKey] = useState(localStorage.getItem("wg_date") || "");
+    const [activeDay, setActiveDay] = useState(localStorage.getItem("wg_day") || "sat");
+    const [confirmRemove, setConfirmRemove] = useState(null);
+    const [confirmAdd, setConfirmAdd] = useState(null);
+    const [newName, setNewName] = useState("");
+    const [rosterName, setRosterName] = useState("");
+    const [editingComp, setEditingComp] = useState(false);
+    const [compInput, setCompInput] = useState("");
+    const [editingDayMessage, setEditingDayMessage] = useState(false);
+    const [dayMessageInput, setDayMessageInput] = useState("");
+    const [copiedReminder, setCopiedReminder] = useState(false);
+    const [copiedSummary, setCopiedSummary] = useState(false);
+    const [copiedNotBooked, setCopiedNotBooked] = useState(false);
+    const [copiedDraw, setCopiedDraw] = useState(false);
+    const [playerName, setPlayerName] = useState(localStorage.getItem("wg_player_name") || "");
+    const [playerPin, setPlayerPin] = useState(localStorage.getItem("wg_player_pin") || "");
+    const [pinLoggedIn, setPinLoggedIn] = useState(localStorage.getItem("wg_player_ok") === "1");
+    const [pinPlayer, setPinPlayer] = useState("");
+    const [pinValue, setPinValue] = useState("");
+    const [pinConfigured, setPinConfigured] = useState({});
+    const [showAudit, setShowAudit] = useState(false);
+    const [auditEvents, setAuditEvents] = useState([]);
+    const [auditStatus, setAuditStatus] = useState("");
+    const [showReleaseNotes, setShowReleaseNotes] = useState(false);
+    const [showMyBookings, setShowMyBookings] = useState(false);
+    const [showHelp, setShowHelp] = useState(false);
+    const [showReporting, setShowReporting] = useState(false);
+    const [reportingTab, setReportingTab] = useState("brs");
+    const [bookingStatsPeriod, setBookingStatsPeriod] = useState("12");
+    const [bookingStatsSort, setBookingStatsSort] = useState("mostBooked");
+    const [bookingStats, setBookingStats] = useState(null);
+    const [bookingStatsStatus, setBookingStatsStatus] = useState("");
+    const [playerWeekendSummary, setPlayerWeekendSummary] = useState({});
+    const [showBRSBooking, setShowBRSBooking] = useState(false);
+    const [brsBookers, setBRSBookers] = useState([]);
+    const [brsResult, setBRSResult] = useState(null);
+    const [brsLeague, setBRSLeague] = useState(null);
+    const [brsStatus, setBRSStatus] = useState("");
+    const [copiedBRS, setCopiedBRS] = useState(false);
+    const [showBRSReconcile, setShowBRSReconcile] = useState(false);
+    const [brsPasteText, setBRSPasteText] = useState("");
+    const [brsNameMap, setBRSNameMap] = useState({});
+    const [brsReconcileResult, setBRSReconcileResult] = useState(null);
+    const [brsReconcileStatus, setBRSReconcileStatus] = useState("");
+    const [copiedBRSReconcile, setCopiedBRSReconcile] = useState(false);
+    const [showAdminTools, setShowAdminTools] = useState(false);
+    const [showTeeTimesEditor, setShowTeeTimesEditor] = useState(false);
+    const [teeTimeInputs, setTeeTimeInputs] = useState([]);
+    const upcoming = useMemo(() => getUpcomingWeekends(52), []);
+    const past = useMemo(() => getPastWeekends(8), []);
+    const weekends = adminMode ? [...past, ...upcoming] : upcoming.slice(0, 8);
+    const visibleWeekendDates = useMemo(() => weekends.map(w => ({ sat: toDateKey(w.sat), sun: toDateKey(w.sun) })), [adminMode, past, upcoming]);
+    const visibleWeekendKey = visibleWeekendDates.map(w => `${w.sat}/${w.sun}`).join("|");
+    const defaultW = weekends[0];
+    const chosenW = useMemo(() => {
+        if (selectedKey) {
+            const found = weekends.find(w => toDateKey(w.sat) === selectedKey || toDateKey(w.sun) === selectedKey);
+            if (found)
+                return found;
+        }
+        return defaultW;
+    }, [selectedKey, weekends]);
+    const currentDate = activeDay === "sun" ? chosenW.sun : chosenW.sat;
+    const dateKey = toDateKey(currentDate);
+    const current = schedule[dateKey] || initDay(FIXTURE_COMPS[dateKey] || "");
+    const signupClosed = isSignupClosed(currentDate);
+    const effectiveLocked = current.locked || isAutoLocked(currentDate) || (!adminMode && signupClosed);
+    const currentPlayers = Array.isArray(current.players) ? current.players : [];
+    const currentUnavailable = Array.isArray(current.unavailablePlayers) ? current.unavailablePlayers : [];
+    const currentPriority = Array.isArray(current.priorityPlayers) ? current.priorityPlayers.filter(name => currentPlayers.includes(name)) : [];
+    const currentLatePriority = Array.isArray(current.latePriorityPlayers) ? current.latePriorityPlayers.filter(name => currentPlayers.includes(name) && !currentPriority.includes(name)) : [];
+    const dayMessage = String(current.dayMessage || "").trim();
+    const teeTimes = cleanTeeTimes(current.teeTimes);
+    const teesNeeded = currentPlayers.length ? Math.ceil(currentPlayers.length / 4) : 0;
+    const teeTimeForGroup = index => teeTimes[index] || "Tee time TBC";
+    const canAddToCalendar = pinLoggedIn && playerName && currentPlayers.includes(playerName);
+    const loggedInDayStatus = pinLoggedIn && playerName
+        ? (currentPlayers.includes(playerName) ? "playing" : currentUnavailable.includes(playerName) ? "unavailable" : "none")
+        : "";
+    const loggedInDayStatusText = loggedInDayStatus === "playing"
+        ? "You are booked for this day."
+        : loggedInDayStatus === "unavailable"
+            ? "You have marked yourself unavailable for this day."
+            : loggedInDayStatus === "none"
+                ? "You have not responded for this day yet."
+                : "";
+    const allNames = [...new Set([...members, ...currentPlayers, ...currentUnavailable, playerName].filter(Boolean))].sort();
+    const basePlayerDisplayNames = [
+        ...currentPlayers,
+        ...currentUnavailable.filter(name => !currentPlayers.includes(name)),
+        ...allNames.filter(name => !currentPlayers.includes(name) && !currentUnavailable.includes(name))
+    ];
+    // v21: keep the logged-in player's own row at the top while bookings are actionable,
+    // or when they are already confirmed on a locked/closed date. If a date is closed and
+    // they are not playing, leave confirmed players first.
+    const shouldPinLoggedInPlayer = pinLoggedIn && playerName && (!effectiveLocked || currentPlayers.includes(playerName) || currentUnavailable.includes(playerName));
+    const playerDisplayNames = shouldPinLoggedInPlayer
+        ? [playerName, ...basePlayerDisplayNames.filter(name => name !== playerName)]
+        : basePlayerDisplayNames;
+    const confirmedSummaryText = currentPlayers.length
+        ? `${currentPlayers.length} confirmed: ${currentPlayers.join(", ")}`
+        : "No players confirmed yet.";
+    async function load() {
+        try {
+            setStatus("Syncing...");
+            const data = await api("schedule");
+            setSchedule(mergeWithBase(data.schedule));
+            if (Array.isArray(data.members) && data.members.length) setMembers(data.members);
+            setStatus(`LIVE- ${VERSION}`);
+            setError("");
+        }
+        catch (e) {
+            setStatus(`OFFLINE- ${VERSION}`);
+            setError(e.message);
+        }
+    }
+    async function loadPinConfig() {
+        if (!adminMode)
+            return;
+        try {
+            const res = await fetch(`/api/admin/pins?adminPin=${ADMIN_PIN}`);
+            const data = await res.json();
+            if (data.ok)
+                setPinConfigured(data.configured || {});
+        }
+        catch (e) { }
+    }
+    async function loadAudit() {
+        if (!adminMode) return;
+        try {
+            setAuditStatus("Refreshing activity log...");
+            const res = await fetch(`/api/admin/audit?adminPin=${ADMIN_PIN}&dateKey=${dateKey}&ts=${Date.now()}`);
+            const data = await res.json();
+            if (data.ok) {
+                setAuditEvents(data.events || []);
+                setAuditStatus(`Live DB log updated ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
+            }
+            else {
+                setAuditStatus(data.error || "Activity log refresh failed");
+            }
+        } catch (e) {
+            setAuditStatus("Activity log refresh failed");
+        }
+    }
+    async function loadPlayerWeekendSummary() {
+        if (!pinLoggedIn || !playerName || !playerPin) {
+            setPlayerWeekendSummary({});
+            return;
+        }
+        try {
+            const res = await api("player/weekend-summary", { playerName, playerPin, weekends: visibleWeekendDates });
+            setPlayerWeekendSummary(res.summary || {});
+        }
+        catch (e) {
+            // Keep the main booking UI usable even if the personal dropdown indicator lookup fails.
+            setPlayerWeekendSummary({});
+        }
+    }
+    async function loadBookingStats(period = bookingStatsPeriod) {
+        if (!(adminMode || pinLoggedIn)) return;
+        try {
+            setBookingStatsStatus("Loading booking stats...");
+            const qs = adminMode ? `adminPin=${ADMIN_PIN}` : `playerName=${encodeURIComponent(playerName)}&playerPin=${encodeURIComponent(playerPin)}`;
+            const res = await fetch(`/api/admin/booking-stats?${qs}&period=${encodeURIComponent(period)}&ts=${Date.now()}`);
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || "Booking stats failed");
+            setBookingStats(data);
+            setBookingStatsStatus(`Stats updated ${new Date().toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`);
+        }
+        catch (e) {
+            setBookingStatsStatus(e.message || "Booking stats failed");
+        }
+    }
+    async function loadBRSLeague() {
+        if (!(adminMode || pinLoggedIn)) return;
+        try {
+            setBRSStatus("Loading BRS league...");
+            const qs = adminMode ? `adminPin=${ADMIN_PIN}` : `playerName=${encodeURIComponent(playerName)}&playerPin=${encodeURIComponent(playerPin)}`;
+            const res = await fetch(`/api/brs-booking/league?${qs}&ts=${Date.now()}`);
+            const data = await res.json();
+            if (!data.ok) throw new Error(data.error || "BRS league failed");
+            setBRSLeague(data);
+            setBRSStatus(data.season ? `BRS season ${data.season.label}` : "BRS league loaded");
+        }
+        catch (e) {
+            setBRSStatus(e.message || "BRS league failed");
+        }
+    }
+    useEffect(() => { load(); const t = setInterval(load, 30000); return () => clearInterval(t); }, []);
+    useEffect(() => { localStorage.setItem("wg_date", dateKey); localStorage.setItem("wg_day", activeDay); }, [dateKey, activeDay]);
+    useEffect(() => { localStorage.setItem("wg_admin", adminMode ? "1" : "0"); loadPinConfig(); }, [adminMode]);
+    useEffect(() => {
+        setAuditEvents([]);
+        setAuditStatus("");
+        if (!(adminMode && showAudit)) return;
+        loadAudit();
+        const t = setInterval(loadAudit, 5000);
+        return () => clearInterval(t);
+    }, [adminMode, showAudit, dateKey]);
+    useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
+    useEffect(() => { loadPlayerWeekendSummary(); }, [pinLoggedIn, playerName, playerPin, visibleWeekendKey]);
+    useEffect(() => { if (showReporting && reportingTab === "stats") loadBookingStats(bookingStatsPeriod); }, [showReporting, reportingTab, bookingStatsPeriod]);
+    useEffect(() => { if (showReporting && reportingTab === "brs") loadBRSLeague(); }, [showReporting, reportingTab]);
+    // Prevent admin edit drafts from being carried onto another day/weekend.
+    useEffect(() => { setEditingComp(false); setCompInput(""); setEditingDayMessage(false); setDayMessageInput(""); setShowTeeTimesEditor(false); setTeeTimeInputs([]); }, [dateKey]);
+    function optimistic(dateKey, day) { setSchedule(prev => mergeWithBase({ ...prev, [dateKey]: day })); }
+    function canEditPlayer(name) { return adminMode || (pinLoggedIn && playerName === name); }
+    function requireOwnPlayer(name) {
+        if (adminMode)
+            return true;
+        if (!pinLoggedIn || !playerName) {
+            setError("Choose your name and enter your player PIN first.");
+            return false;
+        }
+        if (playerName !== name) {
+            setError(`You are logged in as ${playerName}. You can only change your own booking.`);
+            return false;
+        }
+        return true;
+    }
+    async function loginPlayer() {
+        try {
+            setError("");
+            setMessage("Checking player PIN...");
+            const r = await api("player-login", { name: playerName, pin: playerPin });
+            setPinLoggedIn(true);
+            setMessage(`✅ Logged in as ${r.name}`);
+        }
+        catch (e) {
+            setPinLoggedIn(false);
+            setError(e.message);
+            setMessage("");
+        }
+    }
+    function logoutPlayer() { setPinLoggedIn(false); setPlayerPin(""); localStorage.removeItem("wg_player_pin"); localStorage.setItem("wg_player_ok", "0"); setMessage("Logged out"); }
+    async function choosePlaying(name) {
+        if (effectiveLocked && !adminMode)
+            return;
+        if (!requireOwnPlayer(name))
+            return;
+        if (currentPlayers.includes(name)) {
+            setConfirmRemove({ name, from: "playing" });
+            return;
+        }
+        setConfirmAdd({ name, mode: "toggle" });
+    }
+    async function setPlayerStatus(name, playerStatus) {
+        try {
+            const label = playerStatus === "playing" ? "playing" : playerStatus === "unavailable" ? "unavailable" : "not playing";
+            setMessage(`Saving ${dateKey}: ${name} as ${label}...`);
+            setError("");
+            const r = await api("player-status", { dateKey, name, status: playerStatus, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
+            optimistic(r.dateKey, r.data);
+            setTimeout(load, 500);
+            setTimeout(loadPlayerWeekendSummary, 650);
+            if (adminMode && showAudit) await loadAudit();
+            setMessage(`✅ ${r.message}`);
+        }
+        catch (e) {
+            setError(e.message);
+            setMessage("");
+        }
+    }
+    async function adminPost(path, payload) {
+        try {
+            setMessage("Saving...");
+            setError("");
+            const r = await api(path, { ...payload, dateKey, adminPin: ADMIN_PIN, competition: current.competition || FIXTURE_COMPS[dateKey] || "" });
+            if (r.dateKey && r.data)
+                optimistic(r.dateKey, r.data);
+            setTimeout(load, 500);
+            setTimeout(loadPlayerWeekendSummary, 650);
+            if (adminMode && showAudit) await loadAudit();
+            setMessage("✅ Saved");
+            return r;
+        }
+        catch (e) {
+            setError(e.message);
+            setMessage("");
+        }
+    }
+    async function savePlayerPin() {
+        try {
+            setMessage("Saving player PIN...");
+            setError("");
+            const r = await api("admin/player-pin", { adminPin: ADMIN_PIN, name: pinPlayer, pin: pinValue });
+            setPinConfigured(r.configured || {});
+            setPinValue("");
+            setMessage(`✅ ${pinValue ? "Saved" : "Cleared"} PIN for ${pinPlayer}`);
+        }
+        catch (e) {
+            setError(e.message);
+            setMessage("");
+        }
+    }
+    async function saveRosterMember(op, name) {
+        try {
+            const clean = String(name || "").trim();
+            if (!clean) return;
+            setMessage(op === "remove" ? `Removing ${clean} from roster...` : `Adding ${clean} to roster...`);
+            setError("");
+            const r = await api("admin/member", { adminPin: ADMIN_PIN, name: clean, op });
+            setMembers(r.members || []);
+            if (op === "add") setRosterName("");
+            setMessage(op === "remove" ? `✅ Removed ${clean} from roster` : `✅ Added ${clean} to roster`);
+        } catch (e) {
+            setError(e.message);
+            setMessage("");
+        }
+    }
+    async function setTeePreference(name, preference) {
+        await adminPost("admin/priority", { name, preference });
+    }
+    const teePreferenceFor = name => currentPriority.includes(name) ? "early" : currentLatePriority.includes(name) ? "late" : "none";
+    const teePreferenceIcon = name => currentPriority.includes(name) ? "⭐ " : currentLatePriority.includes(name) ? "🌙 " : "";
+    const attemptAdmin = () => { if (pin === ADMIN_PIN) {
+        setAdminMode(true);
+        setShowPin(false);
+        setPin("");
+        setTimeout(loadPinConfig, 50);
+    }
+    else
+        setError("Incorrect PIN"); };
+    const logoutAdmin = () => setAdminMode(false);
+    const changeWeekend = e => {
+        // v20: whenever the weekend changes, default the selected day to Saturday.
+        const saturdayKey = e.target.value;
+        setActiveDay("sat");
+        setSelectedKey(saturdayKey);
+    };
+    const weekendIndexLabel = (w, i) => {
+        if (w.past)
+            return "History";
+        const futureIndex = upcoming.findIndex(u => toDateKey(u.sat) === toDateKey(w.sat));
+        if (futureIndex === 0)
+            return "This weekend";
+        if (futureIndex === 1)
+            return "In 1 week";
+        return `In ${futureIndex} weeks`;
+    };
+    const statusIcon = status => status === "playing" ? "🟢" : status === "unavailable" ? "⚪" : "🔴";
+    const personalWeekendBookingIcon = w => {
+        if (!pinLoggedIn || !playerName) return "";
+        const summary = playerWeekendSummary[toDateKey(w.sat)] || { sat: "none", sun: "none" };
+        return `${statusIcon(summary.sat)}${statusIcon(summary.sun)}`;
+    };
+    const optionLabel = (w, i) => {
+        const icon = personalWeekendBookingIcon(w);
+        return `${icon ? `${icon} ` : ""}${weekendIndexLabel(w, i)} — ${weekendShort(w)}`;
+    };
+    const copyText = async (text, setter) => {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            }
+            else {
+                const el = document.createElement("textarea");
+                el.value = text;
+                el.style.cssText = "position:fixed;left:-9999px;top:-9999px";
+                document.body.appendChild(el);
+                el.focus();
+                el.select();
+                document.execCommand("copy");
+                document.body.removeChild(el);
+            }
+            setter(true);
+            setTimeout(() => setter(false), 1800);
+            setMessage("✅ Copied to clipboard");
+        }
+        catch (e) {
+            setError("Copy failed. Select and copy manually if your browser blocks clipboard access.");
+        }
+    };
+    function openTeeTimesEditor() {
+        const count = Math.max(teesNeeded || 1, teeTimes.length || 1);
+        setTeeTimeInputs(Array.from({ length: count }, (_, i) => teeTimes[i] || ""));
+        setShowTeeTimesEditor(true);
+    }
+    async function saveTeeTimes() {
+        const cleaned = cleanTeeTimes(teeTimeInputs);
+        await adminPost("admin/tee-times", { teeTimes: cleaned });
+        setShowTeeTimesEditor(false);
+    }
+
+    async function loadBRSNameMap() {
+        if (!adminMode) return;
+        try {
+            setBRSReconcileStatus("Loading BRS name map...");
+            const res = await fetch(`/api/admin/brs-name-map?adminPin=${ADMIN_PIN}&ts=${Date.now()}`);
+            const data = await res.json();
+            if (data.ok) {
+                setBRSNameMap(data.map || {});
+                setBRSReconcileStatus("");
+            } else {
+                setBRSReconcileStatus(data.error || "Could not load BRS name map");
+            }
+        } catch (e) {
+            setBRSReconcileStatus("Could not load BRS name map");
+        }
+    }
+    async function saveBRSNameMap() {
+        try {
+            setBRSReconcileStatus("Saving BRS name map...");
+            const res = await api("admin/brs-name-map", { adminPin: ADMIN_PIN, map: brsNameMap });
+            setBRSNameMap(res.map || {});
+            setBRSReconcileStatus("BRS name map saved.");
+        } catch (e) {
+            setBRSReconcileStatus(e.message || "Could not save BRS name map");
+        }
+    }
+    function openBRSReconcile() {
+        setShowBRSReconcile(true);
+        setBRSReconcileResult(null);
+        setCopiedBRSReconcile(false);
+        loadBRSNameMap();
+    }
+    const normaliseBRS = value => String(value || "").toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ").trim();
+    const brsAliasesFor = name => {
+        const mapped = String((brsNameMap || {})[name] || "").split(/[;,\n]/).map(s => s.trim()).filter(Boolean);
+        return [...new Set([name, ...mapped])];
+    };
+    function analyseBRSReconcile() {
+        const haystack = ` ${normaliseBRS(brsPasteText)} `;
+        const found = members.filter(name => brsAliasesFor(name).some(alias => {
+            const needle = normaliseBRS(alias);
+            return needle && haystack.includes(` ${needle} `);
+        }));
+        const foundSet = new Set(found);
+        const confirmedFound = currentPlayers.filter(name => foundSet.has(name));
+        const confirmedMissing = currentPlayers.filter(name => !foundSet.has(name));
+        const foundNotPlaying = found.filter(name => !currentPlayers.includes(name));
+        const unmappedConfirmed = currentPlayers.filter(name => !String((brsNameMap || {})[name] || "").trim());
+        const result = { confirmedFound, confirmedMissing, foundNotPlaying, unmappedConfirmed, checkedAt: Date.now() };
+        setBRSReconcileResult(result);
+        setBRSReconcileStatus(`Checked ${currentPlayers.length} confirmed player${currentPlayers.length === 1 ? "" : "s"} against pasted BRS text.`);
+    }
+    const namesOrNone = arr => arr && arr.length ? arr.join(", ") : "None";
+    const buildBRSReconcileText = () => {
+        const r = brsReconcileResult;
+        if (!r) return "";
+        const lines = [`⛳ BRS check — ${formatDate(currentDate)}`];
+        if (current.competition) lines.push(`🏆 ${current.competition}`);
+        lines.push("", `✅ In Weekend Golf and found in BRS: ${namesOrNone(r.confirmedFound)}`);
+        lines.push(`⚠️ In Weekend Golf but not found in BRS: ${namesOrNone(r.confirmedMissing)}`);
+        lines.push(`ℹ️ Found in BRS text but not marked playing here: ${namesOrNone(r.foundNotPlaying)}`);
+        if (r.unmappedConfirmed.length) lines.push("", `Players without BRS full-name mapping: ${namesOrNone(r.unmappedConfirmed)}`);
+        return lines.join("\n").trim();
+    };
+    const buildConfirmedListText = () => {
+        const comp = current.competition ? `
+🏆 ${current.competition}` : "";
+        if (!currentPlayers.length)
+            return `${formatDate(currentDate)}${comp}
+
+No players confirmed yet.`;
+        const confirmedLine = `${currentPlayers.length} playing:
+${currentPlayers.map((p, i) => `${i + 1}. ${p}`).join("\n")}`;
+        const times = teeTimes.length ? `
+
+Tee times: ${teeTimes.join(", ")}` : "";
+        return `⛳ Golf – ${formatDate(currentDate)}${comp}${times}
+
+${confirmedLine}
+
+Bookings confirmed ✅`;
+    };
+    const auditStatusLabel = (status) => ({ playing: "Confirmed", unavailable: "Unavailable", none: "No response", "early tee": "Early tee", standard: "Standard" }[status] || status || "?");
+    const auditText = (entry) => {
+        const time = entry.ts ? new Date(entry.ts).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : "";
+        const actor = entry.actor || "Unknown";
+        const day = entry.dateLabel || (entry.dateKey ? formatDate(new Date(`${entry.dateKey}T12:00:00`)) : formatDate(currentDate));
+        const name = entry.name || "";
+        const fromTo = entry.from || entry.to ? `${auditStatusLabel(entry.from)} → ${auditStatusLabel(entry.to)}` : "";
+        if (["joined", "removed_self", "admin_added", "admin_removed"].includes(entry.action)) {
+            return `${time} — ${actor} changed ${name} for ${day}: ${fromTo}`;
+        }
+        if (["priority_added", "priority_removed", "tee_preference_changed"].includes(entry.action)) {
+            return `${time} — ${actor} changed tee preference for ${name} on ${day}: ${fromTo}`;
+        }
+        if (entry.action === "day_message_changed") {
+            return `${time} — ${actor} changed day booking message for ${day}`;
+        }
+        if (entry.action === "competition_changed") {
+            return `${time} — ${actor} changed competition for ${day}: ${entry.from || "None"} → ${entry.to || "None"}`;
+        }
+        if (entry.action === "tee_times_changed") {
+            return `${time} — ${actor} changed tee times for ${day}: ${entry.from || "None"} → ${entry.to || "None"}`;
+        }
+        if (entry.action === "admin_locked" || entry.action === "admin_unlocked") {
+            const extra = entry.playerCount !== undefined ? ` (${entry.playerCount} players${entry.groupCount ? `, ${entry.groupCount} groups` : ""})` : "";
+            return `${time} — ${actor} changed booking status for ${day}: ${auditStatusLabel(entry.from)} → ${auditStatusLabel(entry.to)}${extra}`;
+        }
+        if (entry.action === "draw_regenerated") {
+            const extra = entry.playerCount !== undefined ? ` (${entry.playerCount} players${entry.groupCount ? `, ${entry.groupCount} groups` : ""})` : "";
+            return `${time} — ${actor} regenerated draw for ${day}${extra}`;
+        }
+        const label = { legacy_event: "legacy activity" }[entry.action] || entry.action || "activity";
+        return `${time} — ${actor} ${label} ${name} for ${day}${fromTo ? `: ${fromTo}` : ""}`;
+    };
+    const buildReminderText = () => {
+        return `⛳ Weekend Golf Sign-Up is open!\n\nPlease confirm if you're playing:\n📅 ${formatDate(chosenW.sat)}\n📅 ${formatDate(chosenW.sun)}\n\nSign-up closes at 6:50pm on Wednesday (Saturday) and Thursday (Sunday).\n\nTap the link to add your name 👇\n${APP_URL}`;
+    };
+    const weekendBookedPlayers = () => {
+        const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
+        const sun = schedule[toDateKey(chosenW.sun)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sun)] || "");
+        return new Set([...(Array.isArray(sat.players) ? sat.players : []), ...(Array.isArray(sun.players) ? sun.players : [])]);
+    };
+    const notBookedForWeekend = () => {
+        const booked = weekendBookedPlayers();
+        const unavailable = weekendUnavailablePlayers();
+        return members.filter(name => !booked.has(name) && !unavailable.has(name)).sort();
+    };
+    const weekendUnavailablePlayers = () => {
+        const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
+        const sun = schedule[toDateKey(chosenW.sun)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sun)] || "");
+        return new Set([...(Array.isArray(sat.unavailablePlayers) ? sat.unavailablePlayers : []), ...(Array.isArray(sun.unavailablePlayers) ? sun.unavailablePlayers : [])]);
+    };
+    const myBookingRows = () => weekends.filter(w => !w.past).map(w => {
+        const summary = playerWeekendSummary[toDateKey(w.sat)] || { sat: "none", sun: "none" };
+        return { key: toDateKey(w.sat), label: `${formatDate(w.sat)} / ${formatDate(w.sun)}`, icons: `${statusIcon(summary.sat)}${statusIcon(summary.sun)}`, sat: summary.sat || "none", sun: summary.sun || "none" };
+    });
+    const jumpToMyBookingWeekend = saturdayKey => {
+        // v35: My Bookings rows jump straight to that weekend and preserve the v20 Saturday default.
+        setShowMyBookings(false);
+        setActiveDay("sat");
+        setSelectedKey(saturdayKey);
+    };
+    const buildNotBookedWeekendText = () => {
+        const names = notBookedForWeekend();
+        const weekendLine = `${formatDate(chosenW.sat)} / ${formatDate(chosenW.sun)}`;
+        const list = names.length ? names.map((p, i) => `${i + 1}. ${p}`).join("\n") : "Everyone has booked or marked unavailable for this weekend ✅";
+        return `⛳ Golf booking check – ${weekendLine}\n\nPlayers not booked and not marked unavailable for Saturday or Sunday:\n${list}\n\nPlease book in or mark yourself unavailable here 👇\n${APP_URL}`;
+    };
+    const toggleBRSBooker = name => {
+        setBRSBookers(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
+        setBRSResult(null);
+    };
+    const clearBRSBooking = () => { setBRSBookers([]); setBRSResult(null); setCopiedBRS(false); };
+    async function createBRSBooking() {
+        try {
+            setError("");
+            setBRSStatus("Creating BRS groups...");
+            const res = await api("brs-booking", { dateKey, bookers: brsBookers, adminPin: adminMode ? ADMIN_PIN : "", playerName, playerPin });
+            setBRSResult(res.booking);
+            setBRSStatus("BRS groups created and saved.");
+            await loadBRSLeague();
+            if (adminMode && showAudit) await loadAudit();
+        }
+        catch (e) {
+            setBRSStatus(e.message || "BRS Booking failed");
+            setError(e.message || "BRS Booking failed");
+        }
+    }
+    const buildBRSWhatsAppText = () => {
+        const r = brsResult;
+        if (!r) return "";
+        const lines = [`⛳ BRS booking groups — ${formatDate(currentDate)}`, ""];
+        if (r.missingTeeTimes > 0) lines.push(`⚠️ Still need ${r.missingTeeTimes} more tee time${r.missingTeeTimes === 1 ? "" : "s"}.`, "");
+        (r.groups || []).forEach(group => {
+            lines.push(`${group.booker} to enter:`);
+            if (group.players && group.players.length) group.players.forEach((name, i) => lines.push(`${i + 1}. ${name}`));
+            else lines.push("No players assigned yet");
+            lines.push("");
+        });
+        if (r.unassignedPlayers && r.unassignedPlayers.length) {
+            lines.push("Players still needing a tee time:");
+            r.unassignedPlayers.forEach((name, i) => lines.push(`${i + 1}. ${name}`));
+            lines.push("");
+        }
+        if (r.spareBookers && r.spareBookers.length) lines.push(`Spare BRS booking${r.spareBookers.length === 1 ? "" : "s"}: ${r.spareBookers.join(", ")}`, "");
+        lines.push(`Confirmed players: ${r.confirmedCount || currentPlayers.length}`);
+        lines.push(`Tee times needed: ${r.teeTimesNeeded || Math.ceil(currentPlayers.length / 4)}`);
+        return lines.join("\n").trim();
+    };
+    const buildDrawWhatsAppText = () => {
+        if (!Array.isArray(current.draw) || !current.draw.length) return "";
+        const lines = [`⛳ Weekend Golf Draw — ${formatDate(currentDate)}`];
+        if (current.competition) lines.push(`🏆 ${current.competition}`);
+        lines.push("", "Druids Heath Golf Club", "");
+        current.draw.forEach((group, i) => {
+            lines.push(`${teeTimes.length ? teeTimeForGroup(i) : `Tee ${i + 1}`}`);
+            (group || []).forEach((name, idx) => lines.push(`${idx + 1}. ${name}`));
+            if (!group || !group.length) lines.push("No players assigned");
+            lines.push("");
+        });
+        lines.push("Have a good game everyone 👍");
+        return lines.join("\n").trim();
+    };
+    const sortedBookingStats = () => {
+        const rows = [...((bookingStats && bookingStats.stats) || [])];
+        const byName = (a, b) => a.name.localeCompare(b.name);
+        if (bookingStatsSort === "leastBooked") return rows.sort((a, b) => a.booked - b.booked || byName(a, b));
+        if (adminMode && bookingStatsSort === "mostNoResponse") return rows.sort((a, b) => b.noResponse - a.noResponse || byName(a, b));
+        return rows.sort((a, b) => b.booked - a.booked || byName(a, b));
+    };
+    const bookingStatsPeriodLabel = () => bookingStatsPeriod === "all" ? "All time" : `Last ${bookingStatsPeriod} weeks`;
+    return React.createElement("div", { className: "wrap" },
+        React.createElement("div", { className: "header" },
+            React.createElement("div", { className: "headerLeft" },
+                !adminMode && pinLoggedIn && React.createElement("button", { className: "playerLogoutBtn", onClick: logoutPlayer, title: `Logged in as ${playerName}` },
+                    React.createElement("span", null, "LOG OFF"),
+                    React.createElement("span", { className: "logoutName" }, String(playerName || "").toUpperCase()))),
+            React.createElement("div", { className: "headerCenter" },
+                React.createElement("div", { style: { fontSize: 22, lineHeight: 1 } }, "\u26F3"),
+                React.createElement("h1", { className: "title" }, "Weekend Golf"),
+                React.createElement("p", { className: "sub" }, "WHO'S PLAYING?")),
+            React.createElement("div", { className: "headerRight" },
+                React.createElement("button", { className: "adminBtn", onClick: () => adminMode ? logoutAdmin() : setShowPin(true), style: { background: adminMode ? "#2f5d35" : "#fffdf7", color: adminMode ? "#ffffff" : "#2f5d35", border: `1px solid ${adminMode ? "#2f5d35" : "#a9bea1"}` } }, adminMode ? "ADMIN ✓" : "ADMIN"),
+                React.createElement("button", { className: "versionBtn", onClick: () => setShowReleaseNotes(true), title: "View release notes" },
+                    "\uD83D\uDFE2 ",
+                    status),
+                React.createElement("button", { className: "helpBtn", onClick: () => setShowHelp(true), title: "Open help" }, "HELP"))),
+        message && React.createElement("div", { className: "msg" }, message),
+        error && React.createElement("div", { className: "msg err" },
+            "\u26A0\uFE0F ",
+            error),
+        !adminMode && !pinLoggedIn && React.createElement("div", { className: "identityBox" },
+            React.createElement("div", { className: "label" }, "YOUR PLAYER LOGIN"),
+            React.createElement("div", { style: { fontSize: 12, color: "#60715d" } }, "Choose your name and enter your PIN. You can only change your own booking."),
+            React.createElement("div", { className: "identityRow" },
+                React.createElement("select", { className: "select", value: playerName, onChange: e => { setPlayerName(e.target.value); setPinLoggedIn(false); } },
+                    React.createElement("option", { value: "" }, "Select your name..."),
+                    members.map(n => React.createElement("option", { key: n, value: n }, n))),
+                React.createElement("input", { className: "input", type: "password", inputMode: "numeric", value: playerPin, onChange: e => { setPlayerPin(e.target.value); setPinLoggedIn(false); }, placeholder: "PIN", style: { maxWidth: 92 } })),
+            React.createElement("div", { className: "identityRow" },
+                React.createElement("button", { className: "smallBtn", onClick: loginPlayer }, "Log in"),
+                pinLoggedIn && React.createElement("button", { className: "smallBtn", onClick: logoutPlayer }, "Log out"),
+                React.createElement("span", { style: { fontSize: 12, color: pinLoggedIn ? "#2f5d35" : "#7c8d78" } }, pinLoggedIn ? `Logged in as ${playerName}` : "Ask admin if you need a PIN."))),
+        React.createElement("div", { className: "section" },
+            React.createElement("div", { className: "label" }, "SELECT WEEKEND"),
+            React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i))))),
+            pinLoggedIn && React.createElement("button", { className: "myBookingsBtn", onClick: () => setShowMyBookings(true) }, "MY BOOKINGS")),
+        React.createElement("div", { className: "tabs" },
+            React.createElement("button", { className: `tab ${activeDay === "sat" ? "active" : ""}`, onClick: () => { setActiveDay("sat"); setSelectedKey(toDateKey(chosenW.sat)); } },
+                "SATURDAY",
+                React.createElement("br", null),
+                React.createElement("small", null, chosenW.sat.toLocaleDateString("en-GB", { day: "numeric", month: "short" }))),
+            React.createElement("button", { className: `tab ${activeDay === "sun" ? "active" : ""}`, onClick: () => { setActiveDay("sun"); setSelectedKey(toDateKey(chosenW.sun)); } },
+                "SUNDAY",
+                React.createElement("br", null),
+                React.createElement("small", null, chosenW.sun.toLocaleDateString("en-GB", { day: "numeric", month: "short" })))),
+        React.createElement("div", { className: "section dateBar" },
+            React.createElement("div", null,
+                React.createElement("div", { className: "dateLine" },
+                    React.createElement("div", { className: "date" }, formatDate(currentDate)),
+                    canAddToCalendar && React.createElement("button", { className: "calendarBtn", onClick: () => openCalendarForDay(currentDate, current.competition, teeTimes), title: "Add to Google Calendar", "aria-label": "Add this booked golf day to Google Calendar" }, "📅")),
+                current.competition && React.createElement("div", { className: "comp" },
+                    "\uD83C\uDFC6 ",
+                    current.competition),
+                dayMessage && React.createElement("div", { className: "dayNotice" }, dayMessage),
+                loggedInDayStatusText && React.createElement("div", { className: `userStatusCue ${loggedInDayStatus === "unavailable" ? "unavailable" : loggedInDayStatus === "none" ? "noresponse" : ""}` }, loggedInDayStatusText),
+                (adminMode || pinLoggedIn) && React.createElement("button", { className: "brsBtn", onClick: () => { clearBRSBooking(); setBRSStatus(""); setShowBRSBooking(true); }, title: "Open BRS Booking helper" }, "BRS Booking"),
+                React.createElement("div", { className: "key" },
+                    "Saving date key: ",
+                    dateKey),
+                !current.locked && !signupClosed && React.createElement("div", { className: "key" },
+                    "Sign-up closes ",
+                    formatCutoff(currentDate)),
+                effectiveLocked && React.createElement("div", { style: { color: "#e87840", fontSize: 11, marginTop: 4 } },
+                    "\uD83D\uDD12 ",
+                    current.locked ? "List locked by admin" : `Sign-up closed ${formatCutoff(currentDate)} — list visible only`)),
+            React.createElement("div", { className: "count" },
+                currentPlayers.length,
+                " confirmed",
+                React.createElement("br", null),
+                React.createElement("small", null,
+                    teesNeeded,
+                    " tee time",
+                    currentPlayers.length > 4 ? "s" : ""),
+                teeTimes.length > 0 && React.createElement("div", { className: "teeTimesLine" }, "Tee times: ", teeTimes.join(", ")),
+                adminMode && React.createElement("button", { className: "brsBtn", style: { marginTop: 7 }, onClick: openTeeTimesEditor }, teeTimes.length ? "Edit tee times" : "Add tee times"))),
+        current.locked && current.draw && React.createElement("div", { className: "draw" },
+            React.createElement("div", { className: "drawHead" }, "\uD83C\uDFB2 TEE TIME DRAW"),
+            current.draw.map((g, i) => React.createElement("div", { className: "group", key: i },
+                React.createElement("div", { className: "groupH" },
+                    React.createElement("span", null, teeTimes.length ? teeTimeForGroup(i) : `TEE ${i + 1}`),
+                    React.createElement("span", null, groupLabel(g.length))),
+                g.map((p, j) => React.createElement("div", { className: "groupP", key: p },
+                    j + 1,
+                    ". ",
+                    teePreferenceIcon(p),
+                    p))),
+            adminMode && React.createElement("div", { className: "group" },
+                React.createElement("button", { className: "btn", onClick: () => copyText(buildDrawWhatsAppText(), setCopiedDraw) }, copiedDraw ? "✓ Copied draw" : "📋 Copy draw for WhatsApp")))),
+        effectiveLocked && React.createElement("div", { className: "confirmedBox" },
+            React.createElement("div", { className: "confirmedTitle" }, "CONFIRMED FOR THIS DATE"),
+            React.createElement("div", { className: "confirmedChips" }, currentPlayers.length ? currentPlayers.map((p, i) => React.createElement("span", { className: "chip", key: p },
+                i + 1,
+                ". ",
+                teePreferenceIcon(p),
+                p)) : React.createElement("span", { style: { color: "#4a6a4a", fontSize: 13 } }, "No players confirmed yet."))),
+        React.createElement("div", { className: "players" },
+            React.createElement("div", { className: "label" }, effectiveLocked ? "CONFIRMED PLAYERS, UNAVAILABLE, THEN OTHERS" : "CHOOSE PLAYING OR UNAVAILABLE"),
+            playerDisplayNames.map(name => {
+                const isIn = currentPlayers.includes(name);
+                const isUnavailable = currentUnavailable.includes(name);
+                const disabledForUser = (effectiveLocked && !adminMode) || (!adminMode && !canEditPlayer(name));
+                return React.createElement("div", { className: `row ${disabledForUser ? "lockedOther" : ""}`, key: name },
+                    React.createElement("button", { className: `player ${isIn ? "in" : ""} ${isUnavailable ? "unavailable" : ""}`, disabled: disabledForUser, onClick: () => choosePlaying(name) },
+                        React.createElement("span", null, name),
+                        React.createElement("span", null, isIn ? "✓" : isUnavailable ? "Unavailable" : "")),
+                    !isIn && React.createElement("button", { className: `unavailableBtn ${isUnavailable ? "active" : ""}`, disabled: disabledForUser, onClick: () => setPlayerStatus(name, isUnavailable ? "none" : "unavailable") }, isUnavailable ? "⚪ Unavailable" : "Unavailable"),
+                    adminMode && isIn && React.createElement("select", { className: "teePrefSelect", value: teePreferenceFor(name), onChange: e => setTeePreference(name, e.target.value), title: "Tee time preference" },
+                        React.createElement("option", { value: "none" }, "Tee: None"),
+                        React.createElement("option", { value: "early" }, "⭐ Early"),
+                        React.createElement("option", { value: "late" }, "🌙 Late")),
+                    adminMode && isIn && React.createElement("button", { className: "smallBtn danger", onClick: () => setConfirmRemove({ name, from: "playing" }) }, "\u2715"));
+            })),
+        adminMode && React.createElement("div", { className: "adminMenuBar" },
+            React.createElement("button", { className: "btn", onClick: () => setShowAdminTools(prev => !prev) }, showAdminTools ? "▲ CLOSE ADMIN MENU" : "☰ ADMIN MENU"),
+            React.createElement("button", { className: "btn secondary", onClick: async () => { setShowReporting(true); setReportingTab("stats"); await loadBookingStats(); } }, "REPORTING")),
+        adminMode && showAdminTools && React.createElement("div", { className: "adminPanel" },
+            React.createElement("div", { className: "adminTitle" }, "ADMIN CONTROLS"),
+            React.createElement("div", { style: { padding: "10px", border: "1px solid var(--border)", borderRadius: 9, background: "#fffdf7" } },
+                React.createElement("div", { className: "label" }, "ROSTER MANAGEMENT"),
+                React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginBottom: 8 } }, "Add players here so they appear in login, PIN management and all booking lists."),
+                React.createElement("div", { className: "row" },
+                    React.createElement("input", { className: "input", value: rosterName, onChange: e => setRosterName(e.target.value), placeholder: "New roster player e.g. Danny" }),
+                    React.createElement("button", { className: "smallBtn", onClick: () => saveRosterMember("add", rosterName) }, "Add to roster")),
+                React.createElement("div", { className: "confirmedChips" }, members.map(n => React.createElement("span", { className: "chip", key: n },
+                    n,
+                    React.createElement("button", { onClick: () => saveRosterMember("remove", n), style: { marginLeft: 6, border: 0, background: "transparent", color: "#8a2f2f", cursor: "pointer" }, title: `Remove ${n} from roster` }, "×"))))),
+            React.createElement("div", { style: { padding: "10px", border: "1px solid var(--border)", borderRadius: 9, background: "#fffdf7" } },
+                React.createElement("div", { className: "label" }, "PLAYER PIN MANAGEMENT"),
+                React.createElement("div", { className: "row" },
+                    React.createElement("select", { className: "select", value: pinPlayer, onChange: e => setPinPlayer(e.target.value) },
+                        React.createElement("option", { value: "" }, "Choose player..."),
+                        members.map(n => React.createElement("option", { key: n, value: n },
+                            n,
+                            pinConfigured[n] ? " ✓" : ""))),
+                    React.createElement("input", { className: "input", type: "text", inputMode: "numeric", value: pinValue, onChange: e => setPinValue(e.target.value), placeholder: "New PIN / blank to clear" })),
+                React.createElement("button", { className: "btn", onClick: savePlayerPin }, "\uD83D\uDD11 Save / clear player PIN")),
+            React.createElement("div", { className: "row" },
+                React.createElement("input", { className: "input", value: newName, onChange: e => setNewName(e.target.value), placeholder: "Add player name..." }),
+                React.createElement("button", { className: "smallBtn", onClick: () => { const n = newName.trim(); if (n)
+                        setConfirmAdd({ name: n, mode: "adminManual" }); } }, "Add")),
+            editingComp ? (React.createElement("div", { className: "row" },
+                React.createElement("input", { className: "input", value: compInput, onChange: e => setCompInput(e.target.value), autoFocus: true, placeholder: "Competition name for this day only" }),
+                React.createElement("button", { className: "smallBtn", onClick: async () => { await adminPost("admin/competition", { competition: compInput }); setEditingComp(false); setCompInput(""); } }, "Save"),
+                React.createElement("button", { className: "smallBtn danger", onClick: () => { setEditingComp(false); setCompInput(""); } }, "Cancel"))) : React.createElement("button", { className: "btn", onClick: () => { setCompInput(current.competition || ""); setEditingComp(true); } },
+                "\uD83C\uDFC6 Edit competition name for ",
+                formatDate(currentDate)),
+            editingDayMessage ? React.createElement("div", { className: "adminSubPanel" },
+                React.createElement("div", { className: "label" }, "DAY-SPECIFIC BOOKING MESSAGE"),
+                React.createElement("textarea", { className: "textarea", value: dayMessageInput, onChange: e => setDayMessageInput(e.target.value), placeholder: "Optional message users must confirm before marking Playing for this day..." }),
+                React.createElement("div", { className: "row", style: { marginTop: 8 } },
+                    React.createElement("button", { className: "smallBtn", onClick: async () => { await adminPost("admin/day-message", { dayMessage: dayMessageInput }); setEditingDayMessage(false); setDayMessageInput(""); } }, "Save message"),
+                    React.createElement("button", { className: "smallBtn danger", onClick: async () => { await adminPost("admin/day-message", { dayMessage: "" }); setEditingDayMessage(false); setDayMessageInput(""); } }, "Clear"),
+                    React.createElement("button", { className: "smallBtn", onClick: () => { setEditingDayMessage(false); setDayMessageInput(""); } }, "Cancel"))) : React.createElement("button", { className: "btn", onClick: () => { setDayMessageInput(dayMessage); setEditingDayMessage(true); } }, dayMessage ? "⚠️ Edit day booking message" : "⚠️ Add day booking message"),
+            React.createElement("button", { className: "btn", onClick: openBRSReconcile }, "🔎 BRS reconciliation helper"),
+            React.createElement("button", { className: "btn", onClick: () => copyText(buildConfirmedListText(), setCopiedSummary) }, copiedSummary ? "✓ Copied confirmed list" : "📋 Copy confirmed attendee list for WhatsApp"),
+            React.createElement("button", { className: "btn", onClick: () => copyText(buildReminderText(), setCopiedReminder) }, copiedReminder ? "✓ Copied reminder" : "📣 Copy sign-up reminder for WhatsApp"),
+            React.createElement("button", { className: "btn", onClick: () => copyText(buildNotBookedWeekendText(), setCopiedNotBooked) }, copiedNotBooked ? "✓ Copied not-booked list" : "📋 Copy not-booked weekend list for WhatsApp"),
+            React.createElement("button", { className: "btn", onClick: () => adminPost("admin/lock", { locked: !current.locked }) }, current.locked ? "🔓 Unlock list" : "🔒 Lock list & generate draw"),
+            current.locked && React.createElement("button", { className: "btn", onClick: () => adminPost("admin/redraw", {}) }, "\uD83D\uDD00 Re-draw"),
+            React.createElement("button", { className: "btn", onClick: async () => { const next = !showAudit; setShowAudit(next); if (next) await loadAudit(); } },
+                "\uD83D\uDCCB Activity log, live DB (",
+                auditEvents.length,
+                ")"),
+            showAudit && React.createElement("div", { style: { fontSize: 12, color: "#60715d", marginTop: -4 } }, auditStatus || "Reading latest activity directly from D1..."),
+            showAudit && React.createElement("div", { className: "auditLog" }, auditEvents.length ? auditEvents.map((e, i) => React.createElement("div", { className: "auditItem", key: `${e.ts || "no-ts"}-${e.action || "event"}-${i}` }, auditText(e))) : React.createElement("div", { className: "auditItem" }, "No activity yet.")),
+            React.createElement("button", { className: "btn", onClick: load }, "\uD83D\uDD04 Refresh data")),
+        showTeeTimesEditor && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Tee times"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, `${formatDate(currentDate)} · ${currentPlayers.length} confirmed · ${teesNeeded} tee time${teesNeeded === 1 ? "" : "s"} needed`),
+                React.createElement("div", { className: "teeTimeGrid" }, teeTimeInputs.map((value, i) => React.createElement("input", { key: i, className: "input", type: "time", value, onChange: e => setTeeTimeInputs(prev => prev.map((v, idx) => idx === i ? e.target.value : v)), "aria-label": `Tee time ${i + 1}` }))),
+                React.createElement("div", { className: "teeTimeHint" }, "Leave a time blank if it is not known yet. If tee times are saved, calendar invites use the first tee time for five hours."),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => setShowTeeTimesEditor(false) }, "Cancel"),
+                    React.createElement("button", { className: "ghost danger", onClick: async () => { setTeeTimeInputs([]); await adminPost("admin/tee-times", { teeTimes: [] }); setShowTeeTimesEditor(false); } }, "Clear"),
+                    React.createElement("button", { className: "green", onClick: saveTeeTimes }, "Save tee times")))),
+        showBRSBooking && React.createElement("div", { className: "modal", onClick: e => { if (e.target.className === "modal") setShowBRSBooking(false); } },
+            React.createElement("div", { className: "modalBox brsModalBox" },
+                React.createElement("div", { className: "brsModalHeader" },
+                    React.createElement("div", null,
+                        React.createElement("h3", { className: "brsModalTitle" }, "BRS Booking"),
+                        React.createElement("p", { className: "brsModalSub" }, `${formatDate(currentDate)} · ${currentPlayers.length} confirmed · ${currentPlayers.length ? Math.ceil(currentPlayers.length / 4) : 0} tee time${currentPlayers.length > 4 ? "s" : ""} needed`)),
+                    React.createElement("button", { className: "brsCloseBtn", onClick: () => setShowBRSBooking(false) }, "Close")),
+                React.createElement("div", { className: "brsModalBody" },
+                    React.createElement("p", { className: "brsQuickLine" }, "Select who got tee times."),
+                    brsStatus && React.createElement("div", { className: "bookingLegend" }, brsStatus),
+                    React.createElement("div", { className: "brsToggleGrid" }, members.map(name => {
+                        const isBooker = brsBookers.includes(name);
+                        const isPlaying = currentPlayers.includes(name);
+                        return React.createElement("button", { key: name, className: `brsToggle ${isBooker ? "active" : ""}`, onClick: () => toggleBRSBooker(name) },
+                            isBooker ? "✓ " : "", name,
+                            React.createElement("span", { className: "brsTag" }, isPlaying ? "Playing" : "Not playing"));
+                    })),
+                    brsResult && React.createElement("div", { className: "brsResult" },
+                        (brsResult.groups || []).map((group, i) => React.createElement("div", { className: "brsResultBlock", key: `${group.booker}-${i}` },
+                            React.createElement("strong", null, `${group.booker} to enter:`),
+                            React.createElement("ol", { style: { margin: "5px 0 0", paddingLeft: 18 } }, (group.players || []).map(p => React.createElement("li", { key: p }, p))))),
+                        brsResult.unassignedPlayers && brsResult.unassignedPlayers.length ? React.createElement("div", { className: "brsResultBlock" }, `Still needing tee time: ${brsResult.unassignedPlayers.join(", ")}`) : null,
+                        brsResult.spareBookers && brsResult.spareBookers.length ? React.createElement("div", { className: "brsResultBlock" }, `Spare BRS booking: ${brsResult.spareBookers.join(", ")}`) : null)),
+                React.createElement("div", { className: "brsModalFooter" },
+                    React.createElement("button", { className: "ghost", onClick: clearBRSBooking }, "Clear"),
+                    React.createElement("button", { className: "green", onClick: createBRSBooking }, "Create groups"),
+                    brsResult && React.createElement("button", { className: "btn brsFooterCopy", onClick: () => copyText(buildBRSWhatsAppText(), setCopiedBRS) }, copiedBRS ? "✓ Copied BRS groups" : "📋 Copy BRS groups for WhatsApp")))),
+        showBRSReconcile && adminMode && React.createElement("div", { className: "modal", onClick: e => { if (e.target.className === "modal") setShowBRSReconcile(false); } },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 620, maxHeight: "92vh", overflow: "auto", textAlign: "left" } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "BRS reconciliation"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, `${formatDate(currentDate)} · Paste the BRS tee sheet or player list below. The helper checks confirmed Weekend Golf players against BRS names.`),
+                brsReconcileStatus && React.createElement("div", { className: "bookingLegend" }, brsReconcileStatus),
+                React.createElement("div", { className: "label", style: { marginTop: 10 } }, "PASTE BRS TEXT"),
+                React.createElement("textarea", { className: "textarea", value: brsPasteText, onChange: e => { setBRSPasteText(e.target.value); setBRSReconcileResult(null); }, placeholder: "Paste copied BRS tee sheet / booking list here..." }),
+                React.createElement("div", { className: "label", style: { marginTop: 12 } }, "BRS FULL-NAME MAP"),
+                React.createElement("p", { className: "brsQuickLine" }, "Use this where the app uses nicknames but BRS uses full names. You can add multiple possible BRS names separated by commas."),
+                React.createElement("div", { className: "brsMapGrid" }, members.map(name => React.createElement(React.Fragment, { key: name },
+                    React.createElement("div", { className: "brsMapName" }, name),
+                    React.createElement("input", { className: "input", value: brsNameMap[name] || "", onChange: e => setBRSNameMap(prev => ({ ...prev, [name]: e.target.value })), placeholder: `BRS name for ${name}` })))),
+                brsReconcileResult && React.createElement("div", { className: "reconcileSummary" },
+                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "✅ Confirmed and found in BRS"), React.createElement("br", null), namesOrNone(brsReconcileResult.confirmedFound)),
+                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "⚠️ Confirmed here but not found in BRS"), React.createElement("br", null), namesOrNone(brsReconcileResult.confirmedMissing)),
+                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "ℹ️ Found in BRS but not marked Playing here"), React.createElement("br", null), namesOrNone(brsReconcileResult.foundNotPlaying)),
+                    brsReconcileResult.unmappedConfirmed.length > 0 && React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "Mapping still missing"), React.createElement("br", null), namesOrNone(brsReconcileResult.unmappedConfirmed))),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => setShowBRSReconcile(false) }, "Close"),
+                    React.createElement("button", { className: "ghost", onClick: saveBRSNameMap }, "Save map"),
+                    React.createElement("button", { className: "green", onClick: analyseBRSReconcile }, "Check BRS")),
+                brsReconcileResult && React.createElement("div", { className: "modalActions", style: { marginTop: 8 } },
+                    React.createElement("button", { className: "green", onClick: () => copyText(buildBRSReconcileText(), setCopiedBRSReconcile) }, copiedBRSReconcile ? "✓ Copied BRS check" : "📋 Copy BRS check summary")))),
+        showReporting && adminMode && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 540 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Reporting"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Admin-only player booking activity. BRS League is parked for now while BRS booking records are refined."),
+                React.createElement("div", { className: "statsControls" },
+                    React.createElement("select", { className: "select", value: bookingStatsPeriod, onChange: e => setBookingStatsPeriod(e.target.value) },
+                        React.createElement("option", { value: "4" }, "Last 4 weeks"),
+                        React.createElement("option", { value: "8" }, "Last 8 weeks"),
+                        React.createElement("option", { value: "12" }, "Last 12 weeks"),
+                        React.createElement("option", { value: "all" }, "All time")),
+                    React.createElement("select", { className: "select", value: bookingStatsSort, onChange: e => setBookingStatsSort(e.target.value) },
+                        React.createElement("option", { value: "mostBooked" }, "Most booked"),
+                        React.createElement("option", { value: "leastBooked" }, "Least booked"),
+                        React.createElement("option", { value: "mostNoResponse" }, "Most no response"))),
+                React.createElement("div", { className: "bookingLegend" }, bookingStats ? `${bookingStatsPeriodLabel()} · ${bookingStats.dateCount || 0} weekend days · ${bookingStats.from} to ${bookingStats.to}` : bookingStatsStatus || "Loading..."),
+                React.createElement("div", { className: "releaseList" },
+                    React.createElement("table", { className: "statsTable" },
+                        React.createElement("thead", null,
+                            React.createElement("tr", null,
+                                React.createElement("th", null, "Player"),
+                                React.createElement("th", { style: { textAlign: "right" } }, "Booked"),
+                                React.createElement("th", { style: { textAlign: "right" } }, "Unavailable"),
+                                React.createElement("th", { style: { textAlign: "right" } }, "No response"))),
+                        React.createElement("tbody", null, sortedBookingStats().map(row => React.createElement("tr", { key: row.name },
+                            React.createElement("td", { className: "name" }, row.name),
+                            React.createElement("td", { className: "num" }, row.booked),
+                            React.createElement("td", { className: "num" }, row.unavailable),
+                            React.createElement("td", { className: "num" }, row.noResponse))))),
+                    bookingStats && !sortedBookingStats().length && React.createElement("div", { className: "auditItem" }, "No booking stats available yet.")),
+                React.createElement("div", { className: "bookingLegend" }, bookingStatsStatus),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => loadBookingStats() }, "Refresh"),
+                    React.createElement("button", { className: "green", onClick: () => setShowReporting(false) }, "Close")))),
+        showMyBookings && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 430 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "My bookings"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "One page to see all your bookings so you can see all the days on which you will play terrible golf!"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4, marginTop: -4 } }, "Click any week to jump to that weekend to book."),
+                React.createElement("div", { className: "releaseList" }, myBookingRows().map(row => React.createElement("div", { className: "bookingSummaryRow", key: row.key, onClick: () => jumpToMyBookingWeekend(row.key), role: "button", tabIndex: 0, onKeyDown: e => { if (e.key === "Enter" || e.key === " ") jumpToMyBookingWeekend(row.key); } },
+                    React.createElement("span", null, row.label),
+                    React.createElement("strong", null, row.icons)))),
+                React.createElement("div", { className: "bookingLegend" }, "🟢 booked · ⚪ unavailable · 🔴 no response"),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "green", onClick: () => setShowMyBookings(false) }, "Close")))),
+        showHelp && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 430 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Help"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Quick guide to the Weekend Golf app."),
+                React.createElement("div", { className: "releaseList" },
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Icons and personal weekend status"),
+                        React.createElement("p", { className: "helpText" }, "The weekend dropdown icons are personal to the logged-in player, so different players may see different icons."),
+                        React.createElement("ul", { className: "helpList" },
+                            React.createElement("li", null, "🟢 booked / playing"),
+                            React.createElement("li", null, "⚪ unavailable"),
+                            React.createElement("li", null, "🔴 no response yet"))),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Booking choices"),
+                        React.createElement("p", { className: "helpText" }, "Choose Playing if you want to be booked in. Choose Unavailable if you cannot play and do not need chasing. Clear removes your response.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Cutoff rules"),
+                        React.createElement("p", { className: "helpText" }, "Saturday booking closes at 6:50pm on Wednesday. Sunday booking closes at 6:50pm on Thursday. Admin can still manage locked bookings.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Tee times and calendar"),
+                        React.createElement("p", { className: "helpText" }, "Admins can add optional tee times for a day. If you are booked, the calendar icon creates a Weekend Golf event using the first tee time for five hours, or 08:00–13:00 if no tee time is saved.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Admin WhatsApp tools"),
+                        React.createElement("p", { className: "helpText" }, "Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list. Once the draw exists, admins can also copy a WhatsApp-ready draw message. The not-booked list excludes players who have marked themselves unavailable.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Admin booking stats"),
+                        React.createElement("p", { className: "helpText" }, "Admins can use Reporting to review player booking activity. BRS League reporting is parked for now while BRS booking records are refined. Logged-in players can still use BRS Booking to create WhatsApp-ready tee-time groups.")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "More info"),
+                        React.createElement("p", { className: "helpText" }, "Use My Bookings to see your upcoming personal status. Click any week in My Bookings to jump straight to that weekend. Use the live version number to view release notes."))),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => { setShowHelp(false); setShowReleaseNotes(true); } }, "Release notes"),
+                    React.createElement("button", { className: "green", onClick: () => setShowHelp(false) }, "Close")))),
+        showReleaseNotes && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Release notes"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Recent Weekend Golf app changes."),
+                React.createElement("div", { className: "releaseList" }, RELEASE_NOTES.map(item => React.createElement("div", { className: "releaseItem", key: item.version },
+                    React.createElement("div", { className: "releaseVersion" }, `${item.version} — ${item.title}`),
+                    React.createElement("ul", { className: "releaseChanges" }, item.changes.map(change => React.createElement("li", { key: change }, change)))))),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "green", onClick: () => setShowReleaseNotes(false) }, "Close")))),
+        showPin && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox" },
+                React.createElement("div", { style: { fontSize: 28 } }, "\uD83D\uDD10"),
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal" } }, "Admin PIN"),
+                React.createElement("input", { className: "input", type: "password", inputMode: "numeric", value: pin, onChange: e => setPin(e.target.value), onKeyDown: e => e.key === "Enter" && attemptAdmin(), placeholder: "Enter PIN" }),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => setShowPin(false) }, "Cancel"),
+                    React.createElement("button", { className: "green", onClick: attemptAdmin }, "Enter")))),
+        confirmAdd && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox" },
+                React.createElement("h3", { style: { color: "#223322", fontWeight: "normal" } }, "\"Add to booking?\""),
+                React.createElement("p", null,
+                    "Add ",
+                    React.createElement("strong", { style: { color: "#2f5d35" } }, confirmAdd.name),
+                    " as ",
+                    React.createElement("strong", null, "playing"),
+                    " on ",
+                    formatDate(currentDate),
+                    "?"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, "Please confirm this is the correct player, date and status before saving."),
+                dayMessage && React.createElement("div", { className: "messageBox" },
+                    React.createElement("strong", null, "Important message for this day"),
+                    React.createElement("br", null),
+                    dayMessage),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => setConfirmAdd(null) }, "Cancel"),
+                    React.createElement("button", { className: "green", onClick: async () => { const item = confirmAdd; setConfirmAdd(null); if (item.mode === "adminManual") {
+                            await adminPost("admin/add-player", { name: item.name });
+                            setNewName("");
+                        }
+                        else {
+                            await setPlayerStatus(item.name, "playing");
+                        } } }, dayMessage ? "I understand, add" : "Yes, add")))),
+        confirmRemove && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox" },
+                React.createElement("h3", { style: { color: "#223322", fontWeight: "normal" } }, "Remove from list?"),
+                React.createElement("p", null,
+                    "Remove ",
+                    React.createElement("strong", { style: { color: "#2f5d35" } }, confirmRemove.name),
+                    " from ",
+                    formatDate(currentDate),
+                    "?"),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "ghost", onClick: () => setConfirmRemove(null) }, "Cancel"),
+                    React.createElement("button", { className: "ghost danger", onClick: async () => { const item = confirmRemove; setConfirmRemove(null); adminMode ? await adminPost("admin/remove-player", { name: item.name }) : await setPlayerStatus(item.name, "none"); } }, "Yes, remove")))));
+}
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
+
+</script>
+</body>
+</html>
