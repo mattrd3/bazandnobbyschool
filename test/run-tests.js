@@ -256,7 +256,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 39 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v47"')) throw new Error("v47 marker missing");
+if (!html.includes('const VERSION = "v48"')) throw new Error("v48 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');

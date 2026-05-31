@@ -210,7 +210,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v47";
+const VERSION = "v48";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -257,6 +257,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v48", title: "Emergency blank-screen hotfix", changes: ["Fixed a frontend rendering syntax issue introduced in v47 that could cause a blank screen before the app loaded.", "No feature or database behaviour changed from v47." ] },
     { version: "v47", title: "Clearer WhatsApp draw copy", changes: ["Moved the admin WhatsApp draw copy action into the draw heading so it is visible beside the draw itself.", "Removed early/late tee preference markers from the visible draw output so the draw shows only tee times, groups, and player names.", "Kept early/late tee preferences as admin-only draw guidance and left them out of the WhatsApp draw message." ] },
     { version: "v46", title: "BRS reconciliation and compact admin menu", changes: ["Added an admin-only BRS reconciliation helper so a pasted BRS tee sheet can be compared against the selected day in Weekend Golf.", "Added an editable nickname-to-BRS-full-name map to handle BRS using full names while the app can use nicknames or shortened names.", "Moved the growing admin controls behind a compact Admin Menu toggle to reduce clutter on the main booking screen.", "Added the missing admin day-message editor into the compact admin controls."] },
     { version: "v45", title: "Late tee preference and day booking messages", changes: ["Admins can now mark confirmed players as Early, Late, or No tee preference before generating the draw.", "The draw now guides early-preference players towards the earliest groups and late-preference players towards the latest groups, while keeping randomisation inside each preference bucket.", "Admins can add an optional day-specific booking message that users must confirm before marking themselves as Playing.", "The WhatsApp draw copy has been made friendlier and continues to appear after the list is locked and a draw exists."] },
@@ -1350,7 +1351,7 @@ Bookings confirmed ✅`;
                     "?"),
                 React.createElement("div", { className: "modalActions" },
                     React.createElement("button", { className: "ghost", onClick: () => setConfirmRemove(null) }, "Cancel"),
-                    React.createElement("button", { className: "ghost danger", onClick: async () => { const item = confirmRemove; setConfirmRemove(null); adminMode ? await adminPost("admin/remove-player", { name: item.name }) : await setPlayerStatus(item.name, "none"); } }, "Yes, remove")))));
+                    React.createElement("button", { className: "ghost danger", onClick: async () => { const item = confirmRemove; setConfirmRemove(null); adminMode ? await adminPost("admin/remove-player", { name: item.name }) : await setPlayerStatus(item.name, "none"); } }, "Yes, remove"))))));
 }
 ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(App, null));
 
