@@ -98,7 +98,7 @@ async function call(db, path, method="GET", body=null) {
 
 const { normaliseDateKey, safeDay, buildGroups, isSignupClosedDateKey, londonLocalDateTimeToUtcMillis, DEFAULT_MEMBERS, auditDateLabel, buildBRSBookingGroups, getSeasonBounds } = __test;
 
-assert.equal(normaliseDateKey("2026-06-07"), "2026-06-07");
+assert.equal(normaliseDateKey("2027-06-06"), "2027-06-06");
 assert.equal(normaliseDateKey("Sun May 10 2026 00:00:00 GMT+0100 (British Summer Time)"), "2026-05-10");
 assert.deepEqual(safeDay({ players:["Bob", "Bob", "", "Colin"], maybes:["Ethan"], locked: 1 }).players, ["Bob", "Colin"]);
 assert.equal("maybes" in safeDay({ players:["Bob"], maybes:["Ethan"] }), false, "v15 should not expose maybes");
@@ -107,7 +107,7 @@ assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(
 assert.equal(isSignupClosedDateKey("2026-05-16", londonLocalDateTimeToUtcMillis(2026,5,6,18,50)), true);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,49)), false);
 assert.equal(isSignupClosedDateKey("2026-05-17", londonLocalDateTimeToUtcMillis(2026,5,7,18,50)), true);
-assert.equal(auditDateLabel("2026-06-07"), "Sunday 7 June", "v29 keeps v24 audit date label with amended booking day/date");
+assert.equal(auditDateLabel("2027-06-06"), "Sunday 6 June", "v29 keeps v24 audit date label with amended booking day/date");
 assert.deepEqual(getSeasonBounds("2026-05-17"), { start:"2026-04-01", end:"2027-03-31", label:"2026/27" }, "v38 BRS league season should run April to March");
 const brsScenario = buildBRSBookingGroups(["Baby Dave", "Meeky", "Kevin", "Mark", "Bob", "Danny", "Doc", "Wayne"], ["Baby Dave", "Colin"]);
 assert.equal(brsScenario.teeTimesNeeded, 2, "v38 BRS helper should calculate tee times needed");
@@ -140,71 +140,84 @@ assert.equal(r.json.configured.Jason, true);
 r = await call(db, "/api/player-login", "POST", { name:"Jason", pin:"1111" });
 assert.equal(r.json.ok, true);
 
-r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
+r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2027-06-05", sun:"2027-06-06" }] });
 assert.equal(r.json.ok, true, "v29 player weekend summary should authenticate and return personal booking indicators");
-assert.deepEqual(r.json.summary["2026-06-06"], { sat:"none", sun:"none" }, "v32 initially shows no personal response for that weekend");
+assert.deepEqual(r.json.summary["2027-06-05"], { sat:"none", sun:"none" }, "v32 initially shows no personal response for that weekend");
 
-r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"maybe", playerName:"Jason", playerPin:"1111" });
+r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"Jason", status:"maybe", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.status, 400, "maybe status should be rejected in v15");
 assert.equal(r.json.ok, false);
 
-r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"playing", playerName:"Jason", playerPin:"1111" });
+r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"Jason", status:"playing", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, ["Jason"]);
 assert.equal("maybes" in r.json.data, false);
 
-r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
-assert.deepEqual(r.json.summary["2026-06-06"], { sat:"none", sun:"playing" }, "v32 should show Jason playing on Sunday only");
-r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-06", name:"Jason", status:"unavailable", playerName:"Jason", playerPin:"1111" });
+r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2027-06-05", sun:"2027-06-06" }] });
+assert.deepEqual(r.json.summary["2027-06-05"], { sat:"none", sun:"playing" }, "v32 should show Jason playing on Sunday only");
+r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-05", name:"Jason", status:"unavailable", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true, "v32 should allow players to mark themselves unavailable");
 assert.deepEqual(r.json.data.unavailablePlayers, ["Jason"]);
-r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2026-06-06", sun:"2026-06-07" }] });
-assert.deepEqual(r.json.summary["2026-06-06"], { sat:"unavailable", sun:"playing" }, "v32 weekend summary should distinguish unavailable and playing days");
+r = await call(db, "/api/player/weekend-summary", "POST", { playerName:"Jason", playerPin:"1111", weekends:[{ sat:"2027-06-05", sun:"2027-06-06" }] });
+assert.deepEqual(r.json.summary["2027-06-05"], { sat:"unavailable", sun:"playing" }, "v32 weekend summary should distinguish unavailable and playing days");
 
-r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2027-06-06");
 assert.equal(r.json.ok, true);
 assert.equal(r.json.events[0].action, "joined", "v23 should read joined events from audit_events table");
-assert.equal(r.json.events[0].dateLabel, "Sunday 7 June", "v29 keeps v24 audit event amended booking day/date");
+assert.equal(r.json.events[0].dateLabel, "Sunday 6 June", "v29 keeps v24 audit event amended booking day/date");
 assert.equal(r.json.events[0].from, "none", "v29 keeps v24 audit event previous booking status");
 assert.equal(r.json.events[0].to, "playing", "v29 keeps v24 audit event new booking status");
 
-r = await call(db, "/api/player-status", "POST", { dateKey:"2026-06-07", name:"Jason", status:"none", playerName:"Jason", playerPin:"1111" });
+r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"Jason", status:"none", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, []);
-r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2027-06-06");
 assert.equal(r.json.ok, true);
 assert.ok(r.json.events.some(e => e.action === "joined"));
 assert.ok(r.json.events.some(e => e.action === "removed_self"));
 
-await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind("2026-06-08", JSON.stringify({ players: [], audit: [{ ts: 123, action: "legacy_event", name: "Legacy", actor: "Admin", actorType: "admin" }] }), 123).run();
-r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-08");
+await db.prepare(`INSERT INTO days (dateKey, data, updatedAt) VALUES (?, ?, ?) ON CONFLICT(dateKey) DO UPDATE SET data = excluded.data, updatedAt = excluded.updatedAt`).bind("2027-06-07", JSON.stringify({ players: [], audit: [{ ts: 123, action: "legacy_event", name: "Legacy", actor: "Admin", actorType: "admin" }] }), 123).run();
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2027-06-07");
 assert.equal(r.json.ok, true);
 assert.ok(r.json.events.some(e => e.action === "legacy_event"), "v23 should migrate legacy day.audit into audit_events on lookup");
 
-r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-07", name:"Ethan", adminPin:"2727" });
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-06", name:"Ethan", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, ["Ethan"]);
 
-r = await call(db, "/api/admin/priority", "POST", { dateKey:"2026-06-07", name:"Ethan", priority:true, adminPin:"2727" });
+r = await call(db, "/api/admin/priority", "POST", { dateKey:"2027-06-06", name:"Ethan", priority:true, adminPin:"2727" });
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.priorityPlayers, ["Ethan"]);
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-06", name:"Bob", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-06", name:"Wayne", adminPin:"2727" });
+assert.equal(r.json.ok, true);
+r = await call(db, "/api/admin/priority", "POST", { dateKey:"2027-06-06", name:"Wayne", preference:"late", adminPin:"2727" });
+assert.equal(r.json.ok, true, "v45 should allow admin to set a late tee preference");
+assert.deepEqual(r.json.data.latePriorityPlayers, ["Wayne"]);
+r = await call(db, "/api/admin/day-message", "POST", { dateKey:"2027-06-06", dayMessage:"Drawn competition - please be flexible on tee time.", adminPin:"2727" });
+assert.equal(r.json.ok, true, "v45 should save an optional day booking message without a schema migration");
+assert.equal(r.json.data.dayMessage, "Drawn competition - please be flexible on tee time.");
 
-r = await call(db, "/api/admin/lock", "POST", { dateKey:"2026-06-07", locked:true, adminPin:"2727" });
+r = await call(db, "/api/admin/lock", "POST", { dateKey:"2027-06-06", locked:true, adminPin:"2727" });
 assert.equal(r.json.ok, true);
 assert.equal(r.json.data.locked, true);
 assert.ok(Array.isArray(r.json.data.draw));
+assert.equal(r.json.data.draw.flat()[0], "Ethan", "v45 early preference should be placed before standard/late players where possible");
+assert.equal(r.json.data.draw.flat().at(-1), "Wayne", "v45 late preference should be placed after standard/early players where possible");
 
-r = await call(db, "/api/admin/competition", "POST", { dateKey:"2026-06-07", competition:"Stableford", adminPin:"2727" });
+r = await call(db, "/api/admin/competition", "POST", { dateKey:"2027-06-06", competition:"Stableford", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 assert.equal(r.json.data.competition, "Stableford");
-r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2026-06-07");
-assert.ok(r.json.events.some(e => e.action === "competition_changed" && e.dateLabel === "Sunday 7 June" && e.to === "Stableford"), "v29 keeps v24 competition audit date and new value");
+r = await call(db, "/api/admin/audit?adminPin=2727&dateKey=2027-06-06");
+assert.ok(r.json.events.some(e => e.action === "competition_changed" && e.dateLabel === "Sunday 6 June" && e.to === "Stableford"), "v29 keeps v24 competition audit date and new value");
 
 r = await call(db, "/api/schedule");
-assert.equal(r.json.schedule["2026-06-07"].players[0], "Ethan");
-assert.equal("maybes" in r.json.schedule["2026-06-07"], false);
+assert.equal(r.json.schedule["2027-06-06"].players[0], "Ethan");
+assert.equal(r.json.schedule["2027-06-06"].dayMessage, "Drawn competition - please be flexible on tee time.");
+assert.equal("maybes" in r.json.schedule["2027-06-06"], false);
 
-r = await call(db, "/api/admin/booking-stats?adminPin=2727&period=12&asOf=2026-06-30");
+r = await call(db, "/api/admin/booking-stats?adminPin=2727&period=12&asOf=2027-06-30");
 assert.equal(r.json.ok, true, "v36 booking stats endpoint should return admin stats");
 const jasonStats = r.json.stats.find(x => x.name === "Jason");
 const ethanStats = r.json.stats.find(x => x.name === "Ethan");
@@ -212,38 +225,38 @@ assert.equal(jasonStats.unavailable, 1, "v36 stats should count unavailable play
 assert.equal(ethanStats.booked, 1, "v36 stats should count booked player days");
 assert.ok(jasonStats.noResponse >= 1, "v36 stats should count no-response days");
 
-r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Baby Dave", adminPin:"2727" });
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-13", name:"Baby Dave", adminPin:"2727" });
 assert.equal(r.json.ok, true);
-r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Meeky", adminPin:"2727" });
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-13", name:"Meeky", adminPin:"2727" });
 assert.equal(r.json.ok, true);
-r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Kevin", adminPin:"2727" });
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-13", name:"Kevin", adminPin:"2727" });
 assert.equal(r.json.ok, true);
-r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2026-06-14", name:"Mark Mark", adminPin:"2727" });
+r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-13", name:"Mark Mark", adminPin:"2727" });
 assert.equal(r.json.ok, true);
-await db.prepare("INSERT INTO brs_bookings (id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("legacy-brs", "2026-06-14", Date.now(), "Admin", JSON.stringify(["Meeky"]), JSON.stringify([]), JSON.stringify([]), JSON.stringify([]), JSON.stringify({})).run();
-r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2026-06-30");
+await db.prepare("INSERT INTO brs_bookings (id, dateKey, createdAt, createdBy, bookersJson, confirmedPlayersJson, groupsJson, spareBookersJson, detailsJson) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)").bind("legacy-brs", "2027-06-13", Date.now(), "Admin", JSON.stringify(["Meeky"]), JSON.stringify([]), JSON.stringify([]), JSON.stringify([]), JSON.stringify({})).run();
+r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2027-06-30");
 assert.equal(r.json.ok, true, "v40 BRS league endpoint should return season stats");
-assert.equal(r.json.season.label, "2026/27");
+assert.equal(r.json.season.label, "2027/28");
 assert.equal(r.json.league.length, 0, "v40 BRS league should ignore historic/pre-v40 records with no league eligibility marker");
-r = await call(db, "/api/brs-booking", "POST", { dateKey:"2026-06-14", bookers:["Baby Dave"], adminPin:"2727" });
+r = await call(db, "/api/brs-booking", "POST", { dateKey:"2027-06-13", bookers:["Baby Dave"], adminPin:"2727" });
 assert.equal(r.json.ok, true, "v41 BRS Booking endpoint should create operational groups without league-save side effects");
 assert.equal(r.json.booking.groups[0].booker, "Baby Dave");
 assert.ok(r.json.booking.groups[0].players.includes("Baby Dave"));
-r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2026-06-30");
+r = await call(db, "/api/brs-booking/league?adminPin=2727&asOf=2027-06-30");
 assert.equal(r.json.ok, true, "v41 BRS league endpoint should still return season stats while parked");
 assert.equal(r.json.league.length, 0, "v41 BRS create groups should not add league rows because BRS reporting is parked");
-r = await call(db, "/api/admin/booking-stats?playerName=Jason&playerPin=1111&period=12&asOf=2026-06-30");
+r = await call(db, "/api/admin/booking-stats?playerName=Jason&playerPin=1111&period=12&asOf=2027-06-30");
 assert.equal(r.json.ok, true, "v40 booking stats should be available to logged-in players");
 assert.equal(r.json.includeNoResponse, false, "v40 non-admin booking stats should hide no-response visibility");
 assert.equal("noResponse" in r.json.stats[0], false, "v40 non-admin booking stats should not include noResponse values");
 
-r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2026-06-07", adminPin:"2727" });
+r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2027-06-06", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 35 API/helper tests passed");
+console.log("PASS: 39 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v43"')) throw new Error("v43 marker missing");
+if (!html.includes('const VERSION = "v46"')) throw new Error("v46 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -331,7 +344,7 @@ if (!html.includes('/api/admin/booking-stats')) throw new Error('v36 Booking Sta
 if (!html.includes('REPORTING')) throw new Error('v39 Reporting footer button missing');
 if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes('No response')) throw new Error('v36 Booking Stats table headings missing');
 if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
-if (!html.includes('adminMode && React.createElement("div", { className: "reportingFooter" }')) throw new Error('v41 Reporting footer should be admin-only again');
+if (!html.includes('React.createElement("button", { className: "btn secondary"') || !html.includes('REPORTING')) throw new Error('v46 Reporting should remain admin-only inside compact admin menu');
 if (!html.includes('React.createElement("option", { value: "mostNoResponse" }, "Most no response")')) throw new Error('v41 admin Reporting should include no-response sort');
 if (!html.includes('React.createElement("th", { style: { textAlign: "right" } }, "No response")')) throw new Error('v41 admin Reporting should include no-response column');
 if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
