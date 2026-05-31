@@ -256,7 +256,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 39 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v46"')) throw new Error("v46 marker missing");
+if (!html.includes('const VERSION = "v47"')) throw new Error("v47 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -345,6 +345,10 @@ if (!html.includes('REPORTING')) throw new Error('v39 Reporting footer button mi
 if (!html.includes('Booked') || !html.includes('Unavailable') || !html.includes('No response')) throw new Error('v36 Booking Stats table headings missing');
 if (!html.includes('Most booked') || !html.includes('Least booked') || !html.includes('Most no response')) throw new Error('v36 Booking Stats sort options missing');
 if (!html.includes('React.createElement("button", { className: "btn secondary"') || !html.includes('REPORTING')) throw new Error('v46 Reporting should remain admin-only inside compact admin menu');
+
+if (!html.includes('className: `drawCopyBtn ${copiedDraw ? "copied" : ""}`') || !html.includes('📋 Copy WhatsApp')) throw new Error('v47 draw WhatsApp copy button should be in draw header');
+if (html.includes('adminMode && React.createElement("div", { className: "group" },\n                React.createElement("button", { className: "btn", onClick: () => copyText(buildDrawWhatsAppText(), setCopiedDraw) }')) throw new Error('v47 draw WhatsApp copy should not be hidden as a final draw group');
+if (html.includes('teePreferenceIcon(p),\n                    p))),\n            adminMode')) throw new Error('v47 draw output should not display early/late preference icons');
 if (!html.includes('React.createElement("option", { value: "mostNoResponse" }, "Most no response")')) throw new Error('v41 admin Reporting should include no-response sort');
 if (!html.includes('React.createElement("th", { style: { textAlign: "right" } }, "No response")')) throw new Error('v41 admin Reporting should include no-response column');
 if (!html.includes('Last 4 weeks') || !html.includes('Last 8 weeks') || !html.includes('Last 12 weeks') || !html.includes('All time')) throw new Error('v36 Booking Stats period options missing');
@@ -383,6 +387,6 @@ if (!html.includes('teeTimesLine')) throw new Error('v43 compact tee-time displa
 if (!html.includes('admin/tee-times')) throw new Error('v43 admin tee-time API call missing');
 if (!html.includes('Tee times: ')) throw new Error('v43 tee times display/copy text missing');
 if (!html.includes('buildDrawWhatsAppText')) throw new Error('v43 draw WhatsApp copy builder missing');
-if (!html.includes('Copy draw for WhatsApp')) throw new Error('v43 draw WhatsApp copy button missing');
+if (!html.includes('📋 Copy WhatsApp')) throw new Error('v47 draw WhatsApp copy button missing from draw header');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
 console.log("PASS: v43 UI regression checks passed");
