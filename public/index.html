@@ -125,7 +125,11 @@
     .unavailableBtn { min-width:92px; padding:12px 8px; border-radius:10px; border:1px solid #b8c0b2; background:#f7f7f2; color:#667064; cursor:pointer; font-size:12px; }
     .unavailableBtn.active { background:#e9ece3; border-color:#8f9a89; font-weight:bold; }
 
-    .quickBooking { margin:14px 16px 0; padding:12px; border:1px solid var(--border-strong); background:rgba(255,253,247,.86); border-radius:12px; box-shadow:var(--shadow); }
+    .quickBookingLauncher { margin:14px 16px 0; padding:12px; border:1px solid var(--border-strong); background:rgba(255,253,247,.86); border-radius:12px; box-shadow:var(--shadow); }
+    .quickBookingToggle { width:100%; padding:12px 14px; border-radius:10px; border:1px solid var(--border-strong); background:linear-gradient(135deg,#dcebd4,#c8dfbd); color:var(--green); cursor:pointer; font-size:13px; font-weight:bold; letter-spacing:.04em; }
+    .quickBookingToggle.off { background:#fffdf7; }
+    .quickBookingToggleHint { margin-top:6px; color:var(--muted); font-size:11px; line-height:1.35; text-align:center; }
+    .quickBooking { margin-top:12px; padding-top:10px; border-top:1px solid var(--border); }
     .quickBookingHead { display:flex; justify-content:space-between; gap:8px; align-items:flex-start; margin-bottom:8px; }
     .quickBookingTitle { color:var(--green); font-size:14px; font-weight:bold; letter-spacing:.05em; }
     .quickBookingHint { color:var(--muted); font-size:11px; line-height:1.35; margin-top:3px; }
@@ -226,7 +230,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v53";
+const VERSION = "v54";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -273,6 +277,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v54", title: "Optional Quick Booking toggle", changes: ["Changed Quick Booking so the normal full-list view remains the default for logged-in players.", "Added a clear top button to open or hide Quick Booking when a player wants the simpler day-by-day booking cards.", "Moved Quick Booking above the weekend/date selector when opened, so the selected Saturday/Sunday tabs are not confused with the quick-booking list."] },
     { version: "v53", title: "Quick Booking view", changes: ["Added a logged-in player Quick Booking view showing each upcoming Saturday and Sunday as simple cards.", "Users can now tap clear Playing / Unavailable buttons, or a single change button when they have already responded.", "Quick Booking uses the same lock and cutoff rules as the full list and records whether bookings came from Quick Booking, the full list, or admin."] },
     { version: "v52", title: "Admin menu order cleanup", changes: ["Moved Lock list & generate draw to the top of the admin menu.", "Grouped the WhatsApp copy actions immediately below the draw lock controls.", "Moved BRS reconciliation and day booking message controls above the rarely used roster management section, which now sits at the end of the admin menu." ] },
     { version: "v51", title: "Day-by-day reminder messages", changes: ["Updated the admin WhatsApp reminder so it checks Saturday and Sunday independently instead of treating the whole weekend as one response.", "The copied reminder now lists no-response players under each day, so someone who has only responded for Sunday can still be chased for Saturday.", "Added clearer wording asking players to mark each day as Playing or Unavailable before the Wednesday / Thursday tee booking windows."] },
@@ -442,6 +447,7 @@ function App() {
     const [auditStatus, setAuditStatus] = useState("");
     const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [showMyBookings, setShowMyBookings] = useState(false);
+    const [showQuickBooking, setShowQuickBooking] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [showReporting, setShowReporting] = useState(false);
     const [reportingTab, setReportingTab] = useState("brs");
@@ -1118,6 +1124,15 @@ Bookings confirmed ✅`;
                 React.createElement("button", { className: "smallBtn", onClick: loginPlayer }, "Log in"),
                 pinLoggedIn && React.createElement("button", { className: "smallBtn", onClick: logoutPlayer }, "Log out"),
                 React.createElement("span", { style: { fontSize: 12, color: pinLoggedIn ? "#2f5d35" : "#7c8d78" } }, pinLoggedIn ? `Logged in as ${playerName}` : "Ask admin if you need a PIN."))),
+        pinLoggedIn && playerName && !adminMode && React.createElement("div", { className: "quickBookingLauncher" },
+            React.createElement("button", { className: `quickBookingToggle ${showQuickBooking ? "" : "off"}`, onClick: () => setShowQuickBooking(v => !v) }, showQuickBooking ? "Hide Quick Booking" : "Quick Booking - book me in / mark unavailable"),
+            React.createElement("div", { className: "quickBookingToggleHint" }, showQuickBooking ? "Quick Booking is shown below. The normal full-list view remains underneath." : "Optional simpler view. The normal full-list view is still the default."),
+            showQuickBooking && React.createElement("div", { className: "quickBooking" },
+                React.createElement("div", { className: "quickBookingHead" },
+                    React.createElement("div", null,
+                        React.createElement("div", { className: "quickBookingTitle" }, "Quick booking"),
+                        React.createElement("div", { className: "quickBookingHint" }, "Confirm each Saturday and Sunday separately. You can change your answer until that day closes."))),
+                React.createElement("div", { className: "quickBookingGrid" }, quickBookingItems.map(renderQuickBookingCard)))),
         React.createElement("div", { className: "section" },
             React.createElement("div", { className: "label" }, "SELECT WEEKEND"),
             React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i))))),
@@ -1131,12 +1146,6 @@ Bookings confirmed ✅`;
                 "SUNDAY",
                 React.createElement("br", null),
                 React.createElement("small", null, chosenW.sun.toLocaleDateString("en-GB", { day: "numeric", month: "short" })))),
-        pinLoggedIn && playerName && !adminMode && React.createElement("div", { className: "quickBooking" },
-            React.createElement("div", { className: "quickBookingHead" },
-                React.createElement("div", null,
-                    React.createElement("div", { className: "quickBookingTitle" }, "Quick booking"),
-                    React.createElement("div", { className: "quickBookingHint" }, "Confirm each Saturday and Sunday separately. You can change your answer until that day closes."))),
-            React.createElement("div", { className: "quickBookingGrid" }, quickBookingItems.map(renderQuickBookingCard))),
         React.createElement("div", { className: "section dateBar" },
             React.createElement("div", null,
                 React.createElement("div", { className: "dateLine" },
