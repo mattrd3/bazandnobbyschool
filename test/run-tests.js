@@ -256,7 +256,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 39 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v51"')) throw new Error("v51 marker missing");
+if (!html.includes('const VERSION = "v52"')) throw new Error("v52 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -386,6 +386,16 @@ if (!html.includes('buildDrawWhatsAppText')) throw new Error('v43 draw WhatsApp 
 if (!html.includes('Copy day-by-day reminder for WhatsApp')) throw new Error('v51 day-by-day reminder button label missing');
 if (!html.includes('Still need a response from:')) throw new Error('v51 reminder should group no-response players by day');
 if (!html.includes('Please mark each day as Playing or Unavailable')) throw new Error('v51 reminder should tell players to update each day separately');
+
+const adminMenuIndex = html.indexOf('adminMode && showAdminTools && React.createElement("div", { className: "adminPanel" }');
+const lockIndex = html.indexOf('Lock list & generate draw', adminMenuIndex);
+const reminderIndex = html.indexOf('Copy day-by-day reminder for WhatsApp', adminMenuIndex);
+const brsReconcileIndex = html.indexOf('BRS reconciliation helper', adminMenuIndex);
+const dayMessageIndex = html.indexOf('Add day booking message', adminMenuIndex);
+const rosterIndex = html.indexOf('ROSTER MANAGEMENT', adminMenuIndex);
+if (!(adminMenuIndex >= 0 && lockIndex > adminMenuIndex && reminderIndex > lockIndex && brsReconcileIndex > reminderIndex && dayMessageIndex > brsReconcileIndex && rosterIndex > dayMessageIndex)) throw new Error('v52 admin menu should prioritise lock/draw, WhatsApp tools, BRS reconciliation, day message, then roster management');
+if (!html.includes('{ version: "v52", title: "Admin menu order cleanup"')) throw new Error('v52 release notes entry missing');
+
 if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
 console.log("PASS: v43 UI regression checks passed");
