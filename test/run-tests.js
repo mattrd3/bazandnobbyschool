@@ -264,7 +264,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 42 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v57"')) throw new Error("v57 marker missing");
+if (!html.includes('const VERSION = "v58"')) throw new Error("v58 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -273,6 +273,8 @@ if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week fu
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
 if (!html.includes("Copy day-by-day reminder for WhatsApp")) throw new Error("v51 WhatsApp day-by-day reminder button missing");
 if (!html.includes("Copy not-booked weekend list for WhatsApp")) throw new Error("v30 WhatsApp not-booked weekend list button missing");
+if (!html.includes("Use detected tee times for")) throw new Error("v58 BRS detected tee times apply button missing");
+if (!html.includes("extractBRSTeeTimes")) throw new Error("v58 BRS tee time extraction helper missing");
 if (!html.includes("buildNotBookedWeekendText")) throw new Error("v30 not-booked weekend WhatsApp message builder missing");
 if (!html.includes("notBookedForWeekend")) throw new Error("v30 not-booked weekend roster helper missing");
 if (!html.includes("Players not booked and not marked unavailable for Saturday or Sunday")) throw new Error("v32 not-booked WhatsApp copy should exclude unavailable players");
@@ -413,4 +415,4 @@ if (!html.includes('Booking method usage') || !html.includes('booking-method-sta
 
 if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
-console.log("PASS: v57 UI regression checks passed");
+console.log("PASS: v58 UI regression checks passed");
