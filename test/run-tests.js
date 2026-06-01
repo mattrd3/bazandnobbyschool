@@ -33,6 +33,10 @@ class FakeStmt {
       const limit = this.args[1] || 300;
       return { results: this.db.auditRows.filter(r => r.dateKey === dateKey).sort((a,b)=>b.ts-a.ts).slice(0, limit) };
     }
+    if (this.sql.includes("SELECT dateKey, action, details FROM audit_events")) {
+      const [start, end] = this.args;
+      return { results: this.db.auditRows.filter(r => r.dateKey >= start && r.dateKey <= end).sort((a,b)=>b.ts-a.ts).map(r => ({ dateKey:r.dateKey, action:r.action, details:r.details })) };
+    }
     if (this.sql.includes("SELECT dateKey, createdAt, createdBy, bookersJson") && this.sql.includes("FROM brs_bookings")) {
       const [start, end] = this.args;
       return { results: this.db.brsRows.filter(r => r.dateKey >= start && r.dateKey <= end).sort((a,b)=>b.dateKey.localeCompare(a.dateKey) || b.createdAt-a.createdAt) };
@@ -148,7 +152,7 @@ r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"J
 assert.equal(r.status, 400, "maybe status should be rejected in v15");
 assert.equal(r.json.ok, false);
 
-r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"Jason", status:"playing", playerName:"Jason", playerPin:"1111" });
+r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"Jason", status:"playing", source:"quick_booking", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
 assert.deepEqual(r.json.data.players, ["Jason"]);
 assert.equal("maybes" in r.json.data, false);
@@ -167,6 +171,7 @@ assert.equal(r.json.events[0].action, "joined", "v23 should read joined events f
 assert.equal(r.json.events[0].dateLabel, "Sunday 6 June", "v29 keeps v24 audit event amended booking day/date");
 assert.equal(r.json.events[0].from, "none", "v29 keeps v24 audit event previous booking status");
 assert.equal(r.json.events[0].to, "playing", "v29 keeps v24 audit event new booking status");
+assert.equal(r.json.events[0].source, "quick_booking", "v53 should audit booking source for Quick Booking changes");
 
 r = await call(db, "/api/player-status", "POST", { dateKey:"2027-06-06", name:"Jason", status:"none", playerName:"Jason", playerPin:"1111" });
 assert.equal(r.json.ok, true);
@@ -224,6 +229,9 @@ const ethanStats = r.json.stats.find(x => x.name === "Ethan");
 assert.equal(jasonStats.unavailable, 1, "v36 stats should count unavailable player days");
 assert.equal(ethanStats.booked, 1, "v36 stats should count booked player days");
 assert.ok(jasonStats.noResponse >= 1, "v36 stats should count no-response days");
+r = await call(db, "/api/admin/booking-method-stats?adminPin=2727&period=12&asOf=2027-06-30");
+assert.equal(r.json.ok, true, "v53 booking method stats endpoint should return source usage");
+assert.ok(r.json.methods.some(x => x.source === "quick_booking" && x.count >= 1), "v53 source usage should count Quick Booking changes");
 
 r = await call(db, "/api/admin/add-player", "POST", { dateKey:"2027-06-13", name:"Baby Dave", adminPin:"2727" });
 assert.equal(r.json.ok, true);
@@ -253,10 +261,10 @@ assert.equal("noResponse" in r.json.stats[0], false, "v40 non-admin booking stat
 r = await call(db, "/api/admin/delete-day", "POST", { dateKey:"2027-06-06", adminPin:"2727" });
 assert.equal(r.json.ok, true);
 
-console.log("PASS: 39 API/helper tests passed");
+console.log("PASS: 42 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v52"')) throw new Error("v52 marker missing");
+if (!html.includes('const VERSION = "v53"')) throw new Error("v53 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -395,7 +403,12 @@ const dayMessageIndex = html.indexOf('Add day booking message', adminMenuIndex);
 const rosterIndex = html.indexOf('ROSTER MANAGEMENT', adminMenuIndex);
 if (!(adminMenuIndex >= 0 && lockIndex > adminMenuIndex && reminderIndex > lockIndex && brsReconcileIndex > reminderIndex && dayMessageIndex > brsReconcileIndex && rosterIndex > dayMessageIndex)) throw new Error('v52 admin menu should prioritise lock/draw, WhatsApp tools, BRS reconciliation, day message, then roster management');
 if (!html.includes('{ version: "v52", title: "Admin menu order cleanup"')) throw new Error('v52 release notes entry missing');
+if (!html.includes('{ version: "v53", title: "Quick Booking view"')) throw new Error('v53 release notes entry missing');
+if (!html.includes('Quick booking') || !html.includes('quickBookingItems')) throw new Error('v53 Quick Booking UI missing');
+if (!html.includes('Change to unavailable') || !html.includes('No, unavailable')) throw new Error('v53 Quick Booking should use clear one-button/two-button actions');
+if (!html.includes('source: adminMode ? "admin" : source')) throw new Error('v53 player-status calls should send booking source');
+if (!html.includes('Booking method usage') || !html.includes('booking-method-stats')) throw new Error('v53 booking method usage reporting missing');
 
 if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
-console.log("PASS: v43 UI regression checks passed");
+console.log("PASS: v53 UI regression checks passed");
