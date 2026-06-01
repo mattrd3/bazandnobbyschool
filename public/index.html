@@ -230,7 +230,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v55";
+const VERSION = "v56";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -277,6 +277,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v56", title: "Quick Booking button placement", changes: ["Moved the Quick Booking toggle below My Bookings using the same compact banner style.", "Changed the toggle text to simply QUICK BOOKING.", "Kept Quick Booking isolated when open so the full-list selector and player list are hidden." ] },
     { version: "v55", title: "Quick Booking isolated view", changes: ["Kept the normal full-list view as the default for logged-in players.", "When Quick Booking is opened, the full-list weekend selector, Saturday/Sunday tabs and player list are hidden to avoid confusing users.", "Added clearer toggle wording so players can switch between Quick Booking and the full list." ] },
     { version: "v54", title: "Optional Quick Booking toggle", changes: ["Changed Quick Booking so the normal full-list view remains the default for logged-in players.", "Added a clear top button to open or hide Quick Booking when a player wants the simpler day-by-day booking cards.", "Moved Quick Booking above the weekend/date selector when opened, so the selected Saturday/Sunday tabs are not confused with the quick-booking list."] },
     { version: "v53", title: "Quick Booking view", changes: ["Added a logged-in player Quick Booking view showing each upcoming Saturday and Sunday as simple cards.", "Users can now tap clear Playing / Unavailable buttons, or a single change button when they have already responded.", "Quick Booking uses the same lock and cutoff rules as the full list and records whether bookings came from Quick Booking, the full list, or admin."] },
@@ -1127,8 +1128,9 @@ Bookings confirmed ✅`;
                 pinLoggedIn && React.createElement("button", { className: "smallBtn", onClick: logoutPlayer }, "Log out"),
                 React.createElement("span", { style: { fontSize: 12, color: pinLoggedIn ? "#2f5d35" : "#7c8d78" } }, pinLoggedIn ? `Logged in as ${playerName}` : "Ask admin if you need a PIN."))),
         pinLoggedIn && playerName && !adminMode && React.createElement("div", { className: "quickBookingLauncher" },
-            React.createElement("button", { className: `quickBookingToggle ${showQuickBooking ? "" : "off"}`, onClick: () => setShowQuickBooking(v => !v) }, showQuickBooking ? "Back to full booking list" : "Quick Booking - book me in / mark unavailable"),
-            React.createElement("div", { className: "quickBookingToggleHint" }, showQuickBooking ? "Quick Booking is open. The full booking list is hidden to keep this view simple." : "Optional simpler view. The normal full-list view is still the default."),
+            React.createElement("button", { className: "myBookingsBtn", onClick: () => setShowMyBookings(true) }, "MY BOOKINGS"),
+            React.createElement("button", { className: "myBookingsBtn", onClick: () => setShowQuickBooking(v => !v) }, "QUICK BOOKING"),
+            React.createElement("div", { className: "quickBookingToggleHint" }, showQuickBooking ? "Quick Booking is open. The full booking list is hidden to keep this view simple. Tap QUICK BOOKING again to return to the full list." : "Optional simpler view. The normal full-list view is still the default."),
             showQuickBooking && React.createElement("div", { className: "quickBooking" },
                 React.createElement("div", { className: "quickBookingHead" },
                     React.createElement("div", null,
@@ -1138,8 +1140,7 @@ Bookings confirmed ✅`;
         !quickBookingActive && React.createElement(React.Fragment, null,
             React.createElement("div", { className: "section" },
             React.createElement("div", { className: "label" }, "SELECT WEEKEND"),
-            React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i))))),
-            pinLoggedIn && React.createElement("button", { className: "myBookingsBtn", onClick: () => setShowMyBookings(true) }, "MY BOOKINGS")),
+            React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i)))))),
         React.createElement("div", { className: "tabs" },
             React.createElement("button", { className: `tab ${activeDay === "sat" ? "active" : ""}`, onClick: () => { setActiveDay("sat"); setSelectedKey(toDateKey(chosenW.sat)); } },
                 "SATURDAY",
