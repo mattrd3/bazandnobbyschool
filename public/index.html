@@ -208,7 +208,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v50";
+const VERSION = "v51";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -255,6 +255,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v51", title: "Day-by-day reminder messages", changes: ["Updated the admin WhatsApp reminder so it checks Saturday and Sunday independently instead of treating the whole weekend as one response.", "The copied reminder now lists no-response players under each day, so someone who has only responded for Sunday can still be chased for Saturday.", "Added clearer wording asking players to mark each day as Playing or Unavailable before the Wednesday / Thursday tee booking windows."] },
     { version: "v46", title: "BRS reconciliation and compact admin menu", changes: ["Added an admin-only BRS reconciliation helper so a pasted BRS tee sheet can be compared against the selected day in Weekend Golf.", "Added an editable nickname-to-BRS-full-name map to handle BRS using full names while the app can use nicknames or shortened names.", "Moved the growing admin controls behind a compact Admin Menu toggle to reduce clutter on the main booking screen.", "Added the missing admin day-message editor into the compact admin controls."] },
     { version: "v45", title: "Late tee preference and day booking messages", changes: ["Admins can now mark confirmed players as Early, Late, or No tee preference before generating the draw.", "The draw now guides early-preference players towards the earliest groups and late-preference players towards the latest groups, while keeping randomisation inside each preference bucket.", "Admins can add an optional day-specific booking message that users must confirm before marking themselves as Playing.", "The WhatsApp draw copy has been made friendlier and continues to appear after the list is locked and a draw exists."] },
     { version: "v44", title: "Tee-time entry control and user status cue", changes: ["Added the visible admin Add/Edit tee times control near the confirmed/tee-times summary.", "Added a small logged-in player status cue for the selected day so less tech-savvy users can clearly see whether they are booked, unavailable, or still need to respond.", "No booking rules, draw rules, or database schema changed."] },
@@ -896,7 +897,24 @@ Bookings confirmed ✅`;
         return `${time} — ${actor} ${label} ${name} for ${day}${fromTo ? `: ${fromTo}` : ""}`;
     };
     const buildReminderText = () => {
-        return `⛳ Weekend Golf Sign-Up is open!\n\nPlease confirm if you're playing:\n📅 ${formatDate(chosenW.sat)}\n📅 ${formatDate(chosenW.sun)}\n\nSign-up closes at 6:50pm on Wednesday (Saturday) and Thursday (Sunday).\n\nTap the link to add your name 👇\n${APP_URL}`;
+        const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
+        const sun = schedule[toDateKey(chosenW.sun)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sun)] || "");
+        const noResponseForDay = day => {
+            const playing = new Set(Array.isArray(day.players) ? day.players : []);
+            const unavailable = new Set(Array.isArray(day.unavailablePlayers) ? day.unavailablePlayers : []);
+            return members.filter(name => !playing.has(name) && !unavailable.has(name));
+        };
+        const satMissing = noResponseForDay(sat);
+        const sunMissing = noResponseForDay(sun);
+        const sections = [];
+        if (satMissing.length) {
+            sections.push(`${formatDate(chosenW.sat)}\nStill need a response from:\n${satMissing.map((p, i) => `${i + 1}. ${p}`).join("\n")}`);
+        }
+        if (sunMissing.length) {
+            sections.push(`${formatDate(chosenW.sun)}\nStill need a response from:\n${sunMissing.map((p, i) => `${i + 1}. ${p}`).join("\n")}`);
+        }
+        const responseBlock = sections.length ? sections.join("\n\n") : "Everyone has responded for Saturday and Sunday ✅";
+        return `⛳ Weekend Golf Reminder\n\nAhead of the Wednesday / Thursday tee booking windows, please confirm your availability for each day.\n\n${responseBlock}\n\nPlease mark each day as Playing or Unavailable in the app, even if you are only playing one day.\n\nSign-up closes at 6:50pm on Wednesday for Saturday and Thursday for Sunday.\n\nUpdate here 👇\n${APP_URL}`;
     };
     const weekendBookedPlayers = () => {
         const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
@@ -1146,7 +1164,7 @@ Bookings confirmed ✅`;
                     React.createElement("button", { className: "smallBtn", onClick: () => { setEditingDayMessage(false); setDayMessageInput(""); } }, "Cancel"))) : React.createElement("button", { className: "btn", onClick: () => { setDayMessageInput(dayMessage); setEditingDayMessage(true); } }, dayMessage ? "⚠️ Edit day booking message" : "⚠️ Add day booking message"),
             React.createElement("button", { className: "btn", onClick: openBRSReconcile }, "🔎 BRS reconciliation helper"),
             React.createElement("button", { className: "btn", onClick: () => copyText(buildConfirmedListText(), setCopiedSummary) }, copiedSummary ? "✓ Copied confirmed list" : "📋 Copy confirmed attendee list for WhatsApp"),
-            React.createElement("button", { className: "btn", onClick: () => copyText(buildReminderText(), setCopiedReminder) }, copiedReminder ? "✓ Copied reminder" : "📣 Copy sign-up reminder for WhatsApp"),
+            React.createElement("button", { className: "btn", onClick: () => copyText(buildReminderText(), setCopiedReminder) }, copiedReminder ? "✓ Copied reminder" : "📣 Copy day-by-day reminder for WhatsApp"),
             React.createElement("button", { className: "btn", onClick: () => copyText(buildNotBookedWeekendText(), setCopiedNotBooked) }, copiedNotBooked ? "✓ Copied not-booked list" : "📋 Copy not-booked weekend list for WhatsApp"),
             React.createElement("button", { className: "btn", onClick: () => adminPost("admin/lock", { locked: !current.locked }) }, current.locked ? "🔓 Unlock list" : "🔒 Lock list & generate draw"),
             current.locked && React.createElement("button", { className: "btn", onClick: () => adminPost("admin/redraw", {}) }, "\uD83D\uDD00 Re-draw"),
@@ -1284,7 +1302,7 @@ Bookings confirmed ✅`;
                         React.createElement("p", { className: "helpText" }, "Admins can add optional tee times for a day. If you are booked, the calendar icon creates a Weekend Golf event using the first tee time for five hours, or 08:00–13:00 if no tee time is saved.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Admin WhatsApp tools"),
-                        React.createElement("p", { className: "helpText" }, "Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list. Once the draw exists, admins can also copy a WhatsApp-ready draw message. The not-booked list excludes players who have marked themselves unavailable.")),
+                        React.createElement("p", { className: "helpText" }, "Admins can copy a day-by-day reminder, a confirmed-player list, and a not-booked list. The reminder checks Saturday and Sunday separately, so partial weekend responses are still chased correctly. Once the draw exists, admins can also copy a WhatsApp-ready draw message. The not-booked list excludes players who have marked themselves unavailable.")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Admin booking stats"),
                         React.createElement("p", { className: "helpText" }, "Admins can use Reporting to review player booking activity. BRS League reporting is parked for now while BRS booking records are refined. Logged-in players can still use BRS Booking to create WhatsApp-ready tee-time groups.")),

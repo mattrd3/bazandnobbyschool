@@ -256,14 +256,14 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 39 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v50"')) throw new Error("v50 marker missing");
+if (!html.includes('const VERSION = "v51"')) throw new Error("v51 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
 if (!html.includes('setActiveDay("sat");') || !html.includes('const saturdayKey = e.target.value;')) throw new Error("v20 weekend change must default selected day to Saturday");
 if (!html.includes("upcoming.slice(0, 8)")) throw new Error("non-admin 8-week future limit missing");
 if (!html.includes("Copy confirmed attendee list for WhatsApp")) throw new Error("WhatsApp confirmed attendee list button missing");
-if (!html.includes("Copy sign-up reminder for WhatsApp")) throw new Error("WhatsApp reminder button missing");
+if (!html.includes("Copy day-by-day reminder for WhatsApp")) throw new Error("v51 WhatsApp day-by-day reminder button missing");
 if (!html.includes("Copy not-booked weekend list for WhatsApp")) throw new Error("v30 WhatsApp not-booked weekend list button missing");
 if (!html.includes("buildNotBookedWeekendText")) throw new Error("v30 not-booked weekend WhatsApp message builder missing");
 if (!html.includes("notBookedForWeekend")) throw new Error("v30 not-booked weekend roster helper missing");
@@ -324,7 +324,7 @@ if (!html.includes('helpBtn')) throw new Error('v33 compact Help button missing'
 if (!html.includes('showHelp')) throw new Error('v33 Help modal state missing');
 if (!html.includes('Icons and personal weekend status')) throw new Error('v33 Help panel should explain personalised weekend icons');
 if (!html.includes('Saturday booking closes at 6:50pm on Wednesday')) throw new Error('v33 Help panel should explain cutoff rules');
-if (!html.includes('Admins can copy a sign-up reminder, a confirmed-player list, and a not-booked list')) throw new Error('v33 Help panel should explain WhatsApp tools');
+if (!html.includes('Admins can copy a day-by-day reminder, a confirmed-player list, and a not-booked list')) throw new Error('v33 Help panel should explain WhatsApp tools');
 if (!html.includes('setShowReleaseNotes(true)')) throw new Error('v33 Help panel should link to release notes');
 if (!html.includes('{ version: "v33", title: "Compact help panel"')) throw new Error('v33 release notes entry missing');
 if (!html.includes('One page to see all your bookings so you can see all the days on which you will play terrible golf!')) throw new Error('v34 My Bookings wording missing');
@@ -383,6 +383,9 @@ if (!html.includes('teeTimesLine')) throw new Error('v43 compact tee-time displa
 if (!html.includes('admin/tee-times')) throw new Error('v43 admin tee-time API call missing');
 if (!html.includes('Tee times: ')) throw new Error('v43 tee times display/copy text missing');
 if (!html.includes('buildDrawWhatsAppText')) throw new Error('v43 draw WhatsApp copy builder missing');
+if (!html.includes('Copy day-by-day reminder for WhatsApp')) throw new Error('v51 day-by-day reminder button label missing');
+if (!html.includes('Still need a response from:')) throw new Error('v51 reminder should group no-response players by day');
+if (!html.includes('Please mark each day as Playing or Unavailable')) throw new Error('v51 reminder should tell players to update each day separately');
 if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
 console.log("PASS: v43 UI regression checks passed");
