@@ -230,7 +230,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v58";
+const VERSION = "v59";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -277,6 +277,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v59", title: "Smarter BRS tee-time matching", changes: ["BRS tee-time extraction now only suggests tee times where the pasted BRS text appears to contain one of the confirmed Weekend Golf players.", "The match uses the existing nickname-to-BRS-full-name map, so BRS full names can be matched back to app nicknames.", "Other tee times from the wider BRS sheet are ignored unless they are near one of our confirmed players." ] },
     { version: "v58", title: "BRS tee-time extraction", changes: ["BRS reconciliation can now detect tee times from pasted BRS text and show them as a preview before saving.", "Admins can apply detected BRS tee times to the selected day with one button, while keeping the existing manual add/edit tee-time option.", "No screenshot/OCR processing was added; this release deliberately uses copied BRS text only for reliability."] },
     { version: "v57", title: "Quick Booking text cleanup", changes: ["Removed the extra explanatory sentence under the Quick Booking banner when the full-list view is active.", "Kept the default full-list view and the QUICK BOOKING banner unchanged.", "Quick Booking still hides the full list when opened to avoid confusion." ] },
     { version: "v56", title: "Quick Booking button placement", changes: ["Moved the Quick Booking toggle below My Bookings using the same compact banner style.", "Changed the toggle text to simply QUICK BOOKING.", "Kept Quick Booking isolated when open so the full-list selector and player list are hidden." ] },
@@ -904,31 +905,52 @@ function App() {
         const mapped = String((brsNameMap || {})[name] || "").split(/[;,\n]/).map(s => s.trim()).filter(Boolean);
         return [...new Set([name, ...mapped])];
     };
-    function extractBRSTeeTimes(text) {
-        const seen = new Set();
-        const times = [];
-        const re = /\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/g;
-        let match;
-        while ((match = re.exec(String(text || ""))) !== null) {
+    function extractBRSTeeTimeMatches(text) {
+        const source = String(text || "");
+        const lines = source.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+        const confirmedAliases = currentPlayers.map(name => ({
+            name,
+            aliases: brsAliasesFor(name).map(alias => normaliseBRS(alias)).filter(Boolean)
+        })).filter(row => row.aliases.length);
+        const timeRe = /\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/g;
+        const formatTime = match => {
             const hour = Number(match[1]);
             const minute = Number(match[2]);
-            if (hour < 5 || hour > 18) continue;
-            const formatted = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
-            if (!seen.has(formatted)) {
-                seen.add(formatted);
-                times.push(formatted);
+            if (hour < 5 || hour > 18) return null;
+            return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+        };
+        const matchedPlayersIn = blockText => {
+            const haystack = ` ${normaliseBRS(blockText)} `;
+            return confirmedAliases.filter(row => row.aliases.some(alias => haystack.includes(` ${alias} `))).map(row => row.name);
+        };
+        const seen = new Map();
+        lines.forEach((line, index) => {
+            const matches = [...line.matchAll(timeRe)].map(formatTime).filter(Boolean);
+            if (!matches.length) return;
+            const blockLines = [line];
+            if (index > 0) blockLines.unshift(lines[index - 1]);
+            for (let j = index + 1; j < lines.length && blockLines.length < 8; j++) {
+                if (/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/.test(lines[j])) break;
+                blockLines.push(lines[j]);
             }
-        }
-        return times.sort();
+            const players = matchedPlayersIn(blockLines.join(" "));
+            if (!players.length) return;
+            matches.forEach(time => {
+                if (!seen.has(time)) seen.set(time, new Set());
+                players.forEach(player => seen.get(time).add(player));
+            });
+        });
+        return [...seen.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([time, players]) => ({ time, players: [...players].sort() }));
     }
-    const brsDetectedTeeTimes = useMemo(() => extractBRSTeeTimes(brsPasteText), [brsPasteText]);
+    const brsDetectedTeeTimeMatches = useMemo(() => extractBRSTeeTimeMatches(brsPasteText), [brsPasteText, brsNameMap, currentPlayers.join("|")]);
+    const brsDetectedTeeTimes = useMemo(() => brsDetectedTeeTimeMatches.map(row => row.time), [brsDetectedTeeTimeMatches]);
     async function useBRSTeeTimes() {
         if (!brsDetectedTeeTimes.length) {
             setBRSReconcileStatus("No tee times detected in the pasted BRS text.");
             return;
         }
         await adminPost("admin/tee-times", { teeTimes: brsDetectedTeeTimes });
-        setBRSReconcileStatus(`Updated ${formatDate(currentDate)} tee times from pasted BRS text: ${brsDetectedTeeTimes.join(", ")}`);
+        setBRSReconcileStatus(`Updated ${formatDate(currentDate)} tee times matched to confirmed players from pasted BRS text: ${brsDetectedTeeTimes.join(", ")}`);
     }
     function analyseBRSReconcile() {
         const haystack = ` ${normaliseBRS(brsPasteText)} `;
@@ -1338,22 +1360,22 @@ Bookings confirmed ✅`;
         showBRSReconcile && adminMode && React.createElement("div", { className: "modal", onClick: e => { if (e.target.className === "modal") setShowBRSReconcile(false); } },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 620, maxHeight: "92vh", overflow: "auto", textAlign: "left" } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "BRS reconciliation"),
-                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, `${formatDate(currentDate)} · Paste copied BRS tee sheet text below. The helper checks confirmed Weekend Golf players against BRS names and can detect secured tee times.`),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.4 } }, `${formatDate(currentDate)} · Paste copied BRS tee sheet text below. The helper checks confirmed Weekend Golf players against BRS names and now only suggests tee times where one of our confirmed players appears near that time.`),
                 brsReconcileStatus && React.createElement("div", { className: "bookingLegend" }, brsReconcileStatus),
                 React.createElement("div", { className: "label", style: { marginTop: 10 } }, "PASTE BRS TEXT"),
                 React.createElement("textarea", { className: "textarea", value: brsPasteText, onChange: e => { setBRSPasteText(e.target.value); setBRSReconcileResult(null); }, placeholder: "Paste copied BRS tee sheet / booking list here..." }),
                 React.createElement("div", { className: "reconcileSummary", style: { marginTop: 10 } },
                     React.createElement("div", { className: "reconcileBlock" },
-                        React.createElement("strong", null, "Detected tee times"),
+                        React.createElement("strong", null, "Matched tee times"),
                         React.createElement("br", null),
-                        brsDetectedTeeTimes.length ? brsDetectedTeeTimes.join(", ") : "None detected yet"),
+                        brsDetectedTeeTimeMatches.length ? brsDetectedTeeTimeMatches.map(row => `${row.time} (${row.players.join(", ")})`).join("; ") : "None matched yet"),
                     React.createElement("div", { className: "reconcileBlock" },
                         React.createElement("strong", null, "Current app tee times"),
                         React.createElement("br", null),
                         teeTimes.length ? teeTimes.join(", ") : "None saved")),
                 brsDetectedTeeTimes.length > 0 && React.createElement("div", { className: "modalActions", style: { marginTop: 4 } },
                     React.createElement("button", { className: "green", onClick: useBRSTeeTimes }, `Use detected tee times for ${formatDate(currentDate)}`)),
-                React.createElement("p", { className: "brsQuickLine" }, "Detected times are not saved until you press the button. You can still manually add or edit tee times from the selected day summary."),
+                React.createElement("p", { className: "brsQuickLine" }, "Only tee times matched near confirmed Weekend Golf players are suggested. Other BRS tee times are ignored. Nothing is saved until you press the button, and you can still manually add or edit tee times from the selected day summary."),
                 React.createElement("div", { className: "label", style: { marginTop: 12 } }, "BRS FULL-NAME MAP"),
                 React.createElement("p", { className: "brsQuickLine" }, "Use this where the app uses nicknames but BRS uses full names. You can add multiple possible BRS names separated by commas."),
                 React.createElement("div", { className: "brsMapGrid" }, members.map(name => React.createElement(React.Fragment, { key: name },
