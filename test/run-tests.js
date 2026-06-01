@@ -264,7 +264,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 42 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v54"')) throw new Error("v54 marker missing");
+if (!html.includes('const VERSION = "v55"')) throw new Error("v55 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -403,12 +403,12 @@ const dayMessageIndex = html.indexOf('Add day booking message', adminMenuIndex);
 const rosterIndex = html.indexOf('ROSTER MANAGEMENT', adminMenuIndex);
 if (!(adminMenuIndex >= 0 && lockIndex > adminMenuIndex && reminderIndex > lockIndex && brsReconcileIndex > reminderIndex && dayMessageIndex > brsReconcileIndex && rosterIndex > dayMessageIndex)) throw new Error('v52 admin menu should prioritise lock/draw, WhatsApp tools, BRS reconciliation, day message, then roster management');
 if (!html.includes('{ version: "v52", title: "Admin menu order cleanup"')) throw new Error('v52 release notes entry missing');
-if (!html.includes('{ version: "v54", title: "Optional Quick Booking toggle"')) throw new Error('v54 release notes entry missing');
-if (!html.includes('Quick booking') || !html.includes('quickBookingItems') || !html.includes('showQuickBooking')) throw new Error('v54 optional Quick Booking UI missing');
+if (!html.includes('{ version: "v55", title: "Quick Booking isolated view"')) throw new Error('v55 release notes entry missing');
+if (!html.includes('Quick booking') || !html.includes('quickBookingItems') || !html.includes('showQuickBooking')) throw new Error('v55 optional Quick Booking UI missing');
 if (!html.includes('Change to unavailable') || !html.includes('No, unavailable')) throw new Error('v53 Quick Booking should use clear one-button/two-button actions');
 if (!html.includes('source: adminMode ? "admin" : source')) throw new Error('v53 player-status calls should send booking source');
 if (!html.includes('Booking method usage') || !html.includes('booking-method-stats')) throw new Error('v53 booking method usage reporting missing');
 
 if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
-console.log("PASS: v54 UI regression checks passed");
+console.log("PASS: v55 UI regression checks passed");

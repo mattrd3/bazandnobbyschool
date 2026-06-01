@@ -230,7 +230,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v54";
+const VERSION = "v55";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -277,6 +277,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v55", title: "Quick Booking isolated view", changes: ["Kept the normal full-list view as the default for logged-in players.", "When Quick Booking is opened, the full-list weekend selector, Saturday/Sunday tabs and player list are hidden to avoid confusing users.", "Added clearer toggle wording so players can switch between Quick Booking and the full list." ] },
     { version: "v54", title: "Optional Quick Booking toggle", changes: ["Changed Quick Booking so the normal full-list view remains the default for logged-in players.", "Added a clear top button to open or hide Quick Booking when a player wants the simpler day-by-day booking cards.", "Moved Quick Booking above the weekend/date selector when opened, so the selected Saturday/Sunday tabs are not confused with the quick-booking list."] },
     { version: "v53", title: "Quick Booking view", changes: ["Added a logged-in player Quick Booking view showing each upcoming Saturday and Sunday as simple cards.", "Users can now tap clear Playing / Unavailable buttons, or a single change button when they have already responded.", "Quick Booking uses the same lock and cutoff rules as the full list and records whether bookings came from Quick Booking, the full list, or admin."] },
     { version: "v52", title: "Admin menu order cleanup", changes: ["Moved Lock list & generate draw to the top of the admin menu.", "Grouped the WhatsApp copy actions immediately below the draw lock controls.", "Moved BRS reconciliation and day booking message controls above the rarely used roster management section, which now sits at the end of the admin menu." ] },
@@ -1092,6 +1093,7 @@ Bookings confirmed ✅`;
         return rows.sort((a, b) => b.booked - a.booked || byName(a, b));
     };
     const bookingStatsPeriodLabel = () => bookingStatsPeriod === "all" ? "All time" : `Last ${bookingStatsPeriod} weeks`;
+    const quickBookingActive = Boolean(pinLoggedIn && playerName && !adminMode && showQuickBooking);
     return React.createElement("div", { className: "wrap" },
         React.createElement("div", { className: "header" },
             React.createElement("div", { className: "headerLeft" },
@@ -1125,15 +1127,16 @@ Bookings confirmed ✅`;
                 pinLoggedIn && React.createElement("button", { className: "smallBtn", onClick: logoutPlayer }, "Log out"),
                 React.createElement("span", { style: { fontSize: 12, color: pinLoggedIn ? "#2f5d35" : "#7c8d78" } }, pinLoggedIn ? `Logged in as ${playerName}` : "Ask admin if you need a PIN."))),
         pinLoggedIn && playerName && !adminMode && React.createElement("div", { className: "quickBookingLauncher" },
-            React.createElement("button", { className: `quickBookingToggle ${showQuickBooking ? "" : "off"}`, onClick: () => setShowQuickBooking(v => !v) }, showQuickBooking ? "Hide Quick Booking" : "Quick Booking - book me in / mark unavailable"),
-            React.createElement("div", { className: "quickBookingToggleHint" }, showQuickBooking ? "Quick Booking is shown below. The normal full-list view remains underneath." : "Optional simpler view. The normal full-list view is still the default."),
+            React.createElement("button", { className: `quickBookingToggle ${showQuickBooking ? "" : "off"}`, onClick: () => setShowQuickBooking(v => !v) }, showQuickBooking ? "Back to full booking list" : "Quick Booking - book me in / mark unavailable"),
+            React.createElement("div", { className: "quickBookingToggleHint" }, showQuickBooking ? "Quick Booking is open. The full booking list is hidden to keep this view simple." : "Optional simpler view. The normal full-list view is still the default."),
             showQuickBooking && React.createElement("div", { className: "quickBooking" },
                 React.createElement("div", { className: "quickBookingHead" },
                     React.createElement("div", null,
                         React.createElement("div", { className: "quickBookingTitle" }, "Quick booking"),
                         React.createElement("div", { className: "quickBookingHint" }, "Confirm each Saturday and Sunday separately. You can change your answer until that day closes."))),
                 React.createElement("div", { className: "quickBookingGrid" }, quickBookingItems.map(renderQuickBookingCard)))),
-        React.createElement("div", { className: "section" },
+        !quickBookingActive && React.createElement(React.Fragment, null,
+            React.createElement("div", { className: "section" },
             React.createElement("div", { className: "label" }, "SELECT WEEKEND"),
             React.createElement("select", { className: "select", value: toDateKey(chosenW.sat), onChange: changeWeekend }, weekends.map((w, i) => (React.createElement("option", { key: toDateKey(w.sat), value: toDateKey(w.sat) }, optionLabel(w, i))))),
             pinLoggedIn && React.createElement("button", { className: "myBookingsBtn", onClick: () => setShowMyBookings(true) }, "MY BOOKINGS")),
@@ -1265,7 +1268,7 @@ Bookings confirmed ✅`;
                     React.createElement("button", { className: "smallBtn", onClick: () => saveRosterMember("add", rosterName) }, "Add to roster")),
                 React.createElement("div", { className: "confirmedChips" }, members.map(n => React.createElement("span", { className: "chip", key: n },
                     n,
-                    React.createElement("button", { onClick: () => saveRosterMember("remove", n), style: { marginLeft: 6, border: 0, background: "transparent", color: "#8a2f2f", cursor: "pointer" }, title: `Remove ${n} from roster` }, "×")))))),
+                    React.createElement("button", { onClick: () => saveRosterMember("remove", n), style: { marginLeft: 6, border: 0, background: "transparent", color: "#8a2f2f", cursor: "pointer" }, title: `Remove ${n} from roster` }, "×"))))))),
         showTeeTimesEditor && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Tee times"),
