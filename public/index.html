@@ -230,7 +230,7 @@
 <script>
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v60";
+const VERSION = "v61";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -277,6 +277,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v61", title: "WhatsApp message copy cleanup", changes: ["Confirmed attendee WhatsApp messages now show tee times when saved, or the number of tee times needed when tee times are not yet known.", "Day-by-day reminder messages now include day-specific app links so players can jump straight to Saturday or Sunday.", "The weekend not-booked message wording now clearly lists players with no response for either day, and BRS reconciliation labels explain the required action." ] },
     { version: "v60", title: "Tighter BRS tee-time matching", changes: ["BRS tee-time matching now ignores loose first-name/nickname matches unless an exact BRS full-name mapping exists.", "Single-word mapped names are only used when they are unique in the pasted BRS text, reducing false matches from shared first names or surnames.", "The BRS helper now reports players that need a stronger full-name map before automatic tee times can be trusted." ] },
     { version: "v59", title: "Smarter BRS tee-time matching", changes: ["BRS tee-time extraction now only suggests tee times where the pasted BRS text appears to contain one of the confirmed Weekend Golf players.", "The match uses the existing nickname-to-BRS-full-name map, so BRS full names can be matched back to app nicknames.", "Other tee times from the wider BRS sheet are ignored unless they are near one of our confirmed players." ] },
     { version: "v58", title: "BRS tee-time extraction", changes: ["BRS reconciliation can now detect tee times from pasted BRS text and show them as a preview before saving.", "Admins can apply detected BRS tee times to the selected day with one button, while keeping the existing manual add/edit tee-time option.", "No screenshot/OCR processing was added; this release deliberately uses copied BRS text only for reliability."] },
@@ -428,8 +429,11 @@ function App() {
     const [adminMode, setAdminMode] = useState(localStorage.getItem("wg_admin") === "1");
     const [pin, setPin] = useState("");
     const [showPin, setShowPin] = useState(false);
-    const [selectedKey, setSelectedKey] = useState(localStorage.getItem("wg_date") || "");
-    const [activeDay, setActiveDay] = useState(localStorage.getItem("wg_day") || "sat");
+    const initialParams = new URLSearchParams(window.location.search || "");
+    const initialLinkDate = initialParams.get("date") || initialParams.get("week") || "";
+    const initialLinkDay = initialParams.get("day") === "sun" ? "sun" : initialParams.get("day") === "sat" ? "sat" : "";
+    const [selectedKey, setSelectedKey] = useState(initialLinkDate || localStorage.getItem("wg_date") || "");
+    const [activeDay, setActiveDay] = useState(initialLinkDay || localStorage.getItem("wg_day") || "sat");
     const [confirmRemove, setConfirmRemove] = useState(null);
     const [confirmAdd, setConfirmAdd] = useState(null);
     const [newName, setNewName] = useState("");
@@ -1008,9 +1012,9 @@ function App() {
         if (!r) return "";
         const lines = [`⛳ BRS check — ${formatDate(currentDate)}`];
         if (current.competition) lines.push(`🏆 ${current.competition}`);
-        lines.push("", `✅ In Weekend Golf and found in BRS: ${namesOrNone(r.confirmedFound)}`);
-        lines.push(`⚠️ In Weekend Golf but not found in BRS: ${namesOrNone(r.confirmedMissing)}`);
-        lines.push(`ℹ️ Found in BRS text but not marked playing here: ${namesOrNone(r.foundNotPlaying)}`);
+        lines.push("", `✅ Confirmed and found in BRS (no action needed): ${namesOrNone(r.confirmedFound)}`);
+        lines.push(`⚠️ Confirmed in Weekend Golf App but not found in BRS (need adding in BRS): ${namesOrNone(r.confirmedMissing)}`);
+        lines.push(`ℹ️ Found in BRS but not confirmed in Weekend Golf App (need removing from BRS): ${namesOrNone(r.foundNotPlaying)}`);
         if (r.unmappedConfirmed.length) lines.push("", `Players without BRS full-name mapping: ${namesOrNone(r.unmappedConfirmed)}`);
         return lines.join("\n").trim();
     };
@@ -1023,10 +1027,12 @@ function App() {
 No players confirmed yet.`;
         const confirmedLine = `${currentPlayers.length} playing:
 ${currentPlayers.map((p, i) => `${i + 1}. ${p}`).join("\n")}`;
-        const times = teeTimes.length ? `
+        const teeInfo = teeTimes.length
+            ? `${teeTimes.length} tee time${teeTimes.length === 1 ? "" : "s"} confirmed: ${teeTimes.join(", ")}`
+            : `${teesNeeded} tee time${teesNeeded === 1 ? "" : "s"} needed`;
+        return `⛳ Golf – ${formatDate(currentDate)}${comp}
 
-Tee times: ${teeTimes.join(", ")}` : "";
-        return `⛳ Golf – ${formatDate(currentDate)}${comp}${times}
+${teeInfo}
 
 ${confirmedLine}
 
@@ -1065,6 +1071,7 @@ Bookings confirmed ✅`;
         const label = { legacy_event: "legacy activity" }[entry.action] || entry.action || "activity";
         return `${time} — ${actor} ${label} ${name} for ${day}${fromTo ? `: ${fromTo}` : ""}`;
     };
+    const appDayLink = (date, dayKey) => `${APP_URL}?date=${toDateKey(date)}&day=${dayKey}`;
     const buildReminderText = () => {
         const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
         const sun = schedule[toDateKey(chosenW.sun)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sun)] || "");
@@ -1077,13 +1084,13 @@ Bookings confirmed ✅`;
         const sunMissing = noResponseForDay(sun);
         const sections = [];
         if (satMissing.length) {
-            sections.push(`${formatDate(chosenW.sat)}\nStill need a response from:\n${satMissing.map((p, i) => `${i + 1}. ${p}`).join("\n")}`);
+            sections.push(`${formatDate(chosenW.sat)}\nStill need a response from:\n${satMissing.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nUpdate Saturday here 👇\n${appDayLink(chosenW.sat, "sat")}`);
         }
         if (sunMissing.length) {
-            sections.push(`${formatDate(chosenW.sun)}\nStill need a response from:\n${sunMissing.map((p, i) => `${i + 1}. ${p}`).join("\n")}`);
+            sections.push(`${formatDate(chosenW.sun)}\nStill need a response from:\n${sunMissing.map((p, i) => `${i + 1}. ${p}`).join("\n")}\n\nUpdate Sunday here 👇\n${appDayLink(chosenW.sun, "sun")}`);
         }
         const responseBlock = sections.length ? sections.join("\n\n") : "Everyone has responded for Saturday and Sunday ✅";
-        return `⛳ Weekend Golf Reminder\n\nAhead of the Wednesday / Thursday tee booking windows, please confirm your availability for each day.\n\n${responseBlock}\n\nPlease mark each day as Playing or Unavailable in the app, even if you are only playing one day.\n\nSign-up closes at 6:50pm on Wednesday for Saturday and Thursday for Sunday.\n\nUpdate here 👇\n${APP_URL}`;
+        return `⛳ Weekend Golf Reminder\n\nAhead of the Wednesday / Thursday tee booking windows, please confirm your availability for each day.\n\n${responseBlock}\n\nPlease mark each day as Playing or Unavailable in the app, even if you are only playing one day.\n\nSign-up closes at 6:50pm on Wednesday for Saturday and Thursday for Sunday.`;
     };
     const weekendBookedPlayers = () => {
         const sat = schedule[toDateKey(chosenW.sat)] || initDay(FIXTURE_COMPS[toDateKey(chosenW.sat)] || "");
@@ -1113,8 +1120,14 @@ Bookings confirmed ✅`;
     const buildNotBookedWeekendText = () => {
         const names = notBookedForWeekend();
         const weekendLine = `${formatDate(chosenW.sat)} / ${formatDate(chosenW.sun)}`;
-        const list = names.length ? names.map((p, i) => `${i + 1}. ${p}`).join("\n") : "Everyone has booked or marked unavailable for this weekend ✅";
-        return `⛳ Golf booking check – ${weekendLine}\n\nPlayers not booked and not marked unavailable for Saturday or Sunday:\n${list}\n\nPlease book in or mark yourself unavailable here 👇\n${APP_URL}`;
+        const list = names.length ? names.map((p, i) => `${i + 1}. ${p}`).join("\n") : "Everyone has responded for at least one day this weekend ✅";
+        return `⛳ Golf booking check – ${weekendLine}
+
+Players with no response for either Saturday or Sunday:
+${list}
+
+Please book in or mark yourself unavailable here 👇
+${APP_URL}`;
     };
     const toggleBRSBooker = name => {
         setBRSBookers(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
@@ -1421,9 +1434,9 @@ Bookings confirmed ✅`;
                     React.createElement("div", { className: "brsMapName" }, name),
                     React.createElement("input", { className: "input", value: brsNameMap[name] || "", onChange: e => setBRSNameMap(prev => ({ ...prev, [name]: e.target.value })), placeholder: `BRS name for ${name}` })))),
                 brsReconcileResult && React.createElement("div", { className: "reconcileSummary" },
-                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "✅ Confirmed and found in BRS"), React.createElement("br", null), namesOrNone(brsReconcileResult.confirmedFound)),
-                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "⚠️ Confirmed here but not found in BRS"), React.createElement("br", null), namesOrNone(brsReconcileResult.confirmedMissing)),
-                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "ℹ️ Found in BRS but not marked Playing here"), React.createElement("br", null), namesOrNone(brsReconcileResult.foundNotPlaying)),
+                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "✅ Confirmed and found in BRS (no action needed)"), React.createElement("br", null), namesOrNone(brsReconcileResult.confirmedFound)),
+                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "⚠️ Confirmed in Weekend Golf App but not found in BRS (need adding in BRS)"), React.createElement("br", null), namesOrNone(brsReconcileResult.confirmedMissing)),
+                    React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "ℹ️ Found in BRS but not confirmed in Weekend Golf App (need removing from BRS)"), React.createElement("br", null), namesOrNone(brsReconcileResult.foundNotPlaying)),
                     brsReconcileResult.unmappedConfirmed.length > 0 && React.createElement("div", { className: "reconcileBlock" }, React.createElement("strong", null, "Mapping still missing"), React.createElement("br", null), namesOrNone(brsReconcileResult.unmappedConfirmed))),
                 React.createElement("div", { className: "modalActions" },
                     React.createElement("button", { className: "ghost", onClick: () => setShowBRSReconcile(false) }, "Close"),

@@ -264,7 +264,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 42 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v60"')) throw new Error("v60 marker missing");
+if (!html.includes('const VERSION = "v61"')) throw new Error("v61 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -277,7 +277,7 @@ if (!html.includes("Use detected tee times for")) throw new Error("v58 BRS detec
 if (!html.includes("extractBRSTeeTimeMatches")) throw new Error("v58 BRS tee time extraction helper missing");
 if (!html.includes("buildNotBookedWeekendText")) throw new Error("v30 not-booked weekend WhatsApp message builder missing");
 if (!html.includes("notBookedForWeekend")) throw new Error("v30 not-booked weekend roster helper missing");
-if (!html.includes("Players not booked and not marked unavailable for Saturday or Sunday")) throw new Error("v32 not-booked WhatsApp copy should exclude unavailable players");
+if (!html.includes("Players with no response for either Saturday or Sunday")) throw new Error("v61 not-booked WhatsApp copy should list players with no response for either day");
 if (!html.includes("setEditingComp(false); setCompInput(\"\");") || !html.includes("setShowTeeTimesEditor(false); setTeeTimeInputs([]);")) throw new Error("competition/tee-time edit reset on date change missing");
 if (!html.includes("getSignupCutoff")) throw new Error("client signup cutoff helper missing");
 if (!html.includes("Add to booking?")) throw new Error("add confirmation modal missing");
@@ -324,7 +324,7 @@ if (!html.includes('unavailablePlayers')) throw new Error('v32 unavailable playe
 if (!html.includes('CHOOSE PLAYING OR UNAVAILABLE')) throw new Error('v32 unavailable UI label missing');
 if (!html.includes('unavailableBtn')) throw new Error('v32 unavailable button missing');
 if (!html.includes('MY BOOKINGS') || !html.includes('showMyBookings') || !html.includes('myBookingRows')) throw new Error('v32 My Bookings modal/button missing');
-if (!html.includes('Players not booked and not marked unavailable for Saturday or Sunday')) throw new Error('v32 not-booked WhatsApp copy should exclude unavailable players');
+if (!html.includes('Players with no response for either Saturday or Sunday')) throw new Error('v61 not-booked WhatsApp copy should list players with no response for either day');
 if (html.includes('weekendStatusIcon') || html.includes('isClosedForWeekendPicker') || html.includes('return "🟠"')) throw new Error('v32 should not restore v28 open/closed amber weekend status icons');
 if (html.includes('weekend-open') || html.includes('weekend-partial') || html.includes('weekend-closed')) throw new Error('v32 should not add weekend dropdown text-colour classes');
 if (!html.includes('Kevin Request clarification: replaced the v28 open/closed weekend icons')) throw new Error('v29 release notes should retain the Kevin Request clarification');
