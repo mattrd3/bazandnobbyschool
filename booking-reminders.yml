@@ -1,0 +1,49 @@
+# Weekend Golf v64 — automatic closing-day reminders
+
+## Rule
+
+- Wednesday at approximately 5:30pm UK time: remind subscribed players who have not answered for the Saturday 10 days later.
+- Thursday at approximately 5:30pm UK time: remind subscribed players who have not answered for the Sunday 10 days later.
+- The booking deadline remains 6:50pm UK time.
+- Players who have answered either Playing or Unavailable do not receive the reminder.
+- Each subscribed device receives at most one reminder per golf date.
+
+## Files to add
+
+- functions/api/cron/booking-reminders.js
+- migrations/0006_push_reminder_log.sql
+- .github/workflows/booking-reminders.yml
+
+Keep all existing v63 push files, including lib/push.js.
+
+## Required secret
+
+Create one long random value and save exactly the same value in both places:
+
+1. Cloudflare Production secret: REMINDER_CRON_TOKEN
+2. GitHub repository Actions secret: REMINDER_CRON_TOKEN
+
+Suggested token generation:
+
+    openssl rand -hex 32
+
+Cloudflare path:
+Workers & Pages > bazandnobbyschool > Settings > Variables and Secrets
+
+GitHub path:
+Repository > Settings > Secrets and variables > Actions > New repository secret
+
+## Scheduling
+
+GitHub Actions calls the protected endpoint every 15 minutes. The endpoint evaluates Europe/London time and does nothing outside the reminder window. This avoids GMT/BST clock changes in the workflow schedule.
+
+## Testing
+
+After deployment and secret setup:
+
+1. Open GitHub > Actions > Weekend Golf booking reminders.
+2. Choose Run workflow.
+3. Outside the live window, a successful response reports skipped=true.
+4. Live reminders will send automatically on Wednesday/Thursday in the configured window.
+
+No wrangler.toml, D1 binding, VAPID key, or frontend change is required.
