@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#e9f0e4" />
   <title>Weekend Golf</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=62-logo2" />
+  <link rel="manifest" href="/manifest.webmanifest?v=63-push1" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-v2.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -246,14 +246,35 @@ window.addEventListener("appinstalled", () => {
     window.dispatchEvent(new Event("wg-app-installed"));
 });
 const isPwaStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+async function waitForWeekendGolfInstallPrompt(timeoutMs = 4500) {
+    if (window.__wgInstallPrompt) return window.__wgInstallPrompt;
+    if ("serviceWorker" in navigator) {
+        try { await navigator.serviceWorker.ready; } catch (e) {}
+    }
+    if (window.__wgInstallPrompt) return window.__wgInstallPrompt;
+    return await new Promise(resolve => {
+        let finished = false;
+        const done = value => {
+            if (finished) return;
+            finished = true;
+            window.removeEventListener("wg-install-available", available);
+            clearTimeout(timer);
+            resolve(value);
+        };
+        const available = () => done(window.__wgInstallPrompt);
+        const timer = setTimeout(() => done(window.__wgInstallPrompt), timeoutMs);
+        window.addEventListener("wg-install-available", available, { once: true });
+    });
+}
 async function requestWeekendGolfInstall(preferredView = "full") {
     localStorage.setItem("wg_preferred_view", preferredView);
-    const prompt = window.__wgInstallPrompt;
+    const prompt = window.__wgInstallPrompt || await waitForWeekendGolfInstallPrompt();
     if (!prompt) return false;
     prompt.prompt();
-    await prompt.userChoice.catch(() => null);
+    const choice = await prompt.userChoice.catch(() => null);
     window.__wgInstallPrompt = null;
-    return true;
+    window.dispatchEvent(new Event("wg-install-consumed"));
+    return Boolean(choice);
 }
 function registerWeekendGolfServiceWorker() {
     if ("serviceWorker" in navigator) {
@@ -264,7 +285,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v62";
+const VERSION = "v63";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -727,10 +748,16 @@ function App() {
     useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
     useEffect(() => {
         const available = () => setInstallAvailable(true);
+        const consumed = () => setInstallAvailable(false);
         const installed = () => { setInstalledMode(true); setInstallAvailable(false); setShowInstallGuide(false); };
         window.addEventListener("wg-install-available", available);
+        window.addEventListener("wg-install-consumed", consumed);
         window.addEventListener("wg-app-installed", installed);
-        return () => { window.removeEventListener("wg-install-available", available); window.removeEventListener("wg-app-installed", installed); };
+        return () => {
+            window.removeEventListener("wg-install-available", available);
+            window.removeEventListener("wg-install-consumed", consumed);
+            window.removeEventListener("wg-app-installed", installed);
+        };
     }, []);
     useEffect(() => { loadPlayerWeekendSummary(); }, [pinLoggedIn, playerName, playerPin, visibleWeekendKey]);
     useEffect(() => { if (showReporting && reportingTab === "stats") loadBookingStats(bookingStatsPeriod); }, [showReporting, reportingTab, bookingStatsPeriod]);
@@ -1577,9 +1604,13 @@ ${APP_URL}`;
                         React.createElement("p", { className: "helpText" }, "Use the simpler two-section screen while keeping the same login and live booking data."),
                         React.createElement("button", { className: "smallBtn", style: { marginTop: 8 }, onClick: openSimpleView }, "OPEN SIMPLE VIEW")),
                     React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Push notifications"),
+                        React.createElement("p", { className: "helpText" }, "Turn notifications on or off for this device. Admin can also send a harmless test notification before automatic reminders are introduced."),
+                        React.createElement("button", { className: "smallBtn", style: { marginTop: 8 }, onClick: () => location.href = "/notifications/" }, "NOTIFICATION SETTINGS")),
+                    React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "Install Weekend Golf"),
                         React.createElement("p", { className: "helpText" }, installedMode ? "Weekend Golf is currently open as an installed app." : "Add one Weekend Golf icon to your phone. The icon opens the view last selected on this device."),
-                        !installedMode && React.createElement("button", { className: "smallBtn", style: { marginTop: 8 }, onClick: installWeekendGolf }, installAvailable ? "INSTALL APP" : "HOW TO INSTALL")),
+                        !installedMode && React.createElement("button", { className: "smallBtn", style: { marginTop: 8 }, onClick: installWeekendGolf }, "INSTALL APP")),
                     React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "More info"),
                         React.createElement("p", { className: "helpText" }, "Use My Bookings to see your upcoming personal status. Click any week in My Bookings to jump straight to that weekend. Use the live version number to view release notes."))),
@@ -1592,7 +1623,7 @@ ${APP_URL}`;
                 React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.5, textAlign: "left" } },
                     /iPad|iPhone|iPod/.test(navigator.userAgent)
                         ? "On iPhone or iPad: open this page in Safari, tap the Share button, choose Add to Home Screen, then tap Add."
-                        : "Open your browser menu and choose Install app or Add to Home screen. On Android, Chrome normally shows Install app in the menu."),
+                        : "Chrome did not make the one-tap installer available on this visit. Open Chrome’s menu and choose Install app or Add to Home screen. After a fresh deployment or uninstall, refreshing the page once may also make the native installer available."),
                 React.createElement("div", { className: "modalActions" },
                     React.createElement("button", { className: "green", onClick: () => setShowInstallGuide(false) }, "Close")))),
         showReleaseNotes && React.createElement("div", { className: "modal" },

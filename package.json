@@ -1,6 +1,6 @@
 {
   "name": "bazandnobbyschool",
-  "version": "1.0.62",
+  "version": "1.0.63",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,9 +8,13 @@
     "test:live": "node test/live-api-tests.js",
     "test:soak": "node test/soak-test.js --minutes=60",
     "test:soak:quick": "node test/soak-test.js --minutes=2 --intervalMs=250",
-    "test:all": "npm run test && npm run test:live"
+    "test:all": "npm run test && npm run test:live",
+    "generate:vapid": "node scripts/generate-vapid-keys.mjs"
   },
   "devDependencies": {
     "wrangler": "latest"
+  },
+  "dependencies": {
+    "@block65/webcrypto-web-push": "1.0.2"
   }
 }

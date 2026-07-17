@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#e9f0e4" />
   <title>Weekend Golf — Simple View</title>
-  <link rel="manifest" href="/manifest.webmanifest?v=62-logo2" />
+  <link rel="manifest" href="/manifest.webmanifest?v=63-push1" />
   <link rel="apple-touch-icon" href="/icons/apple-touch-icon-v2.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
@@ -51,6 +51,7 @@
     <div class="intro">The next two dates you can still answer. Tap YES or NO and your choice is saved immediately.</div>
     <div id="bookingCards" class="cards"></div>
     <button id="fullBtn" class="full">OPEN FULL APP</button>
+    <button id="notificationsBtn" class="secondary" style="width:100%;margin-top:9px">NOTIFICATION SETTINGS</button>
     <div id="installBanner" class="installBanner hidden">
       <div class="installTitle">INSTALL WEEKEND GOLF</div>
       <div class="installText">Add one Weekend Golf icon to your phone. You can switch between Simple and Full View inside the app.</div>
@@ -122,7 +123,7 @@ function renderWeekendSummary(){
 }
 function renderBookingCards(){const box=$("bookingCards");box.innerHTML="";const dates=nextOpenBookingDates(2);dates.forEach(date=>{const day=dayFor(date),status=ownStatus(day),card=document.createElement("article");card.className="bookingCard";const comp=day.competition?`<div class="comp">${escapeHtml(day.competition)}</div>`:"";card.innerHTML=`<div class="cardTop"><div><div class="date">${escapeHtml(formatDate(date))}</div>${comp}</div><div class="cutoff">Closes<br>${escapeHtml(formatCutoff(date))}</div></div><div class="statusPill ${status==="playing"?"playing":status==="unavailable"?"no":"none"}">${statusText(status)}</div><div class="actions"><button class="answer yes ${status==="playing"?"selected":""}">YES</button><button class="answer no ${status==="unavailable"?"selected":""}">NO</button></div>`;const [yes,no]=card.querySelectorAll(".answer");yes.onclick=()=>saveStatus(date,"playing");no.onclick=()=>saveStatus(date,"unavailable");box.appendChild(card)});if(!dates.length)box.innerHTML='<div class="empty">There are no open booking dates at the moment.</div>'}
 function render(){const showApp=loggedIn&&playerName&&playerPin;$("loginPanel").classList.toggle("hidden",showApp);$("appPanel").classList.toggle("hidden",!showApp);$("logoutBtn").classList.toggle("hidden",!showApp);$("logoutName").textContent=playerName.toUpperCase();if(showApp){renderWeekendSummary();renderBookingCards()}else{fillMembers();$("playerName").value=playerName;$("playerPin").value=playerPin}}
-$("loginBtn").onclick=login;$("logoutBtn").onclick=logout;$("fullBtn").onclick=()=>{localStorage.setItem("wg_preferred_view","full");location.href=FULL_APP_URL};$("fullFromLogin").onclick=()=>{localStorage.setItem("wg_preferred_view","full");location.href=FULL_APP_URL};$("installBtn").onclick=installApp;$("installDismiss").onclick=dismissInstall;$("modal").onclick=e=>{if(e.target===$("modal"))hideModal()};$("playerPin").onkeydown=e=>{if(e.key==="Enter")login()};
+'$("loginBtn").onclick=login;$("logoutBtn").onclick=logout;$("notificationsBtn").onclick=()=>location.href="/notifications/";$("fullBtn").onclick=()=>{localStorage.setItem("wg_preferred_view","full");location.href=FULL_APP_URL};$("fullFromLogin").onclick=()=>{localStorage.setItem("wg_preferred_view","full");location.href=FULL_APP_URL};$("installBtn").onclick=installApp;$("installDismiss").onclick=dismissInstall;$("modal").onclick=e=>{if(e.target===$("modal"))hideModal()};$("playerPin").onkeydown=e=>{if(e.key==="Enter")login()};
 fillMembers();renderInstallBanner();load();setInterval(load,30000);
 </script>
 </body>
