@@ -39,12 +39,14 @@
   <div id="appPanel" class="hidden">
     <div id="weekendSection" class="hidden">
       <div class="sectionTitle">YOUR WEEKEND</div>
+      <div class="intro">A reminder of what you said you would play this coming weekend.</div>
       <div id="weekendSummary" class="weekendSummary"></div>
     </div>
     <div class="sectionTitle">YOUR NEXT BOOKINGS</div>
     <div class="intro">The next two dates you can still answer. Tap YES or NO and your choice is saved immediately.</div>
     <div id="bookingCards" class="cards"></div>
     <div class="sectionTitle" style="margin-top:20px">NEXT GOLF DAY</div>
+    <div class="intro">See who is confirmed as playing in the next round.</div>
     <div id="nextGolfCard" class="nextCard"></div>
     <div class="nav"><button id="prevBtn" class="secondary">‹ PREVIOUS</button><button id="nextBtn" class="secondary">NEXT ›</button><button id="returnBtn" class="secondary return hidden">RETURN TO NEXT GOLF DAY</button></div>
     <button id="fullBtn" class="full">OPEN FULL APP</button>
@@ -52,7 +54,7 @@
 </main>
 <div id="modal" class="modal hidden"><div class="modalBox"><h3 id="modalTitle"></h3><p id="modalText"></p><div id="modalActions" class="modalActions"></div></div></div>
 <script>
-const VERSION = "v61-simple-2";
+const VERSION = "v61-simple-3";
 const FULL_APP_URL = "/";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
