@@ -1,11 +1,11 @@
-const CACHE_NAME = "weekend-golf-v62-pwa1";
+const CACHE_NAME = "weekend-golf-v62-pwa2-logo";
 const STATIC_ASSETS = [
   "/offline.html",
   "/manifest.webmanifest",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-  "/icons/maskable-512.png",
-  "/icons/apple-touch-icon.png"
+  "/icons/icon-192-v2.png",
+  "/icons/icon-512-v2.png",
+  "/icons/maskable-512-v2.png",
+  "/icons/apple-touch-icon-v2.png"
 ];
 self.addEventListener("install", event => { event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS)).then(() => self.skipWaiting())); });
 self.addEventListener("activate", event => { event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key)))).then(() => self.clients.claim())); });
