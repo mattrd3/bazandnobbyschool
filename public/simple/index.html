@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#e9f0e4" />
   <title>Weekend Golf — Simple View</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Weekend Golf" />
   <style>
     :root{--bg:#e9f0e4;--panel:#fffdf7;--soft:#f1f6ec;--sage:#dcebd4;--border:#cbd8c3;--strong:#a9bea1;--text:#223322;--muted:#60715d;--green:#2f5d35;--green2:#3f7a45;--warn:#8a661c;--danger:#a43d3d;--shadow:0 7px 22px rgba(46,68,44,.10)}
     *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} body{margin:0;color:var(--text);font-family:Georgia,serif;background:linear-gradient(180deg,#f6f7ef 0%,var(--bg) 55%,#dfead8 100%);min-height:100vh} button,input,select{font-family:Georgia,serif}
@@ -16,7 +21,7 @@
     .cards{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.bookingCard{background:var(--panel);border:1px solid var(--strong);border-radius:14px;padding:13px;box-shadow:var(--shadow)}.cardTop{display:flex;justify-content:space-between;gap:10px}.date{color:var(--green);font-weight:bold;font-size:16px}.comp{color:var(--warn);font-size:12px;line-height:1.3;margin-top:3px}.cutoff{font-size:10px;color:var(--muted);text-align:right;line-height:1.3}.statusPill{margin-top:10px;border-radius:9px;padding:10px;text-align:center;font-size:14px;font-weight:bold;border:1px solid var(--border)}.statusPill.playing{background:var(--sage);color:var(--green);border-color:var(--green2)}.statusPill.no{background:#f4f4ef;color:#60685e}.statusPill.none{background:#fff8df;color:var(--warn)}
     .actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:10px}.answer{padding:14px 7px;border-radius:10px;border:1px solid var(--strong);background:#fff;color:var(--green);font-size:14px;font-weight:bold;cursor:pointer}.answer.yes.selected{background:var(--sage);border:2px solid var(--green2)}.answer.no.selected{background:#e9ece3;border:2px solid #7f897a;color:#4e574c}.closed{font-size:11px;text-align:center;color:var(--muted);margin-top:7px}.closedHelp{width:100%;border:0;background:transparent;color:var(--green);text-decoration:underline;font-size:11px;margin-top:7px;cursor:pointer}
     .nextCard{background:var(--panel);border:1px solid var(--strong);border-radius:15px;overflow:hidden;box-shadow:var(--shadow)}.nextHead{padding:14px;background:var(--soft);border-bottom:1px solid var(--border)}.nextBody{padding:14px}.ownStatus{font-size:14px;font-weight:bold;margin:8px 0;color:var(--green)}.tee{font-size:12px;color:var(--green);margin:5px 0}.confirmedTitle{font-size:12px;color:var(--muted);margin:12px 0 7px}.names{display:flex;flex-wrap:wrap;gap:7px}.name{background:#fff;border:1px solid var(--border);border-radius:999px;padding:7px 10px;color:var(--green);font-size:13px}.empty{color:var(--muted);font-size:12px}
-    .nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.secondary{border:1px solid var(--strong);background:var(--panel);color:var(--green);padding:12px;border-radius:9px;font-size:13px;cursor:pointer}.return{grid-column:1/-1}.full{width:100%;margin-top:17px;border:1px solid var(--green);background:var(--green);color:#fff;padding:13px;border-radius:10px;font-size:13px;font-weight:bold;cursor:pointer}
+    .nav{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}.secondary{border:1px solid var(--strong);background:var(--panel);color:var(--green);padding:12px;border-radius:9px;font-size:13px;cursor:pointer}.return{grid-column:1/-1}.full{width:100%;margin-top:17px;border:1px solid var(--green);background:var(--green);color:#fff;padding:13px;border-radius:10px;font-size:13px;font-weight:bold;cursor:pointer}.installBanner{margin-top:14px;background:var(--panel);border:1px solid var(--strong);border-radius:14px;padding:13px;box-shadow:var(--shadow)}.installTitle{color:var(--green);font-size:13px;font-weight:bold;letter-spacing:.05em}.installText{color:var(--muted);font-size:11px;line-height:1.4;margin-top:4px}.installActions{display:grid;grid-template-columns:1.4fr 1fr;gap:8px;margin-top:10px}.installPrimary{border:0;background:var(--green);color:white;border-radius:9px;padding:11px;font-size:12px;font-weight:bold}.installDismiss{border:1px solid var(--strong);background:var(--soft);color:var(--green);border-radius:9px;padding:11px;font-size:12px}
     .message{margin:10px 0;padding:10px 12px;border-radius:9px;background:var(--soft);border:1px solid var(--strong);color:var(--green);font-size:13px;line-height:1.35}.error{background:#f6dfdb;color:var(--danger);border-color:#d19a92}.modal{position:fixed;inset:0;z-index:20;background:rgba(30,44,30,.42);display:flex;align-items:center;justify-content:center;padding:20px}.modalBox{width:100%;max-width:360px;background:var(--panel);border:1px solid var(--strong);border-radius:16px;padding:22px;text-align:center;box-shadow:0 18px 50px rgba(35,55,35,.25)}.modalBox h3{color:var(--green);font-weight:normal;margin:0 0 8px}.modalBox p{font-size:13px;color:var(--muted);line-height:1.45;white-space:pre-wrap}.modalActions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:15px}.hidden{display:none!important}
     @media(min-width:620px){.bookingCard{min-height:0}}
   </style>
@@ -46,11 +51,21 @@
     <div class="intro">The next two dates you can still answer. Tap YES or NO and your choice is saved immediately.</div>
     <div id="bookingCards" class="cards"></div>
     <button id="fullBtn" class="full">OPEN FULL APP</button>
+    <div id="installBanner" class="installBanner hidden">
+      <div class="installTitle">INSTALL WEEKEND GOLF</div>
+      <div class="installText">Add one Weekend Golf icon to your phone. You can switch between Simple and Full View inside the app.</div>
+      <div class="installActions"><button id="installBtn" class="installPrimary">INSTALL APP</button><button id="installDismiss" class="installDismiss">NOT NOW</button></div>
+    </div>
   </div>
 </main>
 <div id="modal" class="modal hidden"><div class="modalBox"><h3 id="modalTitle"></h3><p id="modalText"></p><div id="modalActions" class="modalActions"></div></div></div>
 <script>
-const VERSION = "v61-simple-6";
+let deferredInstallPrompt = null;
+const isStandaloneMode = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+window.addEventListener("beforeinstallprompt", event => { event.preventDefault(); deferredInstallPrompt = event; renderInstallBanner(); });
+window.addEventListener("appinstalled", () => { deferredInstallPrompt = null; localStorage.setItem("wg_pwa_installed", "1"); renderInstallBanner(); });
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(() => {}));
+const VERSION = "v62-simple";
 const FULL_APP_URL = "/";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -87,6 +102,10 @@ function escapeHtml(v){const d=document.createElement("div");d.textContent=Strin
 function showModal(title,text,actions=[{label:"OK"}]){$("modalTitle").textContent=title;$('modalText').textContent=text;const box=$("modalActions");box.innerHTML="";actions.forEach((a,i)=>{const b=document.createElement("button");b.className=i===actions.length-1?"primary":"secondary";b.style.marginTop="0";b.textContent=a.label;b.onclick=()=>{if(a.onClick)a.onClick();else hideModal()};box.appendChild(b)});$("modal").classList.remove("hidden")}
 function hideModal(){$("modal").classList.add("hidden")}
 function fillMembers(){const select=$("playerName"),current=playerName;select.innerHTML='<option value="">Choose your name</option>';[...new Set(members)].sort().forEach(n=>{const o=document.createElement("option");o.value=n;o.textContent=n;select.appendChild(o)});select.value=current}
+function installDismissed(){return Number(localStorage.getItem("wg_install_dismissed_until")||0)>Date.now()}
+function renderInstallBanner(){const banner=$("installBanner");if(!banner)return;banner.classList.toggle("hidden",isStandaloneMode()||installDismissed())}
+async function installApp(){localStorage.setItem("wg_preferred_view","simple");if(deferredInstallPrompt){deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice.catch(()=>null);deferredInstallPrompt=null;renderInstallBanner();return}const ios=/iPad|iPhone|iPod/.test(navigator.userAgent);showModal("Install Weekend Golf",ios?"Open this page in Safari, tap the Share button, choose Add to Home Screen, then tap Add.":"Open your browser menu and choose Install app or Add to Home screen.")}
+function dismissInstall(){localStorage.setItem("wg_install_dismissed_until",String(Date.now()+14*24*60*60*1000));renderInstallBanner()}
 async function load(){try{$("liveStatus").textContent="SYNCING";const data=await api("schedule");schedule=data.schedule||{};members=Array.isArray(data.members)&&data.members.length?data.members:INITIAL_MEMBERS;fillMembers();$("liveStatus").textContent="LIVE";setMessage("");render()}catch(e){$("liveStatus").textContent="OFFLINE";setMessage(e.message,true)}}
 async function login(){playerName=$("playerName").value;playerPin=$("playerPin").value.trim();try{setMessage("Checking PIN...");const r=await api("player-login",{name:playerName,pin:playerPin});playerName=r.name;loggedIn=true;localStorage.setItem("wg_player_name",playerName);localStorage.setItem("wg_player_pin",playerPin);localStorage.setItem("wg_player_ok","1");setMessage(`Logged in as ${playerName}`);render()}catch(e){loggedIn=false;localStorage.setItem("wg_player_ok","0");setMessage(e.message,true)}}
 function logout(){loggedIn=false;playerPin="";localStorage.removeItem("wg_player_pin");localStorage.setItem("wg_player_ok","0");$("playerPin").value="";setMessage("Logged out");render()}
@@ -103,8 +122,8 @@ function renderWeekendSummary(){
 }
 function renderBookingCards(){const box=$("bookingCards");box.innerHTML="";const dates=nextOpenBookingDates(2);dates.forEach(date=>{const day=dayFor(date),status=ownStatus(day),card=document.createElement("article");card.className="bookingCard";const comp=day.competition?`<div class="comp">${escapeHtml(day.competition)}</div>`:"";card.innerHTML=`<div class="cardTop"><div><div class="date">${escapeHtml(formatDate(date))}</div>${comp}</div><div class="cutoff">Closes<br>${escapeHtml(formatCutoff(date))}</div></div><div class="statusPill ${status==="playing"?"playing":status==="unavailable"?"no":"none"}">${statusText(status)}</div><div class="actions"><button class="answer yes ${status==="playing"?"selected":""}">YES</button><button class="answer no ${status==="unavailable"?"selected":""}">NO</button></div>`;const [yes,no]=card.querySelectorAll(".answer");yes.onclick=()=>saveStatus(date,"playing");no.onclick=()=>saveStatus(date,"unavailable");box.appendChild(card)});if(!dates.length)box.innerHTML='<div class="empty">There are no open booking dates at the moment.</div>'}
 function render(){const showApp=loggedIn&&playerName&&playerPin;$("loginPanel").classList.toggle("hidden",showApp);$("appPanel").classList.toggle("hidden",!showApp);$("logoutBtn").classList.toggle("hidden",!showApp);$("logoutName").textContent=playerName.toUpperCase();if(showApp){renderWeekendSummary();renderBookingCards()}else{fillMembers();$("playerName").value=playerName;$("playerPin").value=playerPin}}
-$("loginBtn").onclick=login;$("logoutBtn").onclick=logout;$("fullBtn").onclick=()=>location.href=FULL_APP_URL;$("fullFromLogin").onclick=()=>location.href=FULL_APP_URL;$("modal").onclick=e=>{if(e.target===$("modal"))hideModal()};$("playerPin").onkeydown=e=>{if(e.key==="Enter")login()};
-fillMembers();load();setInterval(load,30000);
+$("loginBtn").onclick=login;$("logoutBtn").onclick=logout;$("fullBtn").onclick=()=>{localStorage.setItem("wg_preferred_view","full");location.href=FULL_APP_URL};$("fullFromLogin").onclick=()=>{localStorage.setItem("wg_preferred_view","full");location.href=FULL_APP_URL};$("installBtn").onclick=installApp;$("installDismiss").onclick=dismissInstall;$("modal").onclick=e=>{if(e.target===$("modal"))hideModal()};$("playerPin").onkeydown=e=>{if(e.key==="Enter")login()};
+fillMembers();renderInstallBanner();load();setInterval(load,30000);
 </script>
 </body>
 </html>

@@ -264,7 +264,7 @@ assert.equal(r.json.ok, true);
 console.log("PASS: 42 API/helper tests passed");
 
 const html = fs.readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-if (!html.includes('const VERSION = "v61"')) throw new Error("v61 marker missing");
+if (!html.includes('const VERSION = "v62"')) throw new Error("v61 marker missing");
 if (!html.includes('LIVE- ${VERSION}')) throw new Error('short live version label missing');
 if (!html.includes('.versionBtn')) throw new Error('v29 live version should be a clickable release-notes button');
 if (!html.includes('className: "headerRight"')) throw new Error('v29 version/admin controls should sit top-right');
@@ -416,3 +416,12 @@ if (!html.includes('Booking method usage') || !html.includes('booking-method-sta
 if (!html.includes('Copy WhatsApp draw message')) throw new Error('v50 draw WhatsApp copy button missing');
 if (!html.includes('teeTimeForGroup(i)')) throw new Error('v43 draw display should include tee times when available');
 console.log("PASS: v58 UI regression checks passed");
+
+if (!html.includes('rel="manifest" href="/manifest.webmanifest"')) throw new Error("PWA manifest link missing");
+if (!html.includes('OPEN SIMPLE VIEW')) throw new Error("Full app Simple View switch missing");
+if (!fs.existsSync(new URL("../public/service-worker.js", import.meta.url))) throw new Error("service worker missing");
+if (!fs.existsSync(new URL("../public/manifest.webmanifest", import.meta.url))) throw new Error("manifest missing");
+const simpleHtml = fs.readFileSync(new URL("../public/simple/index.html", import.meta.url), "utf8");
+if (!simpleHtml.includes('id="installBanner"')) throw new Error("Simple View install banner missing");
+if (!simpleHtml.includes('wg_preferred_view')) throw new Error("PWA preferred-view switch missing");
+console.log("PASS: v62 PWA shell checks passed");

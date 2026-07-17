@@ -5,6 +5,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#e9f0e4" />
   <title>Weekend Golf</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Weekend Golf" />
   <style>
     :root {
       --page-bg: #e9f0e4;
@@ -228,9 +233,38 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script>
+
+window.__wgInstallPrompt = null;
+window.addEventListener("beforeinstallprompt", event => {
+    event.preventDefault();
+    window.__wgInstallPrompt = event;
+    window.dispatchEvent(new Event("wg-install-available"));
+});
+window.addEventListener("appinstalled", () => {
+    window.__wgInstallPrompt = null;
+    localStorage.setItem("wg_pwa_installed", "1");
+    window.dispatchEvent(new Event("wg-app-installed"));
+});
+const isPwaStandalone = () => window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+async function requestWeekendGolfInstall(preferredView = "full") {
+    localStorage.setItem("wg_preferred_view", preferredView);
+    const prompt = window.__wgInstallPrompt;
+    if (!prompt) return false;
+    prompt.prompt();
+    await prompt.userChoice.catch(() => null);
+    window.__wgInstallPrompt = null;
+    return true;
+}
+function registerWeekendGolfServiceWorker() {
+    if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => navigator.serviceWorker.register("/service-worker.js", { scope: "/" }).catch(() => {}));
+    }
+}
+registerWeekendGolfServiceWorker();
+
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v61";
+const VERSION = "v62";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -277,6 +311,7 @@ function openCalendarForDay(date, competition = "", teeTimes = []) {
     window.open(buildGoogleCalendarUrl(date, competition, teeTimes), "_blank", "noopener,noreferrer");
 }
 const RELEASE_NOTES = [
+    { version: "v62", title: "Installable Weekend Golf app", changes: ["Added one shared installable PWA for Full View and Simple View.", "The installed icon opens the last view selected on that device, and users can switch views without logging out.", "Live booking APIs are never cached; installed users continue to see the same live D1 data as browser users."] },
     { version: "v61", title: "WhatsApp message copy cleanup", changes: ["Confirmed attendee WhatsApp messages now show tee times when saved, or the number of tee times needed when tee times are not yet known.", "Day-by-day reminder messages now include day-specific app links so players can jump straight to Saturday or Sunday.", "The weekend not-booked message wording now clearly lists players with no response for either day, and BRS reconciliation labels explain the required action." ] },
     { version: "v60", title: "Tighter BRS tee-time matching", changes: ["BRS tee-time matching now ignores loose first-name/nickname matches unless an exact BRS full-name mapping exists.", "Single-word mapped names are only used when they are unique in the pasted BRS text, reducing false matches from shared first names or surnames.", "The BRS helper now reports players that need a stronger full-name map before automatic tee times can be trusted." ] },
     { version: "v59", title: "Smarter BRS tee-time matching", changes: ["BRS tee-time extraction now only suggests tee times where the pasted BRS text appears to contain one of the confirmed Weekend Golf players.", "The match uses the existing nickname-to-BRS-full-name map, so BRS full names can be matched back to app nicknames.", "Other tee times from the wider BRS sheet are ignored unless they are near one of our confirmed players." ] },
@@ -459,6 +494,9 @@ function App() {
     const [showMyBookings, setShowMyBookings] = useState(false);
     const [showQuickBooking, setShowQuickBooking] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
+    const [showInstallGuide, setShowInstallGuide] = useState(false);
+    const [installAvailable, setInstallAvailable] = useState(Boolean(window.__wgInstallPrompt));
+    const [installedMode, setInstalledMode] = useState(isPwaStandalone());
     const [showReporting, setShowReporting] = useState(false);
     const [reportingTab, setReportingTab] = useState("brs");
     const [bookingStatsPeriod, setBookingStatsPeriod] = useState("12");
@@ -687,6 +725,13 @@ function App() {
         return () => clearInterval(t);
     }, [adminMode, showAudit, dateKey]);
     useEffect(() => { localStorage.setItem("wg_player_name", playerName); localStorage.setItem("wg_player_pin", playerPin); localStorage.setItem("wg_player_ok", pinLoggedIn ? "1" : "0"); }, [playerName, playerPin, pinLoggedIn]);
+    useEffect(() => {
+        const available = () => setInstallAvailable(true);
+        const installed = () => { setInstalledMode(true); setInstallAvailable(false); setShowInstallGuide(false); };
+        window.addEventListener("wg-install-available", available);
+        window.addEventListener("wg-app-installed", installed);
+        return () => { window.removeEventListener("wg-install-available", available); window.removeEventListener("wg-app-installed", installed); };
+    }, []);
     useEffect(() => { loadPlayerWeekendSummary(); }, [pinLoggedIn, playerName, playerPin, visibleWeekendKey]);
     useEffect(() => { if (showReporting && reportingTab === "stats") loadBookingStats(bookingStatsPeriod); }, [showReporting, reportingTab, bookingStatsPeriod]);
     useEffect(() => { if (showReporting && reportingTab === "brs") loadBRSLeague(); }, [showReporting, reportingTab]);
@@ -838,6 +883,12 @@ function App() {
     const optionLabel = (w, i) => {
         const icon = personalWeekendBookingIcon(w);
         return `${icon ? `${icon} ` : ""}${weekendIndexLabel(w, i)} — ${weekendShort(w)}`;
+    };
+    const openSimpleView = () => { localStorage.setItem("wg_preferred_view", "simple"); window.location.href = "/simple/"; };
+    const installWeekendGolf = async () => {
+        localStorage.setItem("wg_preferred_view", "full");
+        const prompted = await requestWeekendGolfInstall("full");
+        if (!prompted) setShowInstallGuide(true);
     };
     const copyText = async (text, setter) => {
         try {
@@ -1522,11 +1573,28 @@ ${APP_URL}`;
                         React.createElement("div", { className: "helpTitle" }, "Admin booking stats"),
                         React.createElement("p", { className: "helpText" }, "Admins can use Reporting to review player booking activity. BRS League reporting is parked for now while BRS booking records are refined. Logged-in players can still use BRS Booking to create WhatsApp-ready tee-time groups.")),
                     React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Simple View"),
+                        React.createElement("p", { className: "helpText" }, "Use the simpler two-section screen while keeping the same login and live booking data."),
+                        React.createElement("button", { className: "smallBtn", style: { marginTop: 8 }, onClick: openSimpleView }, "OPEN SIMPLE VIEW")),
+                    React.createElement("div", { className: "helpSection" },
+                        React.createElement("div", { className: "helpTitle" }, "Install Weekend Golf"),
+                        React.createElement("p", { className: "helpText" }, installedMode ? "Weekend Golf is currently open as an installed app." : "Add one Weekend Golf icon to your phone. The icon opens the view last selected on this device."),
+                        !installedMode && React.createElement("button", { className: "smallBtn", style: { marginTop: 8 }, onClick: installWeekendGolf }, installAvailable ? "INSTALL APP" : "HOW TO INSTALL")),
+                    React.createElement("div", { className: "helpSection" },
                         React.createElement("div", { className: "helpTitle" }, "More info"),
                         React.createElement("p", { className: "helpText" }, "Use My Bookings to see your upcoming personal status. Click any week in My Bookings to jump straight to that weekend. Use the live version number to view release notes."))),
                 React.createElement("div", { className: "modalActions" },
                     React.createElement("button", { className: "ghost", onClick: () => { setShowHelp(false); setShowReleaseNotes(true); } }, "Release notes"),
                     React.createElement("button", { className: "green", onClick: () => setShowHelp(false) }, "Close")))),
+        showInstallGuide && React.createElement("div", { className: "modal" },
+            React.createElement("div", { className: "modalBox", style: { maxWidth: 400 } },
+                React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Install Weekend Golf"),
+                React.createElement("p", { style: { fontSize: 12, color: "#60715d", lineHeight: 1.5, textAlign: "left" } },
+                    /iPad|iPhone|iPod/.test(navigator.userAgent)
+                        ? "On iPhone or iPad: open this page in Safari, tap the Share button, choose Add to Home Screen, then tap Add."
+                        : "Open your browser menu and choose Install app or Add to Home screen. On Android, Chrome normally shows Install app in the menu."),
+                React.createElement("div", { className: "modalActions" },
+                    React.createElement("button", { className: "green", onClick: () => setShowInstallGuide(false) }, "Close")))),
         showReleaseNotes && React.createElement("div", { className: "modal" },
             React.createElement("div", { className: "modalBox", style: { maxWidth: 420 } },
                 React.createElement("h3", { style: { color: "#2f5d35", fontWeight: "normal", marginTop: 0 } }, "Release notes"),
