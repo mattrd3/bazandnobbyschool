@@ -20,4 +20,4 @@ jobs:
             --request POST \
             --header "Authorization: Bearer $REMINDER_CRON_TOKEN" \
             --header "Content-Type: application/json" \
-            https://bazandnobbyschool.pages.dev/api/cron/booking-reminders
+            https://bazandnobbyschool.pages.dev/cron/booking-reminders
