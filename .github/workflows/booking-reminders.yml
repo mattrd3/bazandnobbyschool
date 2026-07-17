@@ -1,0 +1,23 @@
+name: Weekend Golf booking reminders
+
+on:
+  schedule:
+    # Runs every 15 minutes. The Cloudflare endpoint itself sends only during
+    # the 17:25-18:20 Europe/London window on Wednesday and Thursday.
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Weekend Golf reminder endpoint
+        env:
+          REMINDER_CRON_TOKEN: ${{ secrets.REMINDER_CRON_TOKEN }}
+        run: |
+          test -n "$REMINDER_CRON_TOKEN"
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer $REMINDER_CRON_TOKEN" \
+            --header "Content-Type: application/json" \
+            https://bazandnobbyschool.pages.dev/api/cron/booking-reminders
