@@ -105,6 +105,30 @@
     .userStatusCue { margin-top:5px; font-size:12px; color:var(--green); background:rgba(220,235,212,.72); border:1px solid var(--border); border-radius:999px; display:inline-block; padding:4px 8px; }
     .userStatusCue.unavailable { color:#667064; background:#f7f7f2; }
     .userStatusCue.noresponse { color:var(--warning); background:#fff8df; }
+    .playerFocused { padding:16px; display:flex; flex-direction:column; gap:12px; }
+    .yourResponseCard { border:1px solid var(--border-strong); background:var(--panel); border-radius:12px; padding:14px; box-shadow:var(--shadow); }
+    .yourResponseName { color:var(--green); font-size:16px; font-weight:bold; margin-top:3px; }
+    .yourResponseStatus { margin-top:10px; padding:11px 12px; border-radius:9px; text-align:center; font-size:13px; font-weight:bold; border:1px solid var(--border); }
+    .yourResponseStatus.playing { background:var(--green-soft); color:var(--green); border-color:var(--green-2); }
+    .yourResponseStatus.unavailable { background:#f4f4ef; color:#60685e; }
+    .yourResponseStatus.none { background:#fff8df; color:var(--warning); }
+    .yourResponseActions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
+    .yourResponseBtn { padding:13px 9px; border-radius:10px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); font-size:13px; font-weight:bold; cursor:pointer; }
+    .yourResponseBtn.selectedYes { background:linear-gradient(135deg,#dcebd4,#c8dfbd); border-color:var(--green-2); }
+    .yourResponseBtn.selectedNo { background:#e9ece3; border-color:#8f9a89; color:#4e574c; }
+    .yourResponseBtn:disabled { opacity:.55; cursor:not-allowed; }
+    .confirmedPanel { border:1px solid var(--border); background:rgba(255,253,247,.82); border-radius:12px; padding:13px; }
+    .confirmedPanelTitle { color:var(--green); font-size:12px; font-weight:bold; letter-spacing:.06em; margin-bottom:9px; }
+    .confirmedPanelChips { display:flex; flex-wrap:wrap; gap:7px; }
+    .confirmedPlayerChip { background:#fff; border:1px solid var(--border); border-radius:999px; padding:7px 10px; color:var(--green); font-size:13px; }
+    .responseCounts { padding:10px 12px; border-radius:10px; background:var(--panel-soft); border:1px solid var(--border); color:var(--muted); font-size:12px; line-height:1.45; text-align:center; }
+    .fullResponseToggle { width:100%; padding:11px 12px; border-radius:9px; border:1px solid var(--border-strong); background:var(--panel); color:var(--green); font-size:12px; font-weight:bold; cursor:pointer; }
+    .responseGroups { border:1px solid var(--border); border-radius:11px; overflow:hidden; background:var(--panel); }
+    .responseGroup { padding:11px 12px; border-bottom:1px solid var(--border); }
+    .responseGroup:last-child { border-bottom:0; }
+    .responseGroupTitle { color:var(--green); font-size:11px; font-weight:bold; margin-bottom:5px; }
+    .responseGroupText { color:var(--muted); font-size:12px; line-height:1.45; }
+
     .comp { color: var(--warning); font-size:12px; margin-top:3px; }
     .key { color: var(--muted-2); font-size:11px; margin-top:3px; }
     .count { color: var(--muted); font-size:13px; text-align:right; }
@@ -285,7 +309,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v63";
+const VERSION = "v65-player-focus";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -514,6 +538,7 @@ function App() {
     const [showReleaseNotes, setShowReleaseNotes] = useState(false);
     const [showMyBookings, setShowMyBookings] = useState(false);
     const [showQuickBooking, setShowQuickBooking] = useState(false);
+    const [showFullResponseList, setShowFullResponseList] = useState(false);
     const [showHelp, setShowHelp] = useState(false);
     const [showInstallGuide, setShowInstallGuide] = useState(false);
     const [installAvailable, setInstallAvailable] = useState(Boolean(window.__wgInstallPrompt));
@@ -592,6 +617,15 @@ function App() {
     const playerDisplayNames = shouldPinLoggedInPlayer
         ? [playerName, ...basePlayerDisplayNames.filter(name => name !== playerName)]
         : basePlayerDisplayNames;
+    const normalPlayerMode = pinLoggedIn && playerName && !adminMode;
+    const responseRoster = [...new Set([...members, ...currentPlayers, ...currentUnavailable].filter(Boolean))];
+    const noResponsePlayers = responseRoster.filter(name => !currentPlayers.includes(name) && !currentUnavailable.includes(name));
+    const responseStatusLabel = loggedInDayStatus === "playing"
+        ? "YES — YOU ARE PLAYING"
+        : loggedInDayStatus === "unavailable"
+            ? "NO — YOU ARE UNAVAILABLE"
+            : "NO RESPONSE RECORDED";
+    useEffect(() => { setShowFullResponseList(false); }, [dateKey]);
     const confirmedSummaryText = currentPlayers.length
         ? `${currentPlayers.length} confirmed: ${currentPlayers.join(", ")}`
         : "No players confirmed yet.";
@@ -1375,7 +1409,33 @@ ${APP_URL}`;
                 ". ",
                 teePreferenceIcon(p),
                 p)) : React.createElement("span", { style: { color: "#4a6a4a", fontSize: 13 } }, "No players confirmed yet."))),
-        React.createElement("div", { className: "players" },
+        normalPlayerMode ? React.createElement("div", { className: "playerFocused" },
+            React.createElement("div", { className: "yourResponseCard" },
+                React.createElement("div", { className: "label" }, "YOUR RESPONSE"),
+                React.createElement("div", { className: "yourResponseName" }, playerName),
+                React.createElement("div", { className: `yourResponseStatus ${loggedInDayStatus}` }, responseStatusLabel),
+                React.createElement("div", { className: "yourResponseActions" },
+                    React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "playing" ? "selectedYes" : ""}`, disabled: effectiveLocked, onClick: () => choosePlaying(playerName) }, "YES — PLAYING"),
+                    React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "unavailable" ? "selectedNo" : ""}`, disabled: effectiveLocked, onClick: () => setPlayerStatus(playerName, loggedInDayStatus === "unavailable" ? "none" : "unavailable", "full_list") }, "NO — UNAVAILABLE")),
+                effectiveLocked && React.createElement("div", { className: "key", style: { marginTop: 9, textAlign: "center" } }, "Bookings are closed. Contact admin if your response needs changing.")),
+            React.createElement("div", { className: "confirmedPanel" },
+                React.createElement("div", { className: "confirmedPanelTitle" }, `CONFIRMED PLAYERS — ${currentPlayers.length}`),
+                React.createElement("div", { className: "confirmedPanelChips" }, currentPlayers.length
+                    ? currentPlayers.map(name => React.createElement("span", { className: "confirmedPlayerChip", key: name }, teePreferenceIcon(name), name))
+                    : React.createElement("span", { className: "responseGroupText" }, "No players confirmed yet."))),
+            React.createElement("div", { className: "responseCounts" }, `${currentPlayers.length} playing · ${currentUnavailable.length} unavailable · ${noResponsePlayers.length} not replied`),
+            React.createElement("button", { className: "fullResponseToggle", onClick: () => setShowFullResponseList(v => !v) }, showFullResponseList ? "HIDE FULL RESPONSE LIST" : "VIEW FULL RESPONSE LIST"),
+            showFullResponseList && React.createElement("div", { className: "responseGroups" },
+                React.createElement("div", { className: "responseGroup" },
+                    React.createElement("div", { className: "responseGroupTitle" }, `PLAYING — ${currentPlayers.length}`),
+                    React.createElement("div", { className: "responseGroupText" }, currentPlayers.length ? currentPlayers.join(", ") : "None")),
+                React.createElement("div", { className: "responseGroup" },
+                    React.createElement("div", { className: "responseGroupTitle" }, `UNAVAILABLE — ${currentUnavailable.length}`),
+                    React.createElement("div", { className: "responseGroupText" }, currentUnavailable.length ? currentUnavailable.join(", ") : "None")),
+                React.createElement("div", { className: "responseGroup" },
+                    React.createElement("div", { className: "responseGroupTitle" }, `NO RESPONSE — ${noResponsePlayers.length}`),
+                    React.createElement("div", { className: "responseGroupText" }, noResponsePlayers.length ? noResponsePlayers.join(", ") : "None")))
+        ) : React.createElement("div", { className: "players" },
             React.createElement("div", { className: "label" }, effectiveLocked ? "CONFIRMED PLAYERS, UNAVAILABLE, THEN OTHERS" : "CHOOSE PLAYING OR UNAVAILABLE"),
             playerDisplayNames.map(name => {
                 const isIn = currentPlayers.includes(name);
