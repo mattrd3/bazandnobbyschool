@@ -132,15 +132,20 @@
     }
     .yourResponseActions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
     .yourResponseBtn {
-      padding:13px 9px; border-radius:10px; border:1px solid rgba(255,255,255,.8);
-      background:rgba(255,255,255,.10); color:#fff; font-size:13px; font-weight:bold; cursor:pointer;
-      min-height:48px;
+      padding:13px 9px; border-radius:10px; border:1px solid #dde6d9;
+      background:linear-gradient(180deg,#f4f7f0,#e8eee4); color:var(--green);
+      font-size:13px; font-weight:bold; cursor:pointer; min-height:48px;
+      box-shadow:0 3px 10px rgba(46,68,44,.08);
     }
     .yourResponseBtn.selectedYes {
-      background:#fff; border-color:#fff; color:#35583b; box-shadow:0 4px 12px rgba(0,0,0,.12);
+      background:linear-gradient(180deg,#edf5e8,#dbe9d5);
+      border-color:#b8d0b1; color:var(--green);
+      box-shadow:0 4px 12px rgba(46,68,44,.14);
     }
     .yourResponseBtn.selectedNo {
-      background:#fff; border-color:#fff; color:#4e574c; box-shadow:0 4px 12px rgba(0,0,0,.12);
+      background:linear-gradient(180deg,#edf5e8,#dbe9d5);
+      border-color:#b8d0b1; color:var(--green);
+      box-shadow:0 4px 12px rgba(46,68,44,.14);
     }
     .yourResponseBtn:disabled { opacity:.6; cursor:not-allowed; }
     .closedResponseNote { margin-top:10px; text-align:center; color:rgba(255,255,255,.84); font-size:11px; line-height:1.35; }
@@ -371,7 +376,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v66-mockup-player-view";
+const VERSION = "v67";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
