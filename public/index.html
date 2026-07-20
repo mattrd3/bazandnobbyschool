@@ -106,16 +106,16 @@
     .userStatusCue.unavailable { color:#667064; background:#f7f7f2; }
     .userStatusCue.noresponse { color:var(--warning); background:#fff8df; }
     .playerFocused { padding:16px; display:flex; flex-direction:column; gap:12px; }
-    .yourResponseCard { border:1px solid #244c2b; background:linear-gradient(135deg,#2f5d35,#244c2b); border-radius:12px; padding:14px; box-shadow:0 10px 28px rgba(36,76,43,.24); }
+    .yourResponseCard { border:1px solid #3f6847; background:linear-gradient(135deg,#4f7a55,#3f6847); border-radius:12px; padding:14px; box-shadow:0 9px 24px rgba(63,104,71,.20); }
     .yourResponseCard .label { color:rgba(255,255,255,.82); }
     .yourResponseName { color:#fff; font-size:18px; font-weight:bold; margin-top:3px; }
     .yourResponseStatus { margin-top:10px; padding:11px 12px; border-radius:9px; text-align:center; font-size:13px; font-weight:bold; border:1px solid rgba(255,255,255,.45); }
-    .yourResponseStatus.playing { background:#f4fff0; color:#244c2b; border-color:#fff; }
+    .yourResponseStatus.playing { background:#f4fff0; color:#35583b; border-color:#fff; }
     .yourResponseStatus.unavailable { background:#f3f3ee; color:#4f5a4d; border-color:#fff; }
     .yourResponseStatus.none { background:#fff4c9; color:#6d5418; border-color:#fff; }
     .yourResponseActions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
     .yourResponseBtn { padding:13px 9px; border-radius:10px; border:1px solid rgba(255,255,255,.65); background:rgba(255,255,255,.14); color:#fff; font-size:13px; font-weight:bold; cursor:pointer; }
-    .yourResponseBtn.selectedYes { background:#fff; border-color:#fff; color:#244c2b; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+    .yourResponseBtn.selectedYes { background:#fff; border-color:#fff; color:#35583b; box-shadow:0 3px 10px rgba(0,0,0,.12); }
     .yourResponseBtn.selectedNo { background:#fff; border-color:#fff; color:#4e574c; box-shadow:0 3px 10px rgba(0,0,0,.12); }
     .yourResponseBtn:disabled { opacity:.55; cursor:not-allowed; }
     .confirmedPanel { border:1px solid var(--border); background:rgba(255,253,247,.82); border-radius:12px; padding:13px; }
@@ -310,7 +310,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v65.1-player-focus-highlight";
+const VERSION = "v65.2-player-focus-soft-highlight";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
