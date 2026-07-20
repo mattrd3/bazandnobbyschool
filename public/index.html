@@ -106,16 +106,17 @@
     .userStatusCue.unavailable { color:#667064; background:#f7f7f2; }
     .userStatusCue.noresponse { color:var(--warning); background:#fff8df; }
     .playerFocused { padding:16px; display:flex; flex-direction:column; gap:12px; }
-    .yourResponseCard { border:1px solid var(--border-strong); background:var(--panel); border-radius:12px; padding:14px; box-shadow:var(--shadow); }
-    .yourResponseName { color:var(--green); font-size:16px; font-weight:bold; margin-top:3px; }
-    .yourResponseStatus { margin-top:10px; padding:11px 12px; border-radius:9px; text-align:center; font-size:13px; font-weight:bold; border:1px solid var(--border); }
-    .yourResponseStatus.playing { background:var(--green-soft); color:var(--green); border-color:var(--green-2); }
-    .yourResponseStatus.unavailable { background:#f4f4ef; color:#60685e; }
-    .yourResponseStatus.none { background:#fff8df; color:var(--warning); }
+    .yourResponseCard { border:1px solid #244c2b; background:linear-gradient(135deg,#2f5d35,#244c2b); border-radius:12px; padding:14px; box-shadow:0 10px 28px rgba(36,76,43,.24); }
+    .yourResponseCard .label { color:rgba(255,255,255,.82); }
+    .yourResponseName { color:#fff; font-size:18px; font-weight:bold; margin-top:3px; }
+    .yourResponseStatus { margin-top:10px; padding:11px 12px; border-radius:9px; text-align:center; font-size:13px; font-weight:bold; border:1px solid rgba(255,255,255,.45); }
+    .yourResponseStatus.playing { background:#f4fff0; color:#244c2b; border-color:#fff; }
+    .yourResponseStatus.unavailable { background:#f3f3ee; color:#4f5a4d; border-color:#fff; }
+    .yourResponseStatus.none { background:#fff4c9; color:#6d5418; border-color:#fff; }
     .yourResponseActions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
-    .yourResponseBtn { padding:13px 9px; border-radius:10px; border:1px solid var(--border-strong); background:var(--panel-soft); color:var(--green); font-size:13px; font-weight:bold; cursor:pointer; }
-    .yourResponseBtn.selectedYes { background:linear-gradient(135deg,#dcebd4,#c8dfbd); border-color:var(--green-2); }
-    .yourResponseBtn.selectedNo { background:#e9ece3; border-color:#8f9a89; color:#4e574c; }
+    .yourResponseBtn { padding:13px 9px; border-radius:10px; border:1px solid rgba(255,255,255,.65); background:rgba(255,255,255,.14); color:#fff; font-size:13px; font-weight:bold; cursor:pointer; }
+    .yourResponseBtn.selectedYes { background:#fff; border-color:#fff; color:#244c2b; box-shadow:0 3px 10px rgba(0,0,0,.12); }
+    .yourResponseBtn.selectedNo { background:#fff; border-color:#fff; color:#4e574c; box-shadow:0 3px 10px rgba(0,0,0,.12); }
     .yourResponseBtn:disabled { opacity:.55; cursor:not-allowed; }
     .confirmedPanel { border:1px solid var(--border); background:rgba(255,253,247,.82); border-radius:12px; padding:13px; }
     .confirmedPanelTitle { color:var(--green); font-size:12px; font-weight:bold; letter-spacing:.06em; margin-bottom:9px; }
@@ -309,7 +310,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v65-player-focus";
+const VERSION = "v65.1-player-focus-highlight";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -1417,7 +1418,7 @@ ${APP_URL}`;
                 React.createElement("div", { className: "yourResponseActions" },
                     React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "playing" ? "selectedYes" : ""}`, disabled: effectiveLocked, onClick: () => choosePlaying(playerName) }, "YES — PLAYING"),
                     React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "unavailable" ? "selectedNo" : ""}`, disabled: effectiveLocked, onClick: () => setPlayerStatus(playerName, loggedInDayStatus === "unavailable" ? "none" : "unavailable", "full_list") }, "NO — UNAVAILABLE")),
-                effectiveLocked && React.createElement("div", { className: "key", style: { marginTop: 9, textAlign: "center" } }, "Bookings are closed. Contact admin if your response needs changing.")),
+                effectiveLocked && React.createElement("div", { className: "key", style: { marginTop: 9, textAlign: "center", color: "rgba(255,255,255,.82)" } }, "Bookings are closed. Contact admin if your response needs changing.")),
             React.createElement("div", { className: "confirmedPanel" },
                 React.createElement("div", { className: "confirmedPanelTitle" }, `CONFIRMED PLAYERS — ${currentPlayers.length}`),
                 React.createElement("div", { className: "confirmedPanelChips" }, currentPlayers.length
