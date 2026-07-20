@@ -376,7 +376,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v67";
+const VERSION = "v68";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -1493,7 +1493,7 @@ ${APP_URL}`;
                     React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "playing" ? "selectedYes" : ""}`, disabled: effectiveLocked, onClick: () => choosePlaying(playerName) }, "✓  YES — PLAYING"),
                     React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "unavailable" ? "selectedNo" : ""}`, disabled: effectiveLocked, onClick: () => setPlayerStatus(playerName, loggedInDayStatus === "unavailable" ? "none" : "unavailable", "full_list") }, "×  NO — UNAVAILABLE")),
                 effectiveLocked && React.createElement("div", { className: "closedResponseNote" }, "Bookings are closed. Contact admin if your response needs changing.")),
-            React.createElement("div", { className: "confirmedPanel" },
+            !effectiveLocked && React.createElement("div", { className: "confirmedPanel" },
                 React.createElement("div", { className: "confirmedPanelTitleRow" },
                     React.createElement("span", { className: "confirmedPanelIcon", "aria-hidden": "true" }, "♟"),
                     React.createElement("div", { className: "confirmedPanelTitle" }, `CONFIRMED PLAYERS (${currentPlayers.length})`)),
