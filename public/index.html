@@ -105,31 +105,92 @@
     .userStatusCue { margin-top:5px; font-size:12px; color:var(--green); background:rgba(220,235,212,.72); border:1px solid var(--border); border-radius:999px; display:inline-block; padding:4px 8px; }
     .userStatusCue.unavailable { color:#667064; background:#f7f7f2; }
     .userStatusCue.noresponse { color:var(--warning); background:#fff8df; }
-    .playerFocused { padding:16px; display:flex; flex-direction:column; gap:12px; }
-    .yourResponseCard { border:1px solid #3f6847; background:linear-gradient(135deg,#4f7a55,#3f6847); border-radius:12px; padding:14px; box-shadow:0 9px 24px rgba(63,104,71,.20); }
-    .yourResponseCard .label { color:rgba(255,255,255,.82); }
-    .yourResponseName { color:#fff; font-size:18px; font-weight:bold; margin-top:3px; }
-    .yourResponseStatus { margin-top:10px; padding:11px 12px; border-radius:9px; text-align:center; font-size:13px; font-weight:bold; border:1px solid rgba(255,255,255,.45); }
-    .yourResponseStatus.playing { background:#f4fff0; color:#35583b; border-color:#fff; }
-    .yourResponseStatus.unavailable { background:#f3f3ee; color:#4f5a4d; border-color:#fff; }
-    .yourResponseStatus.none { background:#fff4c9; color:#6d5418; border-color:#fff; }
-    .yourResponseActions { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin-top:10px; }
-    .yourResponseBtn { padding:13px 9px; border-radius:10px; border:1px solid rgba(255,255,255,.65); background:rgba(255,255,255,.14); color:#fff; font-size:13px; font-weight:bold; cursor:pointer; }
-    .yourResponseBtn.selectedYes { background:#fff; border-color:#fff; color:#35583b; box-shadow:0 3px 10px rgba(0,0,0,.12); }
-    .yourResponseBtn.selectedNo { background:#fff; border-color:#fff; color:#4e574c; box-shadow:0 3px 10px rgba(0,0,0,.12); }
-    .yourResponseBtn:disabled { opacity:.55; cursor:not-allowed; }
-    .confirmedPanel { border:1px solid var(--border); background:rgba(255,253,247,.82); border-radius:12px; padding:13px; }
-    .confirmedPanelTitle { color:var(--green); font-size:12px; font-weight:bold; letter-spacing:.06em; margin-bottom:9px; }
+    .playerFocused { padding:16px; display:flex; flex-direction:column; gap:14px; }
+    .yourResponseCard {
+      border:1px solid #6f9775;
+      background:linear-gradient(135deg,#7fa985 0%,#6f9976 56%,#6b9371 100%);
+      border-radius:15px;
+      padding:16px;
+      box-shadow:0 10px 26px rgba(63,104,71,.20);
+      color:#fff;
+    }
+    .yourResponseTop { display:flex; gap:13px; align-items:center; }
+    .responseAvatar {
+      width:58px; height:58px; min-width:58px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      background:rgba(37,83,46,.68); border:1px solid rgba(255,255,255,.18);
+      font-size:28px; color:#fff;
+    }
+    .yourResponseMeta { min-width:0; flex:1; }
+    .yourResponseCard .label { color:rgba(255,255,255,.88); margin-bottom:5px; }
+    .yourResponseName { color:#fff; font-size:21px; font-weight:bold; margin-top:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .yourResponseStatusLine { margin-top:7px; display:flex; gap:7px; align-items:center; color:#fff; font-size:13px; line-height:1.3; }
+    .yourResponseStatusLine strong { font-weight:bold; }
+    .statusTick {
+      width:22px; height:22px; border:1px solid rgba(255,255,255,.75); border-radius:50%;
+      display:inline-flex; align-items:center; justify-content:center; font-size:13px; flex:0 0 auto;
+    }
+    .yourResponseActions { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px; }
+    .yourResponseBtn {
+      padding:13px 9px; border-radius:10px; border:1px solid rgba(255,255,255,.8);
+      background:rgba(255,255,255,.10); color:#fff; font-size:13px; font-weight:bold; cursor:pointer;
+      min-height:48px;
+    }
+    .yourResponseBtn.selectedYes {
+      background:#fff; border-color:#fff; color:#35583b; box-shadow:0 4px 12px rgba(0,0,0,.12);
+    }
+    .yourResponseBtn.selectedNo {
+      background:#fff; border-color:#fff; color:#4e574c; box-shadow:0 4px 12px rgba(0,0,0,.12);
+    }
+    .yourResponseBtn:disabled { opacity:.6; cursor:not-allowed; }
+    .closedResponseNote { margin-top:10px; text-align:center; color:rgba(255,255,255,.84); font-size:11px; line-height:1.35; }
+    .confirmedPanel {
+      border:1px solid var(--border); background:rgba(255,253,247,.93);
+      border-radius:14px; padding:14px; box-shadow:0 5px 18px rgba(46,68,44,.08);
+    }
+    .confirmedPanelTitleRow { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+    .confirmedPanelIcon { font-size:20px; }
+    .confirmedPanelTitle { color:var(--green); font-size:13px; font-weight:bold; letter-spacing:.04em; }
     .confirmedPanelChips { display:flex; flex-wrap:wrap; gap:7px; }
-    .confirmedPlayerChip { background:#fff; border:1px solid var(--border); border-radius:999px; padding:7px 10px; color:var(--green); font-size:13px; }
-    .responseCounts { padding:10px 12px; border-radius:10px; background:var(--panel-soft); border:1px solid var(--border); color:var(--muted); font-size:12px; line-height:1.45; text-align:center; }
-    .fullResponseToggle { width:100%; padding:11px 12px; border-radius:9px; border:1px solid var(--border-strong); background:var(--panel); color:var(--green); font-size:12px; font-weight:bold; cursor:pointer; }
+    .confirmedPlayerChip {
+      background:linear-gradient(180deg,#f4f7f0,#e8eee4);
+      border:1px solid #dde6d9; border-radius:999px; padding:8px 11px;
+      color:var(--green); font-size:12px; font-weight:bold;
+    }
+    .groupEncouragement { margin-top:11px; color:var(--muted); font-size:12px; line-height:1.4; }
+    .responseCounts {
+      display:grid; grid-template-columns:repeat(3,1fr); gap:0;
+      border:1px solid var(--border); border-radius:12px; overflow:hidden;
+      background:linear-gradient(180deg,#f8faf5,#eef3ea);
+    }
+    .responseCountItem { padding:11px 7px; text-align:center; border-right:1px solid var(--border); }
+    .responseCountItem:last-child { border-right:0; }
+    .responseCountNumber { font-size:22px; font-weight:bold; line-height:1; }
+    .responseCountLabel { margin-top:5px; font-size:10px; font-weight:bold; letter-spacing:.04em; }
+    .responseCountItem.playing .responseCountNumber,
+    .responseCountItem.playing .responseCountLabel { color:#3f7448; }
+    .responseCountItem.unavailable .responseCountNumber,
+    .responseCountItem.unavailable .responseCountLabel { color:#b27a18; }
+    .responseCountItem.none .responseCountNumber,
+    .responseCountItem.none .responseCountLabel { color:#b54343; }
+    .fullResponseToggle {
+      width:100%; padding:12px; border-radius:10px; border:1px solid #759d7a;
+      background:#fff; color:var(--green); font-size:12px; font-weight:bold; cursor:pointer;
+      display:flex; align-items:center; justify-content:center; gap:8px;
+    }
     .responseGroups { border:1px solid var(--border); border-radius:11px; overflow:hidden; background:var(--panel); }
     .responseGroup { padding:11px 12px; border-bottom:1px solid var(--border); }
     .responseGroup:last-child { border-bottom:0; }
     .responseGroupTitle { color:var(--green); font-size:11px; font-weight:bold; margin-bottom:5px; }
     .responseGroupText { color:var(--muted); font-size:12px; line-height:1.45; }
-
+    @media(max-width:430px){
+      .yourResponseTop { align-items:flex-start; }
+      .responseAvatar { width:50px; height:50px; min-width:50px; font-size:24px; }
+      .yourResponseName { font-size:19px; }
+      .yourResponseActions { grid-template-columns:1fr; }
+      .responseCountNumber { font-size:20px; }
+      .responseCountLabel { font-size:9px; }
+    }
     .comp { color: var(--warning); font-size:12px; margin-top:3px; }
     .key { color: var(--muted-2); font-size:11px; margin-top:3px; }
     .count { color: var(--muted); font-size:13px; text-align:right; }
@@ -310,7 +371,7 @@ registerWeekendGolfServiceWorker();
 
 const { useEffect, useMemo, useState } = React;
 const ADMIN_PIN = "2727";
-const VERSION = "v65.2-player-focus-soft-highlight";
+const VERSION = "v66-mockup-player-view";
 const APP_URL = "https://bazandnobbyschool.pages.dev";
 const INITIAL_MEMBERS = ["Baby Dave", "Bob", "Colin", "Danny", "Dean", "Doc", "Ethan", "Jason", "Kevin", "Lewis", "Major", "Mark Mark", "Matt", "Meeky", "Muller", "Nathan", "Pedders", "Ryan", "Sam", "Simon H", "Wayne"];
 const FIXTURE_COMPS = {
@@ -1412,20 +1473,43 @@ ${APP_URL}`;
                 p)) : React.createElement("span", { style: { color: "#4a6a4a", fontSize: 13 } }, "No players confirmed yet."))),
         normalPlayerMode ? React.createElement("div", { className: "playerFocused" },
             React.createElement("div", { className: "yourResponseCard" },
-                React.createElement("div", { className: "label" }, "YOUR RESPONSE"),
-                React.createElement("div", { className: "yourResponseName" }, playerName),
-                React.createElement("div", { className: `yourResponseStatus ${loggedInDayStatus}` }, responseStatusLabel),
+                React.createElement("div", { className: "yourResponseTop" },
+                    React.createElement("div", { className: "responseAvatar", "aria-hidden": "true" }, "♙"),
+                    React.createElement("div", { className: "yourResponseMeta" },
+                        React.createElement("div", { className: "label" }, "YOUR RESPONSE"),
+                        React.createElement("div", { className: "yourResponseName" }, playerName.toUpperCase()),
+                        React.createElement("div", { className: "yourResponseStatusLine" },
+                            React.createElement("span", { className: "statusTick" }, loggedInDayStatus === "playing" ? "✓" : loggedInDayStatus === "unavailable" ? "×" : "?"),
+                            React.createElement("span", null,
+                                loggedInDayStatus === "playing" ? React.createElement(React.Fragment, null, "You are currently ", React.createElement("strong", null, "Playing")) :
+                                loggedInDayStatus === "unavailable" ? React.createElement(React.Fragment, null, "You are currently ", React.createElement("strong", null, "Unavailable")) :
+                                React.createElement(React.Fragment, null, "You have ", React.createElement("strong", null, "not replied yet")))))),
                 React.createElement("div", { className: "yourResponseActions" },
-                    React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "playing" ? "selectedYes" : ""}`, disabled: effectiveLocked, onClick: () => choosePlaying(playerName) }, "YES — PLAYING"),
-                    React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "unavailable" ? "selectedNo" : ""}`, disabled: effectiveLocked, onClick: () => setPlayerStatus(playerName, loggedInDayStatus === "unavailable" ? "none" : "unavailable", "full_list") }, "NO — UNAVAILABLE")),
-                effectiveLocked && React.createElement("div", { className: "key", style: { marginTop: 9, textAlign: "center", color: "rgba(255,255,255,.82)" } }, "Bookings are closed. Contact admin if your response needs changing.")),
+                    React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "playing" ? "selectedYes" : ""}`, disabled: effectiveLocked, onClick: () => choosePlaying(playerName) }, "✓  YES — PLAYING"),
+                    React.createElement("button", { className: `yourResponseBtn ${loggedInDayStatus === "unavailable" ? "selectedNo" : ""}`, disabled: effectiveLocked, onClick: () => setPlayerStatus(playerName, loggedInDayStatus === "unavailable" ? "none" : "unavailable", "full_list") }, "×  NO — UNAVAILABLE")),
+                effectiveLocked && React.createElement("div", { className: "closedResponseNote" }, "Bookings are closed. Contact admin if your response needs changing.")),
             React.createElement("div", { className: "confirmedPanel" },
-                React.createElement("div", { className: "confirmedPanelTitle" }, `CONFIRMED PLAYERS — ${currentPlayers.length}`),
+                React.createElement("div", { className: "confirmedPanelTitleRow" },
+                    React.createElement("span", { className: "confirmedPanelIcon", "aria-hidden": "true" }, "♟"),
+                    React.createElement("div", { className: "confirmedPanelTitle" }, `CONFIRMED PLAYERS (${currentPlayers.length})`)),
                 React.createElement("div", { className: "confirmedPanelChips" }, currentPlayers.length
-                    ? currentPlayers.map(name => React.createElement("span", { className: "confirmedPlayerChip", key: name }, teePreferenceIcon(name), name))
-                    : React.createElement("span", { className: "responseGroupText" }, "No players confirmed yet."))),
-            React.createElement("div", { className: "responseCounts" }, `${currentPlayers.length} playing · ${currentUnavailable.length} unavailable · ${noResponsePlayers.length} not replied`),
-            React.createElement("button", { className: "fullResponseToggle", onClick: () => setShowFullResponseList(v => !v) }, showFullResponseList ? "HIDE FULL RESPONSE LIST" : "VIEW FULL RESPONSE LIST"),
+                    ? currentPlayers.map(name => React.createElement("span", { className: "confirmedPlayerChip", key: name }, name))
+                    : React.createElement("span", { className: "responseGroupText" }, "No players confirmed yet.")),
+                currentPlayers.length >= 8 && React.createElement("div", { className: "groupEncouragement" }, "Great — we’re building a good group! ⛳")),
+            React.createElement("div", { className: "responseCounts" },
+                React.createElement("div", { className: "responseCountItem playing" },
+                    React.createElement("div", { className: "responseCountNumber" }, currentPlayers.length),
+                    React.createElement("div", { className: "responseCountLabel" }, "PLAYING")),
+                React.createElement("div", { className: "responseCountItem unavailable" },
+                    React.createElement("div", { className: "responseCountNumber" }, currentUnavailable.length),
+                    React.createElement("div", { className: "responseCountLabel" }, "UNAVAILABLE")),
+                React.createElement("div", { className: "responseCountItem none" },
+                    React.createElement("div", { className: "responseCountNumber" }, noResponsePlayers.length),
+                    React.createElement("div", { className: "responseCountLabel" }, "NOT REPLIED"))),
+            React.createElement("button", { className: "fullResponseToggle", onClick: () => setShowFullResponseList(v => !v) },
+                React.createElement("span", null, "☷"),
+                showFullResponseList ? "HIDE FULL RESPONSE LIST" : "VIEW FULL RESPONSE LIST",
+                React.createElement("span", null, showFullResponseList ? "⌃" : "⌄")),
             showFullResponseList && React.createElement("div", { className: "responseGroups" },
                 React.createElement("div", { className: "responseGroup" },
                     React.createElement("div", { className: "responseGroupTitle" }, `PLAYING — ${currentPlayers.length}`),
